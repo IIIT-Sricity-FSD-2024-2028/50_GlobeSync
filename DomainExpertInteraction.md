@@ -1,16 +1,13 @@
 ## Summary of the Interaction
 
-**Domain:** Travel & Hospitality Platform(Beyond Booking)
+## Basic Information
 
-**Problem Statement:** Travel Itinerary Planning and Coordination Platform
-
-**Date of Interaction:** 2/2/2026
-
-**Mode of Interaction:** Video Call
-
-**Duration:** 31 minutes
-
-**Publicly Accessible Video Link:** (https://drive.google.com/file/d/1Ra8hbP-cB71sKpJyG9WCIonaCrUrV_7_/view?usp=sharing)
+    Domain: Travel & Hospitality – Itinerary Planning and Coordination  
+    Problem statement: Travel Itinerary Planning and Coordination Platform  
+    Date of interaction: 2nd Feb, 2026  
+    Mode of interaction: video call  
+    Duration (in-minutes): 31 
+    Publicly accessible Video link: (https://drive.google.com/file/d/1Ra8hbP-cB71sKpJyG9WCIonaCrUrV_7_/view?usp=sharing)
 
 ---
 
