@@ -1,8 +1,83 @@
 # Domain: Travel & Hospitality
 # Problem Statement: Travel Itinerary Planning and Coordination Platform
 # Last Updated: 2025-03-02
+Domainterm1 : Traveler
 
-DomainTerm1: Itinerary
+definition :
+    AN end user of the platform who plans trips, participate in itinerary, make 
+    bookings and payment, tracks travel progress, communicate with guides or support 
+    staff, and provide feedback after trip completion.
+examples :
+  - creating a mutliday itinerary for a vacation
+  - Booking a hotel and flight through the platform
+aliases :
+  - Tourist
+  - Customer
+
+
+
+Domainterm2 : Travel Guide
+
+definition : 
+   A service participant responsible for assisting travelers during trips by 
+   managing activites, suggestiong itinerary modificationsn up\datuing trip progress,
+   and communicating real-time conditions to the platform.
+examples :
+  - Responding to traveler queries
+  - Suggesting a new sightseeing route due to rain
+aliases :
+  - Activity coordinator
+
+
+
+Domainterm3 : Admin
+
+definition :
+   A system Administrator who oversees platform operartions,manages user and 
+   providers, monitors transactions, configures integrations, handles escalated
+   complaints, and generates reports and analytics.
+examples :
+  -Viewing monthly booking reports.
+  -Managing user accounts.
+  -Deactivsting a fraudulent provider.
+aliases :
+  - Platform Manager.
+  - Super User
+
+
+
+Domainterm4 : Customer Care
+
+definition :
+  Support personnal responsible for assisting travelers by handling complaints,
+  resolving bookoing issue, coordinating with provider, escalating unresolved 
+  cases, and updating ticket status in the system.
+examples :
+  - Helping a traveler rebook after cancellation
+  - Handling payment failure cases
+aliases :
+   - Help desk
+   - Supporting agent
+
+
+
+Domainterm5 : External Services
+
+definition :
+   Third-party system integrated with the platform to supply booking data,
+   availability information, payment processing, navigation routes, weather
+   forecast, and notification delivery.
+examples :
+  - Airline system confirming seat availability
+  - Map API providing directions
+aliases :
+  -Third-party systems
+  -Partner Platforms
+  
+
+
+DomainTerm6: Itinerary
+
 definition:
   A single structured digital plan that contains all travel related details such as
   destinations, transport, accommodation, activities, dates, and confirmations,
@@ -14,7 +89,10 @@ aliases:
   - Trip Plan
   - Travel Schedule
 
-DomainTerm2: Service Availability
+
+
+DomainTerm7: Service Availability
+
 definition:
   Real-time information about whether a transport seat, hotel room, or activity slot
   is free for the selected date and time, obtained from external provider systems
@@ -26,7 +104,10 @@ aliases:
   - Availability Check
   - Inventory Status
 
-DomainTerm3: Coordination
+
+
+DomainTerm8: Coordination
+
 definition:
   Continuous communication and collaboration between traveler, guide, customer care,
   and external services to finalize, update, and execute the itinerary smoothly.
@@ -37,20 +118,10 @@ aliases:
   - Collaboration
   - Trip Coordination
 
-DomainTerm4: External Services
-definition:
-  Third-party systems integrated with the platform to provide transport booking,
-  accommodation details, payment processing, weather information, and map services
-  required for itinerary planning and execution.
-examples:
-  - Payment gateway processing a travel payment
-  - Map API providing route between two destinations
-  - Weather API suggesting rain alert for a trip day
-aliases:
-  - Third Party Services
-  - Provider Systems
 
-DomainTerm5: Exception Handling
+
+DomainTerm9: Exception Handling
+
 definition:
   The process of managing unexpected situations such as delays, cancellations,
   payment failures, or provider changes while keeping the itinerary consistent.
@@ -61,18 +132,10 @@ aliases:
   - Issue Management
   - Change Handling
 
-DomainTerm6: Support Ticket
-definition:
-  A formal request created by the traveler or guide to report a problem and seek
-  assistance from customer care regarding booking or itinerary issues.
-examples:
-  - Raising a ticket for wrong hotel allocation
-  - Requesting refund through customer care
-aliases:
-  - Help Request
-  - Complaint Ticket
 
-DomainTerm7: Notification
+
+DomainTerm10: Notification
+
 definition:
   Automated messages sent by the system to inform actors about itinerary updates,
   confirmations, delays, or required actions.
@@ -83,18 +146,10 @@ aliases:
   - Alert
   - System Message
 
-DomainTerm8: Single Source of Truth
-definition:
-  The principle that the platform maintains one central and updated version of the
-  itinerary so that all actors view the same correct information at any time.
-examples:
-  - Traveler and guide seeing identical updated schedule
-  - System overwriting old details after provider confirmation
-aliases:
-  - Central Record
-  - Master Itinerary
 
-DomainTerm9: Logging
+
+DomainTerm11: Logging
+
 definition:
   Recording of all important user actions, provider responses, and system events
   to enable tracking, auditing, and dispute resolution.
@@ -104,3 +159,100 @@ examples:
 aliases:
   - Audit Logs
   - Activity History
+
+
+  
+DomainTerm12 : Booking
+
+definition :
+   The confirmed reservation of a transport service,accommodation ,or activity made 
+   through the plastform after availbility verification and payment.
+examples:
+  -Bokking a hotelroom for selected updates
+  -Reseving a cab for airport pickup
+ aliases:
+  -confirmed order
+  -reservation
+
+
+
+Domainterm13 : Payment Transaction
+
+definition :
+  A financial operation initiated by a traveler through the platform and processed 
+  by an external payment gateway to computer booking or refunds.
+examples :
+  -paying for a flight ticket
+  -refund issued after cancellation
+  aliases :
+  - Financial Transactions
+  -Billing operation
+
+
+
+Domainterm14 : Cancellation
+
+definition :
+   The process of terminating a previously confirmed booking due to user request, 
+   provider unavailability, or exceptional condition.  
+examples :
+   -cancelling a hotel stay
+   - Flight cancelled due to weather.
+aliases :
+   - Booking termination
+   - Service withdrawl
+
+
+
+Domainterm15 : Refund
+
+definition : 
+    The return of monry to the traveler after a cancelled booking, processed 
+    through the payment gateway and recorded in system logs.
+examples :
+   - Refund after hotel cancellation.
+   - Partial refund for rescheduled activity.
+aliases :
+   -Reimbursement 
+   -Payment reversal
+
+
+
+Domainterm16 : User Profile
+
+definition :
+    A personal account maintained for each actor containing identity details,
+    preferences, trip history, and communication setting.
+examples :
+  -Traveler profile with saved document
+  -guide profile with rating
+
+
+
+Domainterm17 : Escalation
+
+definition :
+   Thee process of forwading unresolved complaints or technical issue from 
+   customer care to higher-level resolution.
+examples :
+   -payment failure escalated to admin
+   -provider dispute forwarded for investigation
+aliases :
+  - Higher-level Support
+
+
+
+Domainterm18 : Trip status
+
+definition : 
+   The real-time State of an itinerary such as planned, confirmed,in-progress,
+   delayed,canceled, or completed.
+examples :
+  -Trip marked "Delayed" due to weather.
+  - Ststus changed to "Completed".
+aliases :
+  -Travel State
+  -Journey State
+
+
+  
