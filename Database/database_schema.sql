@@ -26,9 +26,7 @@ CREATE TABLE TravelGuide (
     name VARCHAR(100),
     language VARCHAR(50),
     experience INT,
-    contact VARCHAR(15),
-    admin_id INT,
-    FOREIGN KEY (admin_id) REFERENCES Administrator(admin_id)
+    contact VARCHAR(15)
 );
 
 CREATE TABLE Trip (
@@ -56,15 +54,17 @@ CREATE TABLE Booking (
     booking_id INT PRIMARY KEY,
     booking_date DATE,
     status VARCHAR(50),
+    traveler_id INT,
     trip_id INT,
+    FOREIGN KEY (traveler_id) REFERENCES Traveler(traveler_id),
     FOREIGN KEY (trip_id) REFERENCES Trip(trip_id)
 );
 
 CREATE TABLE ExternalService (
     service_id INT PRIMARY KEY,
     service_type VARCHAR(100),
-    booking_id INT,
-    FOREIGN KEY (booking_id) REFERENCES Booking(booking_id)
+    payment_id_id INT,
+    FOREIGN KEY (payment_id) REFERENCES Payment(payment_id)
 );
 
 CREATE TABLE Payment (
@@ -73,11 +73,12 @@ CREATE TABLE Payment (
     payment_date DATE,
     method VARCHAR(50),
     status VARCHAR(50),
-    booking_id INT,
-    FOREIGN KEY (booking_id) REFERENCES Booking(booking_id)
+    traveler_id INT,
+    FOREIGN KEY (traveler_id) REFERENCES Traveler(traveler_id)
 );
 
-CREATE TABLE Refund (refund_id INT PRIMARY KEY,
+CREATE TABLE Refund (
+  refund_id INT PRIMARY KEY,
   payment_id INT,
   refund_date DATE,
   refund_time TIME,
@@ -86,12 +87,12 @@ CREATE TABLE Refund (refund_id INT PRIMARY KEY,
 
 CREATE TABLE Expense (
     expense_id INT PRIMARY KEY,
-    trip_id INT,
-    guide_id INT,
     date DATE,
     budget DECIMAL(10,2),
-    FOREIGN KEY (trip_id) REFERENCES Trip(trip_id),
-    FOREIGN KEY (guide_id) REFERENCES TravelGuide(guide_id)
+    guide_id INT,
+    trip_id INT,
+    FOREIGN KEY (guide_id) REFERENCES TravelGuide(guide_id),
+    FOREIGN KEY (trip_id) REFERENCES Trip(trip_id)
 );
 
 CREATE TABLE SupportTicket (
