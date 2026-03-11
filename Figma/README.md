@@ -1,5 +1,7 @@
-GlobeSync — Figma Design README
+GlobeSync — Figma Design
+
 Overview
+
 GlobeSync is a travel itinerary and coordination platform. The Figma file contains designs and workflows for all user roles: Public, Traveler, Guide, CustomerCare, and Admin.
 
   Goals
