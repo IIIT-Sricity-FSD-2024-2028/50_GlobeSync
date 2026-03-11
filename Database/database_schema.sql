@@ -64,8 +64,10 @@ CREATE TABLE Payment (
     status VARCHAR(20),
     traveler_id INT,
     service_id INT,
+    booking_id INT, 
     FOREIGN KEY (traveler_id) REFERENCES Traveler(traveler_id),
     FOREIGN KEY (service_id) REFERENCES ExternalService(service_id)
+    FOREIGN KEY (booking_id) REFERENCES  Booking(booking_id)
 );
 
 CREATE TABLE Itinerary (
