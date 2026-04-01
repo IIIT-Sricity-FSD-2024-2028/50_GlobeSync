@@ -1,108 +1,138 @@
+CREATE DATABASE travel_booking;
+USE travel_booking;
+
+CREATE TABLE Package (
+    package_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100),
+    description TEXT,
+    destination VARCHAR(100),
+    price DECIMAL(10,2)
+);
+
+CREATE TABLE PackageBooking (
+    packagebooking_id INT AUTO_INCREMENT PRIMARY KEY,
+    package_id INT,
+    booking_date DATE,
+    status VARCHAR(50),
+    traveler_id INT,
+    FOREIGN KEY (package_id) REFERENCES Package(package_id)
+);
+
+CREATE TABLE Traveler (
+    traveler_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100),
+    phone VARCHAR(20),
+    gender VARCHAR(10),
+    age INT
+);
+
 CREATE TABLE Administrator (
-    admin_id INT PRIMARY KEY,
+    admin_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100),
     email VARCHAR(100),
     password VARCHAR(100)
 );
 
-CREATE TABLE Traveler (
-    traveler_id INT PRIMARY KEY,
+CREATE TABLE TravelGuide (
+    guide_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100),
-    phone_number VARCHAR(15),
-    email VARCHAR(100),
-    gender VARCHAR(10),
-    age INT
-);
-
-CREATE TABLE CustomerCare (
-    care_id INT PRIMARY KEY,
-    name VARCHAR(100),
+    language VARCHAR(50),
+    experience INT,
     contact VARCHAR(50)
 );
 
-CREATE TABLE TravelGuide (
-    guide_id INT PRIMARY KEY,
-    language VARCHAR(50),
-    experience INT,
-    contact VARCHAR(50),
-    admin_id INT,
-    FOREIGN KEY (admin_id) REFERENCES Administrator(admin_id)
-);
-
-CREATE TABLE ExternalService (
-    service_id INT PRIMARY KEY,
-    service_type VARCHAR(50)
-);
-
 CREATE TABLE Trip (
-    trip_id INT PRIMARY KEY,
+    trip_id INT AUTO_INCREMENT PRIMARY KEY,
     destination VARCHAR(100),
     start_date DATE,
     end_date DATE,
     budget DECIMAL(10,2),
     traveler_id INT,
     guide_id INT,
+    package_id INT,
     FOREIGN KEY (traveler_id) REFERENCES Traveler(traveler_id),
-    FOREIGN KEY (guide_id) REFERENCES TravelGuide(guide_id)
-);
-
-CREATE TABLE Booking (
-    booking_id INT PRIMARY KEY,
-    booking_date DATE,
-    status VARCHAR(20),
-    traveler_id INT,
-    trip_id INT,
-    FOREIGN KEY (traveler_id) REFERENCES Traveler(traveler_id),
-    FOREIGN KEY (trip_id) REFERENCES Trip(trip_id)
-);
-
-CREATE TABLE Payment (
-    payment_id INT PRIMARY KEY,
-    amount DECIMAL(10,2),
-    payment_date DATE,
-    method VARCHAR(30),
-    status VARCHAR(20),
-    traveler_id INT,
-    service_id INT,
-    booking_id INT, 
-    FOREIGN KEY (traveler_id) REFERENCES Traveler(traveler_id),
-    FOREIGN KEY (service_id) REFERENCES ExternalService(service_id)
-    FOREIGN KEY (booking_id) REFERENCES  Booking(booking_id)
+    FOREIGN KEY (guide_id) REFERENCES TravelGuide(guide_id),
+    FOREIGN KEY (package_id) REFERENCES Package(package_id)
 );
 
 CREATE TABLE Itinerary (
-    itinerary_id INT PRIMARY KEY,
+    itinerary_id INT AUTO_INCREMENT PRIMARY KEY,
     trip_id INT,
     day_number INT,
-    activity VARCHAR(255),
+    activity TEXT,
     activity_status VARCHAR(50),
     FOREIGN KEY (trip_id) REFERENCES Trip(trip_id)
 );
 
-CREATE TABLE Expenses (
-    expenses_id INT PRIMARY KEY,
-    date DATE,
-    amount DECIMAL(10,2),
+CREATE TABLE Booking (
+    booking_id INT AUTO_INCREMENT PRIMARY KEY,
+    booking_date DATE,
+    status VARCHAR(50),
+    total_cost DECIMAL(10,2),
     trip_id INT,
-    description VARCHAR(255),
     FOREIGN KEY (trip_id) REFERENCES Trip(trip_id)
 );
 
+CREATE TABLE Expenses (
+    expense_id INT AUTO_INCREMENT PRIMARY KEY,
+    amount DECIMAL(10,2),
+    type VARCHAR(50),
+    trip_id INT,
+    description TEXT,
+    FOREIGN KEY (trip_id) REFERENCES Trip(trip_id)
+);
+
+CREATE TABLE Payment (
+    payment_id INT AUTO_INCREMENT PRIMARY KEY,
+    amount DECIMAL(10,2),
+    payment_date DATE,
+    method VARCHAR(50),
+    status VARCHAR(50),
+    booking_id INT,
+    FOREIGN KEY (booking_id) REFERENCES Booking(booking_id)
+);
+
+CREATE TABLE ExternalService (
+    service_id INT AUTO_INCREMENT PRIMARY KEY,
+    service_type VARCHAR(100),
+    provider_name VARCHAR(100),
+    payment_id INT,
+    FOREIGN KEY (payment_id) REFERENCES Payment(payment_id)
+);
+
+CREATE TABLE Refund (
+    refund_id INT AUTO_INCREMENT PRIMARY KEY,
+    payment_id INT,
+    refund_date DATE,
+    refund_amount DECIMAL(10,2),
+    refund_status VARCHAR(50),
+    FOREIGN KEY (payment_id) REFERENCES Payment(payment_id)
+);
+
+CREATE TABLE Review (
+    review_id INT AUTO_INCREMENT PRIMARY KEY,
+    rating INT,
+    comment TEXT,
+    traveler_id INT,
+    trip_id INT,
+    FOREIGN KEY (traveler_id) REFERENCES Traveler(traveler_id),
+    FOREIGN KEY (trip_id) REFERENCES Trip(trip_id)
+);
+
+CREATE TABLE CustomerCare (
+    care_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100),
+    contact VARCHAR(50)
+);
+
 CREATE TABLE SupportTicket (
-    ticket_id INT PRIMARY KEY,
-    description VARCHAR(255),
+    ticket_id INT AUTO_INCREMENT PRIMARY KEY,
+    issue_description TEXT,
     issue_type VARCHAR(50),
+    status VARCHAR(50),
     traveler_id INT,
     care_id INT,
     FOREIGN KEY (traveler_id) REFERENCES Traveler(traveler_id),
     FOREIGN KEY (care_id) REFERENCES CustomerCare(care_id)
-);
-
-CREATE TABLE Refund (
-    refund_id INT PRIMARY KEY,
-    payment_id INT UNIQUE,
-    refund_date DATE,
-    refund_time TIME,
-    refund_status VARCHAR(20),
-    FOREIGN KEY (payment_id) REFERENCES Payment(payment_id)
 );
