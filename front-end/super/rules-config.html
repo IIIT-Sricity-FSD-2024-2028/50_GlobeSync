@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP — Rules Configuration</title>
+<link rel="stylesheet" href="../static/shared.css">
+<style>
+:root{--primary:#6366f1;--gradient:linear-gradient(135deg,#6366f1 0%,#E8467C 100%);--gradient-soft:linear-gradient(135deg,#f5f3ff 0%,#ffeef5 100%)}
+.toggle-wrap{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border-light)}
+.toggle-wrap:last-child{border-bottom:none}
+.toggle-info .toggle-title{font-weight:600;font-size:14px}
+.toggle-info .toggle-desc{font-size:13px;color:var(--text-muted);margin-top:2px}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:12px;cursor:pointer;transition:background 0.3s}
+.toggle-slider::before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:transform 0.3s}
+.toggle-switch input:checked + .toggle-slider{background:var(--primary)}
+.toggle-switch input:checked + .toggle-slider::before{transform:translateX(20px)}
+.change-item{padding:12px 0;border-bottom:1px solid var(--border-light);display:flex;gap:12px;align-items:flex-start}
+.change-item:last-child{border-bottom:none}
+.change-dot{width:8px;height:8px;border-radius:50%;background:var(--primary);margin-top:5px;flex-shrink:0}
+.slider-wrap{margin-bottom:8px}
+.slider-wrap input[type=range]{width:100%;accent-color:var(--primary)}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:var(--gradient);color:#fff;font-size:18px">🌐</div><div><div class="logo-text">GlobeSync</div><div class="logo-sub">Super User</div></div></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="super-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="users.html"><span class="nav-icon">👥</span>Users</a>
+      <a class="nav-item" href="api-management.html"><span class="nav-icon">🔌</span>API Management</a>
+      <a class="nav-item active" href="rules-config.html"><span class="nav-icon">⚙</span>Rules Config</a>
+      <a class="nav-item" href="reports.html"><span class="nav-icon">📈</span>Reports</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="padding:10px 12px;font-size:12px;color:var(--text-muted);margin-bottom:4px">Logged in as Super User</div>
+      <button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="page-title">Rules Configuration</div><div class="page-subtitle">Manage system rules and settings</div></div>
+      <button class="btn btn-primary" style="background:var(--gradient)" onclick="saveChanges()">💾 Save Changes</button>
+    </div>
+
+    <div class="grid-2">
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <!-- BOOKING RULES -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">📋 Booking Rules</span></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Max Booking Limit: <strong id="limit-display">₹4,00,000</strong></label>
+              <div class="slider-wrap"><input type="range" id="booking-limit" min="0" max="1000000" value="400000" step="10000" oninput="document.getElementById('limit-display').textContent='₹'+parseInt(this.value).toLocaleString('en-IN')"></div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted)"><span>₹0</span><span>₹10,00,000</span></div>
+            </div>
+            <div class="toggle-wrap">
+              <div class="toggle-info"><div class="toggle-title">Auto-confirm bookings</div><div class="toggle-desc">Automatically confirm bookings under ₹40,000</div></div>
+              <label class="toggle-switch"><input type="checkbox" id="auto-confirm"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-wrap">
+              <div class="toggle-info"><div class="toggle-title">Allow cancellations</div><div class="toggle-desc">Enable users to cancel bookings</div></div>
+              <label class="toggle-switch"><input type="checkbox" id="allow-cancel" checked><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-wrap">
+              <div class="toggle-info"><div class="toggle-title">Require guide approval</div><div class="toggle-desc">Trips need guide acceptance before confirmation</div></div>
+              <label class="toggle-switch"><input type="checkbox" id="guide-approval" checked><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAYMENT GATEWAY -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">💳 Payment Gateway</span></div>
+          <div class="card-body">
+            <div class="toggle-wrap">
+              <div class="toggle-info"><div class="toggle-title">Stripe Payment</div><div class="toggle-desc">Enable Stripe payment processing</div></div>
+              <label class="toggle-switch"><input type="checkbox" id="stripe" checked><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-wrap">
+              <div class="toggle-info"><div class="toggle-title">PayPal Payment</div><div class="toggle-desc">Enable PayPal payment processing</div></div>
+              <label class="toggle-switch"><input type="checkbox" id="paypal" checked><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-wrap">
+              <div class="toggle-info"><div class="toggle-title">Razorpay</div><div class="toggle-desc">Payment gateway for Indian market</div></div>
+              <label class="toggle-switch"><input type="checkbox" id="razorpay" checked><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <!-- EXTERNAL API -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">🔌 External API Integration</span></div>
+          <div class="card-body">
+            <div class="toggle-wrap">
+              <div class="toggle-info"><div class="toggle-title">Amadeus API</div><div class="toggle-desc">Flight and hotel booking API</div></div>
+              <label class="toggle-switch"><input type="checkbox" id="amadeus" checked><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-wrap">
+              <div class="toggle-info"><div class="toggle-title">Google Maps API</div><div class="toggle-desc">Location and mapping services</div></div>
+              <label class="toggle-switch"><input type="checkbox" id="gmaps" checked><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-wrap">
+              <div class="toggle-info"><div class="toggle-title">SendGrid Email API</div><div class="toggle-desc">Email notification service</div></div>
+              <label class="toggle-switch"><input type="checkbox" id="sendgrid" checked><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-wrap">
+              <div class="toggle-info"><div class="toggle-title">OpenWeather API</div><div class="toggle-desc">Weather forecasts for destinations</div></div>
+              <label class="toggle-switch"><input type="checkbox" id="weather"><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- RECENT CHANGES -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">🕐 Recent Changes</span></div>
+          <div class="card-body" id="recent-changes">
+            <div class="change-item"><div class="change-dot"></div><div><div style="font-size:14px;font-weight:600">Max booking limit increased to ₹4,00,000</div><div style="font-size:12px;color:var(--text-muted)">Admin • 2h ago</div></div></div>
+            <div class="change-item"><div class="change-dot"></div><div><div style="font-size:14px;font-weight:600">Stripe payment gateway enabled</div><div style="font-size:12px;color:var(--text-muted)">Admin • 1d ago</div></div></div>
+            <div class="change-item"><div class="change-dot"></div><div><div style="font-size:14px;font-weight:600">Auto-confirm bookings disabled</div><div style="font-size:12px;color:var(--text-muted)">Admin • 3d ago</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script>
+if (!Auth.isLoggedIn() || Auth.getRole() !== 'superuser') window.location.href = '../super-login.html';
+
+function saveChanges() {
+  const changes = [];
+  if (document.getElementById('auto-confirm').checked) changes.push('Auto-confirm bookings enabled');
+  if (!document.getElementById('allow-cancel').checked) changes.push('Cancellations disabled');
+  const limit = document.getElementById('booking-limit').value;
+  const container = document.getElementById('recent-changes');
+  const newChange = document.createElement('div');
+  newChange.className = 'change-item';
+  newChange.innerHTML = `<div class="change-dot" style="background:#10b981"></div><div><div style="font-size:14px;font-weight:600">Settings saved — limit set to ₹${parseInt(limit).toLocaleString('en-IN')}</div><div style="font-size:12px;color:var(--text-muted)">Super User • Just now</div></div>`;
+  container.insertBefore(newChange, container.firstChild);
+  showToast('Rules configuration saved! ✓');
+}
+</script>
+</body>
+</html>
+
+

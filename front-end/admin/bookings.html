@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP Admin — Bookings</title>
+<link rel="stylesheet" href="../static/shared.css">
+<style>
+:root{--primary:#E8467C;--gradient:linear-gradient(135deg,#E8467C 0%,#F5A623 100%);--gradient-soft:linear-gradient(135deg,#ffeef5 0%,#fff8ee 100%)}
+.type-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.type-icon.flight{background:#eff6ff}
+.type-icon.hotel{background:#fdf2f8}
+.type-icon.transport{background:#ecfdf5}
+.type-icon.activity{background:#fffbeb}
+.filter-pills{display:flex;gap:8px;flex-wrap:wrap}
+.filter-pill{padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;border:1px solid var(--border-light);background:#fff;cursor:pointer;transition:all 0.2s}
+.filter-pill:hover{border-color:var(--primary);color:var(--primary)}
+.filter-pill.active{background:var(--gradient);color:#fff;border-color:transparent}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);color:#fff;font-size:18px">🛡️</div><div><div class="logo-text">GlobeSync</div><div class="logo-sub">Admin Portal</div></div></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="admin-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item active" href="bookings.html"><span class="nav-icon">🎫</span>Bookings</a>
+      <a class="nav-item" href="trips.html"><span class="nav-icon">📍</span>Trips</a>
+      <a class="nav-item" href="packages.html"><span class="nav-icon">📦</span>Packages</a>
+      <a class="nav-item" href="reviews.html"><span class="nav-icon">⭐</span>Reviews</a>
+      <a class="nav-item" href="reports.html"><span class="nav-icon">📈</span>Reports</a>
+    </nav>
+    <div style="padding:12px;margin-top:auto">
+      <div style="background:#ffeef5;border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:#9d174d;border:1px solid #fecdd3">
+        👔 <strong>Admin Role</strong><br>Operational access only.
+      </div>
+    </div>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="page-title">Bookings Manager</div>
+        <div class="page-subtitle">View and manage all traveler bookings</div>
+      </div>
+      <span class="badge badge-pink" style="padding:6px 14px;font-size:13px">👔 Admin (Restricted)</span>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid stats-grid-4 mb-4">
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Total Bookings</div><div class="stat-value" id="stat-total">0</div></div><div class="stat-icon orange">🎫</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Confirmed</div><div class="stat-value" id="stat-confirmed">0</div></div><div class="stat-icon green">✅</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Pending</div><div class="stat-value" id="stat-pending">0</div></div><div class="stat-icon orange">⏳</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Total Revenue</div><div class="stat-value" id="stat-revenue">₹0</div></div><div class="stat-icon pink">💰</div></div>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="booking-search" placeholder="Search by service, traveler, or ID...">
+        </div>
+        <div class="filter-pills">
+          <button class="filter-pill active" data-filter="all">All</button>
+          <button class="filter-pill" data-filter="Flight">✈ Flights</button>
+          <button class="filter-pill" data-filter="Hotel">🏨 Hotels</button>
+          <button class="filter-pill" data-filter="Transport">🚗 Transport</button>
+          <button class="filter-pill" data-filter="Activity">🎯 Activities</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Service</th>
+              <th>Traveler</th>
+              <th>Trip</th>
+              <th>Date</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="bookings-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script>
+if (!Auth.isLoggedIn() || Auth.getRole() !== 'admin') window.location.href = '../login.html?role=admin';
+
+let activeFilter = 'all';
+
+function loadStats() {
+  document.getElementById('stat-total').textContent = DB.bookings.length;
+  document.getElementById('stat-confirmed').textContent = DB.bookings.filter(b => b.status === 'Confirmed').length;
+  document.getElementById('stat-pending').textContent = DB.bookings.filter(b => b.status === 'Pending').length;
+  document.getElementById('stat-revenue').textContent = formatCurrency(DB.bookings.reduce((s, b) => s + b.amount, 0));
+}
+
+function renderBookings() {
+  const search = document.getElementById('booking-search').value.toLowerCase();
+  let bookings = [...DB.bookings];
+  if (activeFilter !== 'all') bookings = bookings.filter(b => b.type === activeFilter);
+  if (search) bookings = bookings.filter(b => {
+    const traveler = DB.travelers.find(t => t.traveler_id === b.traveler_id);
+    return b.service.toLowerCase().includes(search) ||
+           (traveler && traveler.name.toLowerCase().includes(search)) ||
+           ('bk00' + b.booking_id).includes(search);
+  });
+
+  const typeIcons = { Flight: '✈️', Hotel: '🏨', Transport: '🚗', Activity: '🎯' };
+  const typeClass = { Flight: 'flight', Hotel: 'hotel', Transport: 'transport', Activity: 'activity' };
+
+  document.getElementById('bookings-tbody').innerHTML = bookings.map(b => {
+    const traveler = DB.travelers.find(t => t.traveler_id === b.traveler_id);
+    const trip = DB.trips.find(t => t.trip_id === b.trip_id);
+    return `<tr>
+      <td><span style="font-weight:700;color:var(--primary)">BK00${b.booking_id}</span></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="type-icon ${typeClass[b.type] || 'flight'}">${typeIcons[b.type] || '🎫'}</div>
+          <div>
+            <div style="font-weight:600;font-size:14px">${b.service}</div>
+            <div style="font-size:12px;color:var(--text-muted)">${b.type}</div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div style="font-weight:600">${traveler ? traveler.name : 'Unknown'}</div>
+        <div style="font-size:12px;color:var(--text-muted)">ID: ${b.traveler_id}</div>
+      </td>
+      <td>${trip ? trip.destination : '—'}</td>
+      <td style="font-size:13px">${formatDate(b.booking_date)}</td>
+      <td style="font-weight:700">${formatCurrency(b.amount)}</td>
+      <td>${statusBadge(b.status)}</td>
+      <td>
+        ${b.status === 'Pending' ? `
+          <button class="btn btn-success btn-sm" onclick="confirmBooking(${b.booking_id})">✓</button>
+          <button class="btn btn-danger btn-sm" onclick="cancelBooking(${b.booking_id})">✕</button>
+        ` : `<span style="font-size:12px;color:var(--text-muted)">—</span>`}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function confirmBooking(id) {
+  const b = DB.bookings.find(b => b.booking_id === id);
+  if (b) { b.status = 'Confirmed'; loadStats(); renderBookings(); showToast('Booking BK00' + id + ' confirmed ✓'); }
+}
+
+function cancelBooking(id) {
+  if (!confirm('Cancel this booking?')) return;
+  const b = DB.bookings.find(b => b.booking_id === id);
+  if (b) { b.status = 'Cancelled'; loadStats(); renderBookings(); showToast('Booking BK00' + id + ' cancelled', 'error'); }
+}
+
+// Filter pills
+document.querySelectorAll('.filter-pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    activeFilter = pill.dataset.filter;
+    renderBookings();
+  });
+});
+
+// Search
+document.getElementById('booking-search').addEventListener('input', renderBookings);
+
+loadStats();
+renderBookings();
+</script>
+</body>
+</html>
+
+

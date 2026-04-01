@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP — Traveler Dashboard</title>
+<link rel="stylesheet" href="../static/shared.css">
+<link rel="stylesheet" href="../static/notifications.css">
+<style>
+.welcome-title{font-family:var(--font-main);font-size:32px;font-weight:700;margin-bottom:6px;color:var(--text-primary)}
+.welcome-desc{font-size:15px;color:var(--text-muted);margin-bottom:32px}
+.stats-grid-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.dash-stat-card{background:#fff;border-radius:16px;padding:24px;border:1px solid rgba(0,0,0,0.04);box-shadow:0 4px 16px rgba(0,0,0,0.02)}
+.dash-stat-top{display:flex;justify-content:space-between;align-items:flex-start}
+.dash-stat-label{font-size:13px;color:var(--text-muted);font-weight:500;margin-bottom:12px}
+.dash-stat-value{font-size:32px;font-weight:700;font-family:var(--font-main);line-height:1}
+.dash-stat-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;background:#fef2f2}
+.dash-card{background:#fff;border-radius:16px;padding:24px;border:1px solid rgba(0,0,0,0.04);box-shadow:0 4px 16px rgba(0,0,0,0.02);margin-bottom:24px}
+.dash-card-title{font-weight:600;font-size:15px;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+.qa-btns{display:flex;gap:12px}
+.btn-primary-gradient{background:linear-gradient(90deg,#ffd359,#f5a623);color:#fff;border:none;flex:1;text-align:center;padding:12px;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;box-shadow:0 4px 12px rgba(245,166,35,0.2)}
+.btn-outline{border:1px solid var(--border);color:var(--secondary);background:transparent;flex:1;text-align:center;padding:12px;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;transition:all 0.2s}
+.btn-outline:hover{background:#fff8ee;border-color:var(--secondary)}
+.trip-list-item{display:flex;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid var(--border-light)}
+.trip-list-item:last-child{border-bottom:none;padding-bottom:0}
+.trip-box-img{width:64px;height:64px;border-radius:12px;background:#fff8ee;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.trip-text-col{flex:1}
+.trip-dest{font-weight:600;font-size:15px;margin-bottom:4px}
+.trip-dates{font-size:13px;color:var(--text-muted);margin-bottom:6px}
+.arr-icon{color:var(--secondary);font-size:16px}
+.exp-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:20px}
+.exp-spent{font-size:24px;font-weight:700}
+.prog-bar-container{height:6px;background:var(--border-light);border-radius:3px;margin-bottom:12px;overflow:hidden}
+.prog-bar-fill{height:100%;background:linear-gradient(90deg,#ffd359,#f5a623);border-radius:3px;width:65%}
+.exp-budget-text{display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:24px}
+.notif-item{padding:16px 0;border-bottom:1px solid var(--border-light)}
+.notif-item:last-child{border-bottom:none;padding-bottom:0}
+.notif-title{font-weight:600;font-size:14px;margin-bottom:4px}
+.notif-desc{font-size:13px;color:var(--text-muted);margin-bottom:6px}
+.notif-time{font-size:11px;color:#cbd5e1}
+.package-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:16px}
+.package-card{border:1px solid var(--border-light);border-radius:12px;overflow:hidden;transition:all 0.2s;cursor:pointer;background:#fff;display:flex;flex-direction:column}
+.package-card:hover{border-color:var(--secondary);box-shadow:0 8px 24px rgba(245,166,35,0.08);transform:translateY(-2px)}
+.package-img-wrap{height:100px;background:#f1f5f9;width:100%;overflow:hidden}
+.package-img-wrap img{width:100%;height:100%;object-fit:cover}
+.package-body-lite{padding:12px}
+.package-n{font-weight:700;font-size:14px;margin-bottom:2px;color:var(--text-primary)}
+.package-d{font-size:11px;color:var(--text-muted);margin-bottom:6px}
+.package-p{font-weight:700;color:var(--primary);font-size:13px}
+</style>
+</head>
+<body>
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">✈</div>
+      <div>
+        <div class="logo-text">GlobeSync</div>
+        <div class="logo-sub">Traveler Portal</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item active" data-page="dashboard" href="traveler-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" data-page="trips" href="my-trips.html"><span class="nav-icon">📍</span>My Trips</a>
+      <a class="nav-item" data-page="itinerary" href="create-itinerary.html"><span class="nav-icon">📅</span>Create Itinerary</a>
+      <a class="nav-item" data-page="bookings" href="bookings.html"><span class="nav-icon">🎫</span>Bookings</a>
+      <a class="nav-item" data-page="expenses" href="expenses.html"><span class="nav-icon">💰</span>Expenses</a>
+      <a class="nav-item" data-page="messages" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+      <a class="nav-item" data-page="support" href="support.html"><span class="nav-icon">🎧</span>Support</a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button>
+    </div>
+  </aside>
+
+  <main class="main-content" style="max-width:1200px;padding-top:40px">
+    <div class="topbar" id="traveler-topbar">
+      <div>
+        <h1 class="welcome-title">Welcome back, <span id="user-name">Ajith</span>!</h1>
+        <p class="welcome-desc">Here's what's happening with your trips</p>
+      </div>
+      <div class="topbar-actions"></div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid-row">
+      <div class="dash-stat-card">
+        <div class="dash-stat-top">
+          <div><div class="dash-stat-label">Active Trips</div><div class="dash-stat-value" id="active-trips">3</div></div>
+          <div class="dash-stat-icon" style="background:#fdf2f8;color:var(--primary)">📍</div>
+        </div>
+      </div>
+      <div class="dash-stat-card">
+        <div class="dash-stat-top">
+          <div><div class="dash-stat-label">Upcoming</div><div class="dash-stat-value" id="upcoming-bookings">1</div></div>
+          <div class="dash-stat-icon" style="background:#fff7ed;color:var(--warning)">🗓️</div>
+        </div>
+      </div>
+      <div class="dash-stat-card">
+        <div class="dash-stat-top">
+          <div><div class="dash-stat-label">Total Spent</div><div class="dash-stat-value" id="total-spent">₹2,450</div></div>
+          <div class="dash-stat-icon" style="background:#fef2f2;color:var(--danger)">💲</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUICK ACTIONS -->
+    <div class="dash-card">
+      <div class="dash-card-title">Quick Actions</div>
+      <div class="qa-btns">
+        <button class="btn-primary-gradient" onclick="location.href='create-itinerary.html'">+ Create Trip</button>
+        <button class="btn-outline" onclick="location.href='bookings.html'">View Bookings</button>
+      </div>
+    </div>
+
+    <!-- UPCOMING TRIPS -->
+    <div class="dash-card">
+      <div class="dash-card-title">Upcoming Trips</div>
+      <div id="trips-list">
+        <!-- Trip Items inserted dynamically -->
+      </div>
+    </div>
+    
+    <!-- PREPLANNED PACKAGES -->
+    <div class="dash-card">
+      <div class="dash-card-title">✨ Preplanned Packages</div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Handpicked trips ready for instant booking</p>
+      <div class="package-grid" id="packages-list">
+        <!-- Packages inserted dynamically -->
+      </div>
+    </div>
+
+    <!-- EXPENSE SUMMARY -->
+    <div class="dash-card">
+      <div class="dash-card-title">Expense Summary</div>
+      <div class="exp-row">
+        <div style="font-size:13px;color:var(--text-muted)">This Month</div>
+        <div class="exp-spent" id="month-spent">₹1,240</div>
+      </div>
+      <div class="prog-bar-container"><div class="prog-bar-fill" id="expense-progress" style="width:65%"></div></div>
+      <div class="exp-budget-text">
+        <span>65% of trip cost</span>
+        <span id="total-budget">₹1,900 total</span>
+      </div>
+      <button class="btn-outline" style="width:100%" onclick="location.href='expenses.html'">View Details</button>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div class="dash-card">
+      <div class="dash-card-title">🔔 Notifications</div>
+      <div id="activity-list">
+        <div class="notif-item">
+          <div class="notif-title">Booking Confirmed</div>
+          <div class="notif-desc">Your hotel in Paris has been confirmed</div>
+          <div class="notif-time">2h ago</div>
+        </div>
+        <div class="notif-item">
+          <div class="notif-title">Guide Assigned</div>
+          <div class="notif-desc">Marie has been assigned to your Paris trip</div>
+          <div class="notif-time">5h ago</div>
+        </div>
+        <div class="notif-item">
+          <div class="notif-title">Payment Received</div>
+          <div class="notif-desc">Payment for Tokyo booking received</div>
+          <div class="notif-time">1d ago</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/notifications.js"></script>
+<script src="../JS/traveler-dashboard.js"></script>
+<script>injectNotifBell('traveler');</script>
+</body>
+</html>
+

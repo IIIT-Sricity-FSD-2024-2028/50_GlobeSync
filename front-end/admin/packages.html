@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP Admin — Packages</title>
+<link rel="stylesheet" href="../static/shared.css">
+<style>
+:root{--primary:#E8467C;--gradient:linear-gradient(135deg,#E8467C 0%,#F5A623 100%);--gradient-soft:linear-gradient(135deg,#ffeef5 0%,#fff8ee 100%)}
+.pkg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+.pkg-card{background:#fff;border-radius:var(--radius-md);border:1px solid var(--border-light);overflow:hidden;transition:all 0.2s}
+.pkg-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.pkg-banner{height:160px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;position:relative}
+.pkg-banner img{width:100%;height:100%;object-fit:cover}
+.pkg-badge{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.95);padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;color:var(--primary);box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.pkg-body{padding:20px}
+.pkg-name{font-family:var(--font-main);font-size:17px;font-weight:700;margin-bottom:4px}
+.pkg-dest{font-size:13px;color:var(--text-muted);margin-bottom:12px}
+.pkg-desc{font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:14px}
+.pkg-highlights{font-size:12px;color:var(--text-muted);margin-bottom:14px;padding:10px;background:var(--gradient-soft);border-radius:8px}
+.pkg-highlights strong{color:var(--text-primary)}
+.pkg-footer{display:flex;justify-content:space-between;align-items:center;padding-top:14px;border-top:1px solid var(--border-light)}
+.pkg-price{font-family:var(--font-main);font-size:20px;font-weight:800;color:var(--primary)}
+.pkg-duration{font-size:13px;color:var(--text-muted);font-weight:600}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);color:#fff;font-size:18px">🛡️</div><div><div class="logo-text">GlobeSync</div><div class="logo-sub">Admin Portal</div></div></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="admin-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="bookings.html"><span class="nav-icon">🎫</span>Bookings</a>
+      <a class="nav-item" href="trips.html"><span class="nav-icon">📍</span>Trips</a>
+      <a class="nav-item active" href="packages.html"><span class="nav-icon">📦</span>Packages</a>
+      <a class="nav-item" href="reviews.html"><span class="nav-icon">⭐</span>Reviews</a>
+      <a class="nav-item" href="reports.html"><span class="nav-icon">📈</span>Reports</a>
+    </nav>
+    <div style="padding:12px;margin-top:auto">
+      <div style="background:#ffeef5;border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:#9d174d;border:1px solid #fecdd3">
+        👔 <strong>Admin Role</strong><br>Operational access only.
+      </div>
+    </div>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="page-title">Travel Packages</div><div class="page-subtitle">Browse and manage available trip packages</div></div>
+      <span class="badge badge-pink" style="padding:6px 14px;font-size:13px">📦 <span id="pkg-count">0</span> Packages</span>
+    </div>
+
+    <div class="pkg-grid" id="pkg-grid"></div>
+  </main>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script>
+if (!Auth.isLoggedIn() || Auth.getRole() !== 'admin') window.location.href = '../login.html?role=admin';
+
+const emojis = {'Paris':'🗼','Tokyo':'🗾','Swiss':'🏔','New York':'🗽','Bali':'🏝','Dubai':'🏗','Goa':'🏖','Kerala':'🛶','Rajasthan':'🏰','Singapore':'🦁'};
+const gradients = [
+  'linear-gradient(135deg,#E8467C,#F5A623)',
+  'linear-gradient(135deg,#667eea,#764ba2)',
+  'linear-gradient(135deg,#11998e,#38ef7d)',
+  'linear-gradient(135deg,#f7971e,#ffd200)',
+  'linear-gradient(135deg,#1a1a2e,#16213e)',
+  'linear-gradient(135deg,#74b9ff,#a29bfe)',
+  'linear-gradient(135deg,#fd746c,#ff9068)',
+  'linear-gradient(135deg,#43e97b,#38f9d7)',
+  'linear-gradient(135deg,#fa709a,#fee140)',
+  'linear-gradient(135deg,#a18cd1,#fbc2eb)'
+];
+
+function getEmoji(dest) { for (const k in emojis) if (dest && dest.includes(k)) return emojis[k]; return '✈'; }
+
+document.getElementById('pkg-count').textContent = DB.packageTrips.length;
+
+document.getElementById('pkg-grid').innerHTML = DB.packageTrips.map((p, i) => {
+  const bookings = DB.packageBookings.filter(pb => pb.package_id === p.package_id).length;
+  return `
+  <div class="pkg-card">
+    <div class="pkg-banner">
+      <img src="${getDestImg(p.destinations)}" alt="${p.name}">
+      <div class="pkg-badge">${bookings} total bookings</div>
+    </div>
+    <div class="pkg-body">
+      <div class="pkg-name">${p.name}</div>
+      <div class="pkg-dest">📍 ${p.destinations || '—'}</div>
+      <div class="pkg-desc">${p.description || 'Explore this amazing destination with our guided package.'}</div>
+      ${p.highlights ? `<div class="pkg-highlights"><strong>Highlights:</strong> ${p.highlights}</div>` : ''}
+      <div class="pkg-footer">
+        <div class="pkg-price">${formatCurrency(p.budget)}</div>
+        <div class="pkg-duration">📅 ${p.duration} days</div>
+      </div>
+    </div>
+  </div>`;
+}).join('');
+</script>
+</body>
+</html>
+
+

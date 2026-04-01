@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP — Messages</title>
+<link rel="stylesheet" href="../static/shared.css">
+<style>
+.messages-layout{display:grid;grid-template-columns:300px 1fr;height:calc(100vh - 120px);background:#fff;border-radius:var(--radius-md);border:1px solid var(--border-light);overflow:hidden}
+.conv-list{border-right:1px solid var(--border-light);overflow-y:auto}
+.conv-search{padding:12px;border-bottom:1px solid var(--border-light)}
+.conv-item{padding:14px 16px;border-bottom:1px solid var(--border-light);cursor:pointer;transition:background 0.2s;display:flex;align-items:flex-start;gap:12px}
+.conv-item:hover,.conv-item.active{background:var(--gradient-soft)}
+.conv-avatar{width:44px;height:44px;border-radius:50%;background:var(--gradient);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px;flex-shrink:0}
+.conv-name{font-weight:700;font-size:14px;margin-bottom:2px}
+.conv-role{font-size:12px;color:var(--primary);font-weight:600}
+.conv-preview{font-size:13px;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+.conv-time{font-size:11px;color:var(--text-muted);white-space:nowrap}
+.unread-badge{background:var(--primary);color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+.chat-area{display:flex;flex-direction:column;height:100%}
+.chat-header{padding:16px 20px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;gap:12px}
+.online-dot{width:8px;height:8px;border-radius:50%;background:var(--success)}
+.messages-area{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px}
+.msg{display:flex;flex-direction:column;max-width:70%}
+.msg.sent{align-self:flex-end;align-items:flex-end}
+.msg.received{align-self:flex-start}
+.msg-bubble{padding:12px 16px;border-radius:16px;font-size:14px;line-height:1.5}
+.msg.sent .msg-bubble{background:var(--text-primary);color:#fff;border-bottom-right-radius:4px}
+.msg.received .msg-bubble{background:var(--bg-soft);color:var(--text-primary);border-bottom-left-radius:4px;border:1px solid var(--border-light)}
+.msg-time{font-size:11px;color:var(--text-muted);margin-top:4px;padding:0 4px}
+.chat-input-area{padding:16px 20px;border-top:1px solid var(--border-light);display:flex;align-items:center;gap:12px}
+.chat-input{flex:1;padding:12px 16px;border:1.5px solid var(--border);border-radius:24px;font-size:14px;outline:none;font-family:var(--font-body)}
+.chat-input:focus{border-color:var(--primary)}
+.send-btn{width:44px;height:44px;border-radius:50%;background:var(--gradient);border:none;cursor:pointer;color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all 0.2s}
+.send-btn:hover{transform:scale(1.05)}
+.empty-chat{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-muted)}
+.empty-chat .empty-icon{font-size:56px;margin-bottom:16px}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#f59e0b 0%,#ef4444 100%);color:#fff;font-size:18px">✈</div><div><div class="logo-text">GlobeSync</div><div class="logo-sub">Traveler Portal</div></div></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" data-page="dashboard" href="traveler-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" data-page="trips" href="my-trips.html"><span class="nav-icon">📍</span>My Trips</a>
+      <a class="nav-item" data-page="itinerary" href="create-itinerary.html"><span class="nav-icon">📅</span>Create Itinerary</a>
+      <a class="nav-item" data-page="bookings" href="bookings.html"><span class="nav-icon">🎫</span>Bookings</a>
+      <a class="nav-item" data-page="expenses" href="expenses.html"><span class="nav-icon">💰</span>Expenses</a>
+      <a class="nav-item" data-page="messages" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+      <a class="nav-item" data-page="support" href="support.html"><span class="nav-icon">🎧</span>Support</a>
+    </nav>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar"><div><div class="page-title">Messages</div><div class="page-subtitle">Chat with your guides and support</div></div></div>
+    <div class="messages-layout">
+      <!-- CONVERSATION LIST -->
+      <div class="conv-list">
+        <div class="conv-search"><div class="search-bar" style="max-width:100%"><span class="search-icon">🔍</span><input type="text" placeholder="Search conversations..."></div></div>
+        <div id="conv-list"></div>
+      </div>
+      <!-- CHAT AREA -->
+      <div class="chat-area" id="chat-area">
+        <div class="empty-chat"><div class="empty-icon">💬</div><h3>Select a conversation</h3><p>Choose a chat to start messaging</p></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script>
+if (!Auth.isLoggedIn() || Auth.getRole() !== 'traveler') window.location.href = '../traveler-login.html';
+const user = Auth.getUser();
+
+const conversations = [
+  { id: 1, name: 'Marie Laurent', role: 'Travel Guide', avatar: 'M', online: true, unread: 2, preview: 'Your itinerary looks great!', time: '2h ago',
+    messages: [
+      { id: 1, text: "Hi Ajith! I've reviewed your Paris itinerary.", sent: false, time: '10:30 AM' },
+      { id: 2, text: "Great! What do you think?", sent: true, time: '10:32 AM' },
+      { id: 3, text: "It looks fantastic! I'd suggest adding a visit to Montmartre on Day 3.", sent: false, time: '10:35 AM' },
+      { id: 4, text: "That sounds perfect! Can you add that to the itinerary?", sent: true, time: '10:38 AM' },
+      { id: 5, text: "Your itinerary looks great!", sent: false, time: '2h ago' }
+    ]
+  },
+  { id: 2, name: 'Customer Support', role: 'TICP Support', avatar: 'S', online: true, unread: 0, preview: 'How can we help you today?', time: '1d ago',
+    messages: [
+      { id: 1, text: "Hello! Welcome to TICP Support. How can we help you today?", sent: false, time: '1d ago' }
+    ]
+  },
+  { id: 3, name: 'Hotel Lumiere', role: 'Accommodation', avatar: 'H', online: false, unread: 0, preview: 'Booking confirmed for March 12', time: '2d ago',
+    messages: [
+      { id: 1, text: "Dear Guest, your booking for March 12-18 has been confirmed. Room: Deluxe Double. Confirmation: HTL456ABC", sent: false, time: '2d ago' }
+    ]
+  }
+];
+
+let activeConv = null;
+
+function renderConvList() {
+  document.getElementById('conv-list').innerHTML = conversations.map(c => `
+    <div class="conv-item ${activeConv === c.id ? 'active' : ''}" onclick="openConv(${c.id})">
+      <div class="conv-avatar">${c.avatar}</div>
+      <div style="flex:1;min-width:0">
+        <div class="flex-between"><span class="conv-name">${c.name}</span><span class="conv-time">${c.time}</span></div>
+        <div class="conv-role">${c.role}</div>
+        <div class="conv-preview">${c.preview}</div>
+      </div>
+      ${c.unread > 0 ? `<div class="unread-badge">${c.unread}</div>` : ''}
+    </div>`).join('');
+}
+
+function openConv(id) {
+  activeConv = id;
+  const conv = conversations.find(c => c.id === id);
+  conv.unread = 0;
+  renderConvList();
+  document.getElementById('chat-area').innerHTML = `
+    <div class="chat-header">
+      <div class="conv-avatar" style="width:40px;height:40px;font-size:16px">${conv.avatar}</div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:15px">${conv.name}</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-muted)">
+          ${conv.online ? '<div class="online-dot"></div> Online' : 'Offline'}
+        </div>
+      </div>
+      <div class="search-bar" style="max-width:200px"><span class="search-icon">🔍</span><input type="text" placeholder="Search in chat..."></div>
+    </div>
+    <div class="messages-area" id="messages-area-${id}"></div>
+    <div class="chat-input-area">
+      <span style="font-size:20px;cursor:pointer">📎</span>
+      <input type="text" class="chat-input" id="chat-input-${id}" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendMsg(${id})">
+      <button class="send-btn" onclick="sendMsg(${id})">➤</button>
+    </div>`;
+  renderMessages(id);
+}
+
+function renderMessages(id) {
+  const conv = conversations.find(c => c.id === id);
+  const area = document.getElementById(`messages-area-${id}`);
+  area.innerHTML = conv.messages.map(m => `
+    <div class="msg ${m.sent ? 'sent' : 'received'}">
+      <div class="msg-bubble">${m.text}</div>
+      <div class="msg-time">${m.time} ${m.sent ? '✓✓' : ''}</div>
+    </div>`).join('');
+  area.scrollTop = area.scrollHeight;
+}
+
+function sendMsg(id) {
+  const input = document.getElementById(`chat-input-${id}`);
+  const text = input.value.trim();
+  if (!text) return;
+  const conv = conversations.find(c => c.id === id);
+  const now = new Date();
+  const time = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
+  conv.messages.push({ id: Date.now(), text, sent: true, time });
+  conv.preview = text;
+  conv.time = 'Just now';
+  input.value = '';
+  renderMessages(id);
+  renderConvList();
+  // Auto-reply simulation
+  if (id === 1) {
+    setTimeout(() => {
+      conv.messages.push({ id: Date.now(), text: "I'll update the itinerary right away! 😊", sent: false, time: time });
+      renderMessages(id);
+    }, 1500);
+  }
+}
+
+renderConvList();
+</script>
+</body>
+</html>
+

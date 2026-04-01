@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP — Create Itinerary</title>
+<link rel="stylesheet" href="../static/shared.css">
+<link rel="stylesheet" href="../static/notifications.css">
+<style>
+.stepper{display:flex;align-items:center;margin-bottom:32px;background:#fff;padding:20px 24px;border-radius:var(--radius-md);border:1px solid var(--border-light)}
+.step{display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;flex:1}
+.step-circle{width:44px;height:44px;border-radius:50%;border:2px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all 0.3s;z-index:1}
+.step.active .step-circle{border-color:var(--primary);background:var(--primary);color:#fff}
+.step.done .step-circle{border-color:var(--success);background:var(--success);color:#fff}
+.step-label{font-size:12px;font-weight:600;color:var(--text-muted)}
+.step.active .step-label,.step.done .step-label{color:var(--primary)}
+.step-line{flex:1;height:2px;background:var(--border);margin:0 -8px;position:relative;top:-18px}
+.step-line.done{background:var(--success)}
+.step-content{background:#fff;border-radius:var(--radius-md);border:1px solid var(--border-light);padding:32px;min-height:300px}
+.step-panel{display:none}
+.step-panel.active{display:block}
+.transport-option{display:flex;flex-direction:column;align-items:center;padding:20px;border:2px solid var(--border);border-radius:var(--radius-md);cursor:pointer;transition:all 0.2s;font-size:13px;font-weight:600;gap:8px}
+.transport-option:hover,.transport-option.selected{border-color:var(--primary);background:#ffeef5;color:var(--primary)}
+.transport-option .icon{font-size:32px}
+.trip-type-btn{padding:16px 24px;border:2px solid var(--border);border-radius:var(--radius-md);cursor:pointer;transition:all 0.2s;text-align:left;background:#fff;width:100%}
+.trip-type-btn:hover,.trip-type-btn.selected{border-color:var(--primary);background:#ffeef5}
+.trip-type-btn .tt-title{font-weight:700;font-size:15px;margin-bottom:4px}
+.trip-type-btn .tt-desc{font-size:13px;color:var(--text-muted)}
+.hotel-card{border:1.5px solid var(--border);border-radius:var(--radius-md);padding:16px;cursor:pointer;transition:all 0.2s;margin-bottom:12px}
+.hotel-card:hover,.hotel-card.selected{border-color:var(--primary);background:#ffeef5}
+.progress-step{height:6px;background:var(--border-light);border-radius:3px;margin-top:16px}
+.progress-step-fill{height:6px;background:var(--gradient);border-radius:3px;transition:width 0.3s}
+.nav-btns{display:flex;justify-content:space-between;margin-top:24px}
+.preview-card{background:var(--bg-soft);border-radius:var(--radius-md);border:1px solid var(--border-light);overflow:hidden;margin-top:20px}
+.preview-map{height:160px;background:linear-gradient(135deg,#e0f2fe,#f0f9ff);display:flex;align-items:center;justify-content:center;font-size:48px;flex-direction:column;gap:8px}
+.mode-selection{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px}
+.mode-card{background:#fff;border:2px solid var(--border);border-radius:var(--radius-lg);padding:32px;cursor:pointer;transition:all 0.3s;text-align:center}
+.mode-card:hover{border-color:var(--primary);transform:translateY(-4px);box-shadow:var(--shadow-md)}
+.mode-card.active{border-color:var(--primary);background:#ffeef5}
+.mode-card .icon{font-size:48px;margin-bottom:16px}
+.package-card-h{border:1.5px solid var(--border);border-radius:var(--radius-md);padding:20px;cursor:pointer;transition:all 0.2s;margin-bottom:16px;position:relative}
+.package-card-h:hover{border-color:var(--primary);background:#ffeef5}
+.package-badge{position:absolute;top:-10px;right:10px;background:var(--primary);color:#fff;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;box-shadow:0 4px 8px rgba(0,0,0,0.1)}
+.human-touch{font-size:12px;color:var(--primary);font-weight:600;display:flex;align-items:center;gap:6px;margin-top:8px}
+.back-selection{display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:13px;font-weight:600;cursor:pointer;margin-bottom:16px;width:fit-content;transition:all 0.2s}
+.back-selection:hover{color:var(--primary)}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#f59e0b 0%,#ef4444 100%);color:#fff;font-size:18px">✈</div><div><div class="logo-text">GlobeSync</div><div class="logo-sub">Traveler Portal</div></div></div>
+    <nav class="sidebar-nav">
+     <a class="nav-item " data-page="dashboard" href="traveler-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" data-page="trips" href="my-trips.html"><span class="nav-icon">📍</span>My Trips</a>
+      <a class="nav-item active" data-page="itinerary" href="create-itinerary.html"><span class="nav-icon">📅</span>Create Itinerary</a>
+      <a class="nav-item" data-page="bookings" href="bookings.html"><span class="nav-icon">🎫</span>Bookings</a>
+      <a class="nav-item" data-page="expenses" href="expenses.html"><span class="nav-icon">💰</span>Expenses</a>
+      <a class="nav-item" data-page="messages" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+      <a class="nav-item" data-page="support" href="support.html"><span class="nav-icon">🎧</span>Support</a>
+    </nav>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button></div>
+  </aside>
+  <main class="main-content">
+    <div class="topbar"><div><div class="page-title">Create New Itinerary</div><div class="page-subtitle">Plan your perfect trip step by step</div></div></div>
+
+    <!-- STEPPER -->
+    <div class="stepper" id="stepper"></div>
+
+    <div class="grid-2" style="align-items:start">
+      <!-- STEP CONTENT -->
+      <div>
+        <div class="step-content">
+          <!-- STEP 0: MODE SELECTION -->
+          <div class="step-panel active" id="panel-0">
+            <div class="mode-selection">
+              <div class="mode-card" onclick="selectMode('custom')">
+                <div class="icon">🎨</div>
+                <div style="font-weight:700;font-size:18px;margin-bottom:8px">Custom Trip</div>
+                <p style="font-size:14px;color:var(--text-muted)">Plan everything your way, step by step.</p>
+              </div>
+              <div class="mode-card" onclick="selectMode('package')">
+                <div class="icon">✨</div>
+                <div style="font-weight:700;font-size:18px;margin-bottom:8px">Pre-planned Package</div>
+                <p style="font-size:14px;color:var(--text-muted)">Handpicked experiences ready for you.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 0.5: PACKAGE BROWSER -->
+          <div class="step-panel" id="panel-packages" style="display:none">
+            <div class="back-selection" onclick="goBackToMode()"><span style="font-size:18px">←</span> Change Planning Mode</div>
+            <h3 style="margin-bottom:20px;font-family:var(--font-main)">Available Packages</h3>
+            <div id="package-list-container"></div>
+          </div>
+
+          <!-- STEP 1: DATES -->
+          <div class="step-panel" id="panel-1" style="display:none">
+            <div class="back-selection" onclick="goBackToMode()"><span style="font-size:18px">←</span> Change Planning Mode</div>
+            <h3 style="margin-bottom:20px;font-family:var(--font-main)">Step 1: Dates</h3>
+            <div class="form-group">
+              <label class="form-label">Start Date *</label>
+              <input class="form-control" type="date" id="s-start" data-required="Start date is required" oninput="updatePreview()">
+              <div class="form-error" id="s-start-error"></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">End Date *</label>
+              <input class="form-control" type="date" id="s-end" data-required="End date is required" oninput="updatePreview()">
+              <div class="form-error" id="s-end-error"></div>
+            </div>
+          </div>
+
+          <!-- STEP 2: DESTINATIONS -->
+          <div class="step-panel" id="panel-2">
+            <h3 style="margin-bottom:20px;font-family:var(--font-main)">Step 2: Destinations</h3>
+            <div class="form-group">
+              <label class="form-label">Primary Destination *</label>
+              <input class="form-control" id="s-dest" placeholder="e.g., Paris, France" data-required="Destination is required" oninput="updatePreview()">
+              <div class="form-error" id="s-dest-error"></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Additional Stops (Optional)</label>
+              <input class="form-control" id="s-stops" placeholder="Add more destinations, comma-separated">
+            </div>
+          </div>
+
+          <!-- STEP 3: TRANSPORT TYPE -->
+          <div class="step-panel" id="panel-3">
+            <h3 style="margin-bottom:20px;font-family:var(--font-main)">Step 3: Transport Type</h3>
+            <p style="color:var(--text-secondary);font-size:14px;margin-bottom:20px">Select how you'd like to travel.</p>
+            <div class="grid-3">
+              <div class="transport-option" id="type-flight" onclick="selectTransportType('Flight')">
+                <div class="icon">✈</div><div>Flight</div>
+              </div>
+              <div class="transport-option" id="type-train" onclick="selectTransportType('Train')">
+                <div class="icon">🚂</div><div>Train</div>
+              </div>
+              <div class="transport-option" id="type-bus" onclick="selectTransportType('Bus')">
+                <div class="icon">🚌</div><div>Bus</div>
+              </div>
+            </div>
+            <div class="form-group mt-4">
+              <label class="form-label">Trip Type</label>
+              <div class="grid-2">
+                <button type="button" class="trip-type-btn selected" id="tt-round" onclick="selectTripType('round')"><div class="tt-title">Round Trip</div><div class="tt-desc">Book both ways</div></button>
+                <button type="button" class="trip-type-btn" id="tt-oneway" onclick="selectTripType('oneway')"><div class="tt-title">One Way</div><div class="tt-desc">Single journey</div></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 4: TRANSPORT OPTIONS -->
+          <div class="step-panel" id="panel-4">
+            <h3 style="margin-bottom:20px;font-family:var(--font-main)">Step 4: Available <span id="selected-transport-label">Bookings</span></h3>
+            <div id="transport-options-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- STEP 5: HOTELS -->
+          <div class="step-panel" id="panel-5">
+            <h3 style="margin-bottom:20px;font-family:var(--font-main)">Step 5: Hotels</h3>
+            <p style="color:var(--text-secondary);font-size:14px;margin-bottom:20px">Select your preferred accommodation.</p>
+            <div id="hotel-options">
+              <!-- Will be updated with INR prices below -->
+            </div>
+          </div>
+
+          <!-- STEP 6: TRAVEL GUIDE -->
+          <div class="step-panel" id="panel-6">
+            <h3 style="margin-bottom:20px;font-family:var(--font-main)">Step 6: Select Travel Guide</h3>
+            <div class="card" style="padding:16px;margin-bottom:20px;background:var(--bg-soft)">
+              <div class="grid-3" style="gap:12px">
+                <div>
+                  <label class="form-label" style="font-size:12px">Language</label>
+                  <select class="form-control" id="guide-lang" onchange="filterGuides()">
+                    <option value="">All Languages</option>
+                    <option value="English">English</option>
+                    <option value="Hindi">Hindi</option>
+                    <option value="French">French</option>
+                    <option value="Japanese">Japanese</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label" style="font-size:12px">Min Rating</label>
+                  <select class="form-control" id="guide-rating" onchange="filterGuides()">
+                    <option value="0">Any Rating</option>
+                    <option value="4">4+ Stars</option>
+                    <option value="4.5">4.5+ Stars</option>
+                    <option value="4.8">4.8+ Stars</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label" style="font-size:12px">Min Experience</label>
+                  <select class="form-control" id="guide-exp" onchange="filterGuides()">
+                    <option value="0">Any experience</option>
+                    <option value="5">5+ Years</option>
+                    <option value="10">10+ Years</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div id="guide-options-list" class="grid-1">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- STEP 7: REVIEW -->
+          <div class="step-panel" id="panel-7">
+            <h3 style="margin-bottom:20px;font-family:var(--font-main)">Step 7: Review & Confirm</h3>
+            <div id="review-content"></div>
+          </div>
+        </div>
+
+        <!-- NAV BUTTONS -->
+        <div class="nav-btns">
+          <button class="btn btn-secondary" id="btn-back" onclick="prevStep()" style="display:none">← Back</button>
+          <div style="flex:1"></div>
+          <button class="btn btn-primary" id="btn-next" onclick="nextStep()">Next →</button>
+        </div>
+      </div>
+
+      <!-- PREVIEW -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">Preview</span></div>
+        <div class="preview-map" id="preview-map">
+          <span id="preview-emoji">📍</span>
+          <span style="font-size:16px;font-weight:600;color:var(--text-secondary)" id="preview-dest">Select a destination</span>
+        </div>
+        <div class="card-body">
+          <div style="font-family:var(--font-main);font-weight:700;font-size:16px;margin-bottom:4px" id="preview-title">Your Trip</div>
+          <div style="font-size:13px;color:var(--text-muted)" id="preview-dates">Select dates to begin</div>
+          <div style="font-size:12px;color:var(--primary);margin-top:4px" id="preview-duration"></div>
+          <div style="font-size:15px;font-weight:700;color:var(--primary);margin-top:8px" id="preview-cost"></div>
+        </div>
+        <div style="padding:0 20px 20px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span class="text-muted">Progress</span><span id="progress-label">1/7 steps</span></div>
+          <div class="progress-step"><div class="progress-step-fill" id="progress-fill" style="width:14.2%"></div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/notifications.js"></script>
+<script>
+if (!Auth.isLoggedIn() || Auth.getRole() !== 'traveler') window.location.href = '../traveler-login.html';
+const user = Auth.getUser();
+
+const steps = [
+  { label: 'Dates', icon: '📅' },
+  { label: 'Destinations', icon: '📍' },
+  { label: 'Transport Type', icon: '🚆' },
+  { label: 'Transport Option', icon: '🎫' },
+  { label: 'Hotels', icon: '🏨' },
+  { label: 'Guide', icon: '👤' },
+  { label: 'Review', icon: '✓' }
+];
+
+let currentStep = 0; // Start at mode selection
+let tripData = { 
+  tripType: 'round', 
+  transportType: '',
+  transportName: '', 
+  transportBasePrice: 0, 
+  hotel: '', 
+  hotelPrice: 0,
+  guideId: null,
+  guidePrice: 0,
+  guideName: ''
+};
+const platformFee = 500;
+
+function selectMode(mode) {
+  document.getElementById('panel-0').style.display = 'none';
+  document.getElementById('panel-packages').style.display = 'none';
+  
+  if (mode === 'package') {
+    document.getElementById('panel-packages').style.display = 'block';
+    renderPackages();
+  } else {
+    currentStep = 1;
+    document.getElementById('panel-1').style.display = 'block';
+    renderStepper();
+  }
+}
+
+function goBackToMode() {
+  // Hide all potential panels
+  document.getElementById('panel-packages').style.display = 'none';
+  document.getElementById('panel-1').style.display = 'none';
+  document.getElementById('panel-3').style.display = 'none'; // In case they jumped from package
+  
+  // Show base selection
+  document.getElementById('panel-0').style.display = 'block';
+  currentStep = 0;
+  renderStepper();
+}
+
+function renderPackages() {
+  const container = document.getElementById('package-list-container');
+  const socialProofs = [
+    "✨ 12 travelers chose this destination today",
+    "Someone from Mumbai just booked this package",
+    "Hurry, only a few spots left for this season!",
+    "Popular with families this month",
+    "Our most-loved destination last week"
+  ];
+  
+  container.innerHTML = DB.packageTrips.map((p, i) => `
+    <div class="package-card-h" onclick="selectPackage(${p.package_id})">
+      <div class="package-badge">Best Seller</div>
+      <div class="flex-between">
+        <div>
+          <div style="font-weight:700;font-size:18px;margin-bottom:4px">${p.name}</div>
+          <div style="font-size:13px;color:var(--text-muted)">📍 ${p.destinations} • ${p.duration} Days</div>
+          <div class="human-touch">
+            <span>👤</span> ${socialProofs[i % socialProofs.length]}
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-weight:800;color:var(--primary);font-size:22px">${formatCurrency(p.budget)}</div>
+          <div style="font-size:11px;color:var(--text-muted)">All Inclusive</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectPackage(id) {
+  const pkg = DB.packageTrips.find(p => p.package_id === id);
+  if (!pkg) return;
+  
+  tripData.destination = pkg.destinations.split(',')[0].trim();
+  tripData.transportBasePrice = Math.floor(pkg.budget * 0.3); // Simulated split
+  tripData.hotelPrice = Math.floor(pkg.budget * 0.4 / pkg.duration);
+  tripData.packageId = pkg.package_id;
+  
+  // Auto-fill dates for next week
+  const nextWeek = new Date();
+  nextWeek.setDate(nextWeek.getDate() + 7);
+  const endWeek = new Date(nextWeek);
+  endWeek.setDate(endWeek.getDate() + pkg.duration);
+  
+  document.getElementById('s-start').value = nextWeek.toISOString().split('T')[0];
+  document.getElementById('s-end').value = endWeek.toISOString().split('T')[0];
+  document.getElementById('s-dest').value = tripData.destination;
+  
+  showToast(`✨ Package "${pkg.name}" selected! We've pre-filled some details for you.`);
+  
+  document.getElementById('panel-packages').style.display = 'none';
+  currentStep = 3; // Jump to transport selection
+  document.getElementById('panel-3').style.display = 'block';
+  updatePreview();
+  renderStepper();
+}
+
+function renderStepper() {
+  const s = document.getElementById('stepper');
+  if (currentStep < 1) { s.style.opacity = '0.3'; return; }
+  s.style.opacity = '1';
+  
+  s.innerHTML = steps.map((step, i) => {
+    const n = i + 1;
+    const state = n < currentStep ? 'done' : n === currentStep ? 'active' : '';
+    const icon = n < currentStep ? '✓' : step.icon;
+    return `${i > 0 ? `<div class="step-line ${n <= currentStep ? 'done' : ''}"></div>` : ''}
+    <div class="step ${state}"><div class="step-circle">${icon}</div><div class="step-label">${step.label}</div></div>`;
+  }).join('');
+  
+  document.getElementById('progress-fill').style.width = (currentStep / 7 * 100) + '%';
+  document.getElementById('progress-label').textContent = `${currentStep}/7 steps`;
+  document.getElementById('btn-back').style.display = currentStep > 1 ? 'block' : 'none';
+  document.getElementById('btn-next').textContent = currentStep === 7 ? 'Confirm Trip 🎉' : 'Next →';
+}
+
+function validateStep() {
+  if (currentStep === 1) {
+    const start = document.getElementById('s-start').value;
+    const end = document.getElementById('s-end').value;
+    let valid = true;
+    if (!start) { document.getElementById('s-start-error').textContent = 'Start date is required'; document.getElementById('s-start-error').classList.add('show'); valid = false; }
+    else { document.getElementById('s-start-error').classList.remove('show'); }
+    if (!end) { document.getElementById('s-end-error').textContent = 'End date is required'; document.getElementById('s-end-error').classList.add('show'); valid = false; }
+    else if (end <= start) { document.getElementById('s-end-error').textContent = 'End date must be after start date'; document.getElementById('s-end-error').classList.add('show'); valid = false; }
+    else { document.getElementById('s-end-error').classList.remove('show'); }
+    if (valid) { tripData.start_date = start; tripData.end_date = end; }
+    return valid;
+  }
+  if (currentStep === 2) {
+    const dest = document.getElementById('s-dest').value.trim();
+    if (!dest) { document.getElementById('s-dest-error').textContent = 'Destination is required'; document.getElementById('s-dest-error').classList.add('show'); return false; }
+    document.getElementById('s-dest-error').classList.remove('show');
+    tripData.destination = dest;
+    return true;
+  }
+  return true; // Simplified for other steps
+}
+
+function nextStep() {
+  if (currentStep === 0) return; // Should use selectMode
+  if (currentStep === 7) { createTrip(); return; }
+  if (!validateStep()) return;
+  document.getElementById(`panel-${currentStep}`).classList.remove('active');
+  document.getElementById(`panel-${currentStep}`).style.display = 'none';
+  
+  currentStep++;
+  const nextPanel = document.getElementById(`panel-${currentStep}`);
+  nextPanel.classList.add('active');
+  nextPanel.style.display = 'block';
+  
+  if (currentStep === 4) renderTransportOptions();
+  if (currentStep === 5) renderHotels();
+  if (currentStep === 6) filterGuides();
+  if (currentStep === 7) buildReview();
+  
+  renderStepper();
+}
+
+function prevStep() {
+  document.getElementById(`panel-${currentStep}`).classList.remove('active');
+  document.getElementById(`panel-${currentStep}`).style.display = 'none';
+  
+  currentStep--;
+  const prevPanel = document.getElementById(`panel-${currentStep}`);
+  if (prevPanel) {
+    prevPanel.classList.add('active');
+    prevPanel.style.display = 'block';
+  } else if (currentStep === 0) {
+    document.getElementById('panel-0').style.display = 'block';
+  }
+  
+  renderStepper();
+}
+
+function selectTransportType(type) {
+  tripData.transportType = type;
+  document.querySelectorAll('.transport-option').forEach(opt => opt.classList.remove('selected'));
+  document.getElementById(`type-${type.toLowerCase()}`).classList.add('selected');
+  tripData.transportName = ''; // Reset option if type changes
+}
+
+const mockTransportOptions = {
+  'Flight': [
+    { name: 'SkyHigh Airlines', time: 'Non-stop • 2h 45m', price: 14500, icon: '✈' },
+    { name: 'Global Wings', time: '1 Stop • 5h 20m', price: 9800, icon: '✈' }
+  ],
+  'Train': [
+    { name: 'Expressrail Gold', time: 'Direct • 4h 30m', price: 3200, icon: '🚂' },
+    { name: 'Shatabdi Connect', time: '3 Stops • 6h 15m', price: 1800, icon: '🚂' }
+  ],
+  'Bus': [
+    { name: 'CityBus Luxury', time: 'Direct • 8h 15m', price: 1800, icon: '🚌' },
+    { name: 'RedLine Sleeper', time: '2 Stops • 10h 45m', price: 1200, icon: '🚌' }
+  ]
+};
+
+function renderTransportOptions() {
+  const container = document.getElementById('transport-options-list');
+  document.getElementById('selected-transport-label').textContent = tripData.transportType + 's';
+  const options = mockTransportOptions[tripData.transportType] || [];
+  container.innerHTML = options.map(opt => `
+    <div class="hotel-card ${tripData.transportName === opt.name ? 'selected' : ''}" onclick="selectTransport(this, '${opt.name}', ${opt.price})">
+      <div class="flex-between">
+        <div>
+          <div style="font-weight:700;font-size:15px">${opt.icon} ${opt.name}</div>
+          <div style="font-size:13px;color:var(--text-muted)">${opt.time}</div>
+        </div>
+        <div style="font-weight:700;color:var(--primary)">${formatCurrency(opt.price)} basis</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectTransport(el, name, price) {
+  document.querySelectorAll('#transport-options-list .hotel-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  tripData.transportName = name; 
+  tripData.transportBasePrice = price;
+  updatePreview();
+}
+
+const mockHotels = [
+  { name: 'Hotel Lumiere', rating: '⭐⭐⭐⭐', area: 'Le Marais District', price: 8500, amenities: '🏊 Pool • 🍳 Breakfast • 📶 WiFi • 🅿 Parking' },
+  { name: 'Grand Paris Hotel', rating: '⭐⭐⭐⭐⭐', area: 'Champs-Élysées', price: 18000, amenities: '🏊 Pool • 🍳 Breakfast • 📶 WiFi • 🧖 Spa' },
+  { name: 'Budget Inn Paris', rating: '⭐⭐⭐', area: 'Montmartre', price: 3500, amenities: '📶 WiFi • 🍳 Breakfast' }
+];
+
+function renderHotels() {
+  const container = document.getElementById('hotel-options');
+  container.innerHTML = mockHotels.map(h => `
+    <div class="hotel-card ${tripData.hotel === h.name ? 'selected' : ''}" onclick="selectHotel(this, '${h.name}', ${h.price})">
+      <div class="flex-between">
+        <div>
+          <div style="font-weight:700;font-size:15px">${h.name}</div>
+          <div style="font-size:13px;color:var(--text-muted)">${h.rating} • ${h.area}</div>
+        </div>
+        <div style="font-weight:700;color:var(--primary)">${formatCurrency(h.price)}/night</div>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);margin-top:8px">${h.amenities}</div>
+    </div>
+  `).join('');
+}
+
+function selectHotel(el, name, price) {
+  document.querySelectorAll('#hotel-options .hotel-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  tripData.hotel = name; 
+  tripData.hotelPrice = price;
+  updatePreview();
+}
+
+function calculateTotalCost() {
+  const days = tripData.start_date && tripData.end_date ? Math.max(1, Math.ceil((new Date(tripData.end_date) - new Date(tripData.start_date)) / 86400000)) : 0;
+  const transportCost = (tripData.transportBasePrice || 0) * (tripData.tripType === 'round' ? 2 : 1);
+  const hotelCost = (tripData.hotelPrice || 0) * days;
+  const guideCost = (tripData.guidePrice || 0); // Flat fee per trip
+  return { days, transportCost, hotelCost, guideCost, total: transportCost + hotelCost + guideCost + platformFee };
+}
+
+function filterGuides() {
+  const lang = document.getElementById('guide-lang').value;
+  const rating = parseFloat(document.getElementById('guide-rating').value);
+  const exp = parseInt(document.getElementById('guide-exp').value);
+  
+  const filtered = DB.travelGuides.filter(g => {
+    const matchesLang = !lang || g.languages.includes(lang);
+    const matchesRating = g.rating >= rating;
+    const matchesExp = g.experience >= exp;
+    return matchesLang && matchesRating && matchesExp;
+  });
+  
+  renderGuides(filtered);
+}
+
+function renderGuides(guides) {
+  const container = document.getElementById('guide-options-list');
+  if (guides.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">No guides match your filters. Try adjusting them!</div>';
+    return;
+  }
+  
+  container.innerHTML = guides.map(g => `
+    <div class="hotel-card ${tripData.guideId === g.guide_id ? 'selected' : ''}" onclick="selectGuide(this, ${g.guide_id}, '${g.name}', ${g.pricePerTrip})">
+      <div class="flex-between">
+        <div style="display:flex;gap:16px;align-items:center">
+          <div style="width:50px;height:50px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700">${g.name[0]}</div>
+          <div>
+            <div style="font-weight:700;font-size:16px">${g.name}</div>
+            <div style="font-size:12px;color:var(--text-muted)">${g.languages.join(', ')}</div>
+            <div style="font-size:12px;margin-top:4px"><span style="color:#fbbf24">⭐ ${g.rating}</span> • <span style="font-weight:600">${g.experience} yrs exp</span></div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-weight:700;color:var(--primary)">${formatCurrency(g.pricePerTrip)}</div>
+          <div style="font-size:11px;color:var(--text-muted)">Flat Fee</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectGuide(el, id, name, price) {
+  document.querySelectorAll('#guide-options-list .hotel-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  tripData.guideId = id;
+  tripData.guideName = name;
+  tripData.guidePrice = price;
+  updatePreview();
+}
+
+function buildReview() {
+  const costData = calculateTotalCost();
+  tripData.budget = costData.total;
+  document.getElementById('review-content').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="background:var(--bg-soft);border-radius:var(--radius-sm);padding:16px;display:flex;flex-direction:column;gap:10px">
+        <div class="flex-between"><span style="color:var(--text-muted)">Destination</span><span style="font-weight:700">${tripData.destination || 'N/A'}</span></div>
+        <div class="flex-between"><span style="color:var(--text-muted)">Dates</span><span>${tripData.start_date ? formatDate(tripData.start_date) : ''} → ${tripData.end_date ? formatDate(tripData.end_date) : ''}</span></div>
+        <div class="flex-between"><span style="color:var(--text-muted)">Duration</span><span>${costData.days} days</span></div>
+        <div class="flex-between"><span style="color:var(--text-muted)">Transport</span><span>${tripData.transportName} (${tripData.tripType === 'round' ? 'Round Trip' : 'One Way'})</span></div>
+        <div class="flex-between"><span style="color:var(--text-muted)">Hotel</span><span>🏨 ${tripData.hotel}</span></div>
+        <div class="flex-between"><span style="color:var(--text-muted)">Travel Guide</span><span>👤 ${tripData.guideName}</span></div>
+        <hr style="border:none;border-top:1px dashed var(--border)">
+        <div class="flex-between"><span style="color:var(--text-muted)">Transport Cost</span><span>${formatCurrency(costData.transportCost)}</span></div>
+        <div class="flex-between"><span style="color:var(--text-muted)">Hotel Cost (${costData.days} nights)</span><span>${formatCurrency(costData.hotelCost)}</span></div>
+        <div class="flex-between"><span style="color:var(--text-muted)">Guide Fee (Flat Trip Fee)</span><span>${formatCurrency(costData.guideCost)}</span></div>
+        <div class="flex-between"><span style="color:var(--text-muted)">Platform Fee</span><span>${formatCurrency(platformFee)}</span></div>
+        <div class="flex-between"><span style="color:var(--text-muted);font-weight:700">Total Cost</span><span style="font-weight:700;color:var(--primary)">${formatCurrency(costData.total)}</span></div>
+      </div>
+      <div style="background:#ecfdf5;border-radius:var(--radius-sm);padding:14px;font-size:14px;color:#059669">✅ Everything looks good! Click "Confirm Trip" to create your itinerary.</div>
+    </div>`;
+}
+
+function createTrip() {
+  const tripId = generateId(DB.trips, 'trip_id');
+  const newTrip = {
+    trip_id: tripId,
+    destination: tripData.destination,
+    start_date: tripData.start_date,
+    end_date: tripData.end_date,
+    budget: tripData.budget,
+    traveler_id: user.traveler_id,
+    guide_id: tripData.guideId, 
+    package_id: null, 
+    status: 'Planning'
+  };
+  DB.trips.push(newTrip);
+
+  // Add Transport Booking
+  const tBookingId = generateId(DB.bookings, 'booking_id');
+  DB.bookings.push({
+    booking_id: tBookingId,
+    booking_date: new Date().toISOString().split('T')[0],
+    status: 'Pending',
+    trip_id: tripId,
+    traveler_id: user.traveler_id,
+    service: tripData.transportName,
+    type: tripData.transportType,
+    amount: tripData.transportBasePrice * (tripData.tripType === 'round' ? 2 : 1)
+  });
+
+  // Add Hotel Booking
+  const hBookingId = generateId(DB.bookings, 'booking_id');
+  const days = Math.max(1, Math.ceil((new Date(tripData.end_date) - new Date(tripData.start_date)) / 86400000));
+  DB.bookings.push({
+    booking_id: hBookingId,
+    booking_date: new Date().toISOString().split('T')[0],
+    status: 'Pending',
+    trip_id: tripId,
+    traveler_id: user.traveler_id,
+    service: tripData.hotel,
+    type: 'Hotel',
+    amount: tripData.hotelPrice * days
+  });
+
+  // Trigger Notifications
+  addNotif('traveler', 'success', '🎉', 'Trip Created!', `Your trip to ${tripData.destination} is being planned. Confirm your bookings to proceed.`);
+  
+  if (tripData.guideId) {
+    addNotif('guide', 'info', '👤', 'New Assignment', `You have been assigned to guide ${user.name} for their trip to ${tripData.destination}.`);
+  }
+
+  saveDB(); // Persist changes to sessionStorage for proto testing
+  showToast('🎉 Trip created successfully!');
+  setTimeout(() => window.location.href = 'my-trips.html', 1200);
+}
+
+function updatePreview() {
+  const dest = document.getElementById('s-dest') ? document.getElementById('s-dest').value : '';
+  const start = document.getElementById('s-start').value;
+  const end = document.getElementById('s-end').value;
+  if (start) tripData.start_date = start;
+  if (end) tripData.end_date = end;
+
+  const emojis = {'paris':'🗼','tokyo':'🗾','alps':'🏔','new york':'🗽','bali':'🏝','dubai':'🏗'};
+  let emoji = '📍';
+  for (const k in emojis) if (dest.toLowerCase().includes(k)) { emoji = emojis[k]; break; }
+  document.getElementById('preview-emoji').textContent = emoji;
+  document.getElementById('preview-dest').textContent = dest || 'Select a destination';
+  if (dest) document.getElementById('preview-title').textContent = dest;
+  if (start && end) {
+    document.getElementById('preview-dates').textContent = `${formatDate(start)} - ${formatDate(end)}`;
+    const costData = calculateTotalCost();
+    if (costData.days > 0) document.getElementById('preview-duration').textContent = `Recommended ${costData.days} days`;
+    document.getElementById('preview-cost').textContent = `Est. Cost: ${formatCurrency(costData.total)}`;
+    tripData.budget = costData.total;
+  }
+}
+
+updatePreview();
+injectNotifBell('traveler');
+renderStepper();
+</script>
+</body>
+</html>
+

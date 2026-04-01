@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP Admin — Trips</title>
+<link rel="stylesheet" href="../static/shared.css">
+<style>:root{--primary:#E8467C;--gradient:linear-gradient(135deg,#E8467C 0%,#F5A623 100%);--gradient-soft:linear-gradient(135deg,#ffeef5 0%,#fff8ee 100%)}</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);color:#fff;font-size:18px">🛡️</div><div><div class="logo-text">GlobeSync</div><div class="logo-sub">Admin Portal</div></div></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="admin-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="bookings.html"><span class="nav-icon">🎫</span>Bookings</a>
+      <a class="nav-item active" href="trips.html"><span class="nav-icon">📍</span>Trips</a>
+      <a class="nav-item" href="packages.html"><span class="nav-icon">📦</span>Packages</a>
+      <a class="nav-item" href="reviews.html"><span class="nav-icon">⭐</span>Reviews</a>
+      <a class="nav-item" href="reports.html"><span class="nav-icon">📈</span>Reports</a>
+    </nav>
+    <div style="padding:12px;margin-top:auto">
+      <div style="background:#ffeef5;border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:#9d174d;border:1px solid #fecdd3">
+        👔 <strong>Admin Role</strong><br>Operational access only.
+      </div>
+    </div>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="page-title">Trips Overview</div><div class="page-subtitle">Monitor all traveler trips across the platform</div></div>
+    </div>
+
+    <div class="stats-grid mb-4">
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Total Trips</div><div class="stat-value" id="s-total">0</div></div><div class="stat-icon pink">📍</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Confirmed</div><div class="stat-value" id="s-confirmed">0</div></div><div class="stat-icon green">✅</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Pending / Planning</div><div class="stat-value" id="s-pending">0</div></div><div class="stat-icon orange">⏳</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">All Trips</span>
+        <div class="search-bar" style="max-width:260px">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="trip-search" placeholder="Search trips...">
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Destination</th><th>Traveler</th><th>Guide</th><th>Dates</th><th>Budget</th><th>Rating</th><th>Status</th></tr></thead>
+          <tbody id="trips-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script>
+if (!Auth.isLoggedIn() || Auth.getRole() !== 'admin') window.location.href = '../login.html?role=admin';
+
+const emojis = {'Paris':'🗼','Tokyo':'🗾','Swiss':'🏔','New York':'🗽','Bali':'🏝','Dubai':'🏗','Goa':'🏖','Kerala':'🛶','Rajasthan':'🏰','Singapore':'🦁'};
+function getEmoji(d) { for (const k in emojis) if (d.includes(k)) return emojis[k]; return '✈'; }
+
+function render() {
+  const q = document.getElementById('trip-search').value.toLowerCase();
+  let trips = [...DB.trips];
+  if (q) trips = trips.filter(t => t.destination.toLowerCase().includes(q) || (''+t.trip_id).includes(q));
+
+  document.getElementById('s-total').textContent = DB.trips.length;
+  document.getElementById('s-confirmed').textContent = DB.trips.filter(t => t.status === 'Confirmed' || t.status === 'Completed').length;
+  document.getElementById('s-pending').textContent = DB.trips.filter(t => t.status === 'Pending' || t.status === 'Planning').length;
+
+  document.getElementById('trips-tbody').innerHTML = trips.map(t => {
+    const traveler = DB.travelers.find(tr => tr.traveler_id === t.traveler_id);
+    const guide = DB.travelGuides.find(g => g.guide_id === t.guide_id);
+    const review = DB.reviews.find(r => r.trip_id === t.trip_id);
+    return `<tr>
+      <td style="font-weight:700;color:var(--primary)">TR00${t.trip_id}</td>
+      <td><span style="font-size:18px">${getEmoji(t.destination)}</span> ${t.destination}</td>
+      <td>${traveler ? traveler.name : '—'}</td>
+      <td>${guide ? guide.name : '<span class="badge badge-gray">Unassigned</span>'}</td>
+      <td style="font-size:13px">${formatDate(t.start_date)} → ${formatDate(t.end_date)}</td>
+      <td style="font-weight:700">${formatCurrency(t.budget)}</td>
+      <td>${review ? '<span style="color:#d97706;font-weight:700">⭐ ' + review.trip_rating + '</span>' : '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td>${statusBadge(t.status)}</td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('trip-search').addEventListener('input', render);
+render();
+</script>
+</body>
+</html>
+
+

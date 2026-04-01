@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP — API Management</title>
+<link rel="stylesheet" href="../static/shared.css">
+<style>
+:root{--primary:#6366f1;--primary-dark:#4338ca;--gradient:linear-gradient(135deg,#6366f1 0%,#E8467C 100%);--gradient-soft:linear-gradient(135deg,#f5f3ff 0%,#ffeef5 100%)}
+
+/* Filter Tabs */
+.filter-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px}
+.filter-tab{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;border:1px solid var(--border-light);background:#fff;cursor:pointer;transition:all 0.2s;color:var(--text-secondary)}
+.filter-tab:hover{border-color:var(--primary);color:var(--primary)}
+.filter-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* API Cards Grid */
+.api-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:32px}
+.api-card{background:#fff;border:1px solid var(--border-light);border-radius:var(--radius-md);padding:24px;transition:all 0.2s}
+.api-card:hover{box-shadow:var(--shadow-md)}
+.api-card-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:16px}
+.api-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.api-icon.amadeus{background:#e0f2fe;color:#0284c7}
+.api-icon.skyscanner{background:#dbeafe;color:#2563eb}
+.api-icon.booking{background:#ecfdf5;color:#059669}
+.api-icon.airbnb{background:#fef2f2;color:#dc2626}
+.api-icon.stripe{background:#ede9fe;color:#7c3aed}
+.api-icon.paypal{background:#dbeafe;color:#1d4ed8}
+.api-icon.razorpay{background:#e0f2fe;color:#0369a1}
+.api-icon.irctc{background:#fff7ed;color:#c2410c}
+.api-name{font-family:var(--font-main);font-weight:700;font-size:16px;color:var(--text-primary)}
+.api-status{margin-top:4px}
+.api-desc{font-size:13px;color:var(--text-secondary);margin-bottom:16px;line-height:1.5}
+
+.api-detail-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:8px}
+.api-detail-label{color:var(--text-muted)}
+.api-detail-value{font-weight:600;color:var(--text-primary)}
+
+.api-usage-bar{height:6px;background:var(--border-light);border-radius:3px;overflow:hidden;margin:4px 0 12px}
+.api-usage-fill{height:100%;background:var(--primary);border-radius:3px;transition:width 0.4s}
+
+.api-card-actions{display:flex;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border-light)}
+.api-action-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;background:#f3f4f6;color:var(--text-secondary);border:1px solid var(--border-light);cursor:pointer;transition:all 0.2s}
+.api-action-btn:hover{background:var(--gradient-soft);color:var(--primary);border-color:var(--primary)}
+.api-doc-link{font-size:13px;color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;gap:4px;font-weight:600;margin-top:12px}
+.api-doc-link:hover{opacity:0.8}
+
+/* Health Monitor */
+.health-table{width:100%}
+.health-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border-light)}
+.health-row:last-child{border-bottom:none}
+.health-icon{width:32px;height:32px;border-radius:8px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:16px}
+.health-name{flex:1;font-size:14px;font-weight:600}
+.health-bar{width:120px;height:6px;background:var(--border-light);border-radius:3px;overflow:hidden}
+.health-bar-fill{height:100%;border-radius:3px;background:#10b981}
+.health-requests{font-size:13px;color:var(--text-secondary);min-width:110px;text-align:right}
+.health-error{font-size:13px;font-weight:600;color:#dc2626;min-width:40px;text-align:right}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:var(--gradient);color:#fff;font-size:18px">🌐</div><div><div class="logo-text">GlobeSync</div><div class="logo-sub">Super User</div></div></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="super-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="users.html"><span class="nav-icon">👥</span>Users</a>
+      <a class="nav-item active" href="api-management.html"><span class="nav-icon">🔌</span>API Management</a>
+      <a class="nav-item" href="rules-config.html"><span class="nav-icon">⚙</span>Rules Config</a>
+      <a class="nav-item" href="reports.html"><span class="nav-icon">📈</span>Reports</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="padding:10px 12px;font-size:12px;color:var(--text-muted);margin-bottom:4px">Logged in as Super User</div>
+      <button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="page-title">API Management</div>
+        <div class="page-subtitle">Configure and monitor external API integrations</div>
+      </div>
+      <a href="super-dashboard.html" class="btn btn-secondary btn-sm">Back to Dashboard</a>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid stats-grid-4 mb-4">
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Total APIs</div><div class="stat-value" id="stat-total">19</div></div><div class="stat-icon blue">⚙️</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Active</div><div class="stat-value" id="stat-active">17</div></div><div class="stat-icon green">✅</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Requests Today</div><div class="stat-value" id="stat-requests">81,001</div></div><div class="stat-icon pink">📈</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Avg Response</div><div class="stat-value" id="stat-response">245ms</div></div><div class="stat-icon orange">📊</div></div>
+    </div>
+
+    <!-- FILTER TABS -->
+    <div class="filter-tabs" id="filter-tabs">
+      <button class="filter-tab active" data-filter="all">🏠 All APIs</button>
+      <button class="filter-tab" data-filter="payment">💳 Payment</button>
+      <button class="filter-tab" data-filter="travel">✈ Travel & Booking</button>
+      <button class="filter-tab" data-filter="transport">🚗 Transportation</button>
+      <button class="filter-tab" data-filter="maps">📍 Maps & Location</button>
+      <button class="filter-tab" data-filter="comm">💬 Communication</button>
+      <button class="filter-tab" data-filter="data">🌤 Data & Weather</button>
+      <button class="filter-tab" data-filter="auth">🔒 Authentication</button>
+    </div>
+
+    <!-- API CARDS -->
+    <div class="api-grid" id="api-grid"></div>
+
+    <!-- HEALTH MONITOR -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">API Health Monitor</span>
+        <span class="page-subtitle" style="margin:0">Real-time status of critical APIs</span>
+      </div>
+      <div class="card-body" id="health-monitor"></div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/api-management.js"></script>
+</body>
+</html>
+
+

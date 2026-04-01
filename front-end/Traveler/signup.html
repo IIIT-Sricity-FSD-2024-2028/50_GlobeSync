@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlobeSync — Create Account</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--primary:#E8467C;--secondary:#F5A623;--gradient:linear-gradient(135deg,#E8467C 0%,#F5A623 100%);--btn-gradient:linear-gradient(90deg,#ffd359 0%,#f5a623 100%);--text:#1a1a2e;--muted:#6b7280;--border:#f0e6e6;--danger:#ef4444;--success:#10b981;--input-bg:#FFFCF5;--box-bg:#FCF8EE}
+body{font-family:'Inter', sans-serif;min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
+
+/* ===== LEFT PANEL ===== */
+.left-panel{background:url('../static/waterfall-scenery.png') center/cover no-repeat;display:flex;flex-direction:column;justify-content:flex-end;padding:60px;position:relative;overflow:hidden}
+.left-panel::before{content:'';position:absolute;inset:0;background:linear-gradient(to bottom, rgba(232,70,124,0.4) 0%, rgba(245,166,35,0.6) 100%);z-index:0}
+.brand-logo{position:absolute;top:40px;left:60px;display:flex;align-items:center;gap:12px;z-index:1;text-decoration:none;color:white}
+.brand-icon{width:44px;height:44px;background:rgba(255,255,255,0.2);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;border-radius:12px;font-size:24px}
+.brand-text{font-family:'Inter',sans-serif;font-size:26px;font-weight:700;text-shadow:0 2px 4px rgba(0,0,0,0.1)}
+.left-panel h1{font-family:'Inter',sans-serif;font-size:44px;font-weight:800;color:#fff;line-height:1.2;margin-bottom:20px;position:relative;z-index:1}
+.left-panel p{color:rgba(255,255,255,0.85);font-size:16px;line-height:1.7;margin-bottom:40px;position:relative;z-index:1}
+.avatars-row{display:flex;align-items:center;gap:12px;position:relative;z-index:1}
+.avatars{display:flex}.avatar{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.3);border:2px solid #fff;margin-left:-8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.avatars-row span{color:rgba(255,255,255,0.9);font-size:14px}
+
+/* ===== RIGHT PANEL ===== */
+.right-panel{background:#fff;display:flex;flex-direction:column;justify-content:center;padding:48px 0;overflow-y:auto}
+.top-link{text-align:right;font-size:14px;color:var(--muted);margin-bottom:28px;padding-right:50px}
+.top-link a{color:var(--secondary);font-weight:600;text-decoration:none}
+.top-link a:hover{text-decoration:underline}
+.form-container{max-width:400px;margin:0 auto;width:100%;padding:0 24px}
+
+/* Social Buttons */
+.social-btns{display:flex;justify-content:center;gap:16px;margin-bottom:20px}
+.social-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;background:#fff;transition:all 0.2s;color:var(--text)}
+.social-btn:hover{border-color:var(--secondary);background:var(--input-bg)}
+
+/* Divider */
+.divider-wrap{display:flex;justify-content:center;margin-bottom:20px}
+.divider{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12px;width:100%}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* Heading */
+h2{font-family:'Inter',sans-serif;font-size:32px;font-weight:800;text-align:center;margin-bottom:6px;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.2}
+.subtitle{color:var(--muted);font-size:15px;margin-bottom:24px;text-align:center;line-height:1.5}
+
+/* Form */
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:14px;font-weight:500;color:var(--text);margin-bottom:6px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.input-wrap{position:relative}
+.input-wrap span{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--secondary)}
+input[type=text],input[type=email],input[type=password],input[type=tel]{width:100%;padding:13px 14px 13px 44px;border:1px solid var(--border);border-radius:10px;font-size:14px;outline:none;transition:border-color 0.2s;font-family:'Inter',sans-serif;background:var(--input-bg)}
+input:focus{border-color:var(--secondary);box-shadow:0 0 0 3px rgba(245,166,35,0.1)}
+input.error{border-color:var(--danger);background:#fff8f8}
+input.valid{border-color:var(--success)}
+input::placeholder{color:#b5b5b5}
+.error-msg{font-size:12px;color:var(--danger);margin-top:4px;display:none}
+.error-msg.show{display:block}
+
+/* Password strength */
+.password-strength{display:flex;gap:4px;margin-top:8px}
+.strength-bar{height:4px;flex:1;border-radius:2px;background:var(--border);transition:background 0.3s}
+.strength-bar.weak{background:#ef4444}
+.strength-bar.medium{background:#f59e0b}
+.strength-bar.strong{background:#10b981}
+.strength-text{font-size:11px;color:var(--muted);margin-top:4px}
+
+/* Terms checkbox */
+.terms-check{display:flex;align-items:flex-start;gap:10px;margin-bottom:22px;font-size:13px;color:var(--muted);line-height:1.5}
+.terms-check input{accent-color:var(--secondary);width:18px;height:18px;margin-top:2px;flex-shrink:0}
+.terms-check a{color:var(--secondary);text-decoration:none;font-weight:500}
+.terms-check a:hover{text-decoration:underline}
+
+/* Submit Button */
+.btn-signup{width:100%;padding:14px;background:var(--btn-gradient);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:'Inter',sans-serif;box-shadow:0 4px 12px rgba(245,166,35,0.25)}
+.btn-signup:hover{opacity:0.9;transform:translateY(-1px);box-shadow:0 6px 16px rgba(245,166,35,0.35)}
+.btn-signup:disabled{opacity:0.6;cursor:not-allowed;transform:none}
+
+.secure-note{text-align:center;font-size:12px;color:var(--muted);margin-top:18px;display:flex;align-items:center;justify-content:center;gap:6px}
+.secure-note::before{content:'•';color:var(--secondary);font-size:24px;line-height:0}
+.back-role{text-align:center;font-size:13px;color:var(--muted);text-decoration:none;display:block;margin-top:8px;font-weight:500;transition:color 0.2s}
+.back-role:hover{color:var(--secondary)}
+
+/* Global Messages */
+.global-error{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:14px;color:var(--danger);margin-bottom:16px;display:none;text-align:center}
+.global-error.show{display:block}
+.global-success{background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:10px 14px;font-size:14px;color:var(--success);margin-bottom:16px;display:none;text-align:center}
+.global-success.show{display:block}
+
+@media(max-width:768px){
+  body{grid-template-columns:1fr}
+  .left-panel{min-height:280px;padding:32px 24px}
+  .left-panel h1{font-size:28px}
+  .right-panel{padding:32px 0}
+  .form-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- LEFT PANEL -->
+<div class="left-panel">
+  <a href="../index.html" class="brand-logo">
+    <div class="brand-icon">✈</div>
+    <div class="brand-text">GlobeSync</div>
+  </a>
+  <h1>Start Your<br>Adventure<br>Today</h1>
+  <p>Create your free account and unlock personalized travel planning, exclusive deals, and expert local guides.</p>
+  <div class="avatars-row">
+    <div class="avatars"><div class="avatar">👤</div><div class="avatar">👨</div><div class="avatar">👩</div><div class="avatar">👱</div></div>
+    <span>Join 12,500+ travelers</span>
+  </div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="right-panel">
+  <p class="top-link">Already have an account? <a href="../traveler-login.html">Sign in</a></p>
+  <div class="form-container">
+    <!-- Social Buttons -->
+    <div class="social-btns">
+      <button type="button" class="social-btn" onclick="alert('Google signup not available in demo mode')">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="G" style="width:16px"> Google
+      </button>
+      <button type="button" class="social-btn" onclick="alert('Apple signup not available in demo mode')">
+        <svg fill="#000" viewBox="0 0 24 24" width="18" height="18"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.04 2.33-.85 3.65-.72 1.54.12 2.76.82 3.5 1.9-2.9 1.76-2.4 5.48.5 6.64-.66 1.64-1.5 3.32-2.73 4.35zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg> Apple
+      </button>
+    </div>
+
+    <div class="divider-wrap"><div class="divider">Or sign up with email</div></div>
+
+    <h2>Create Account</h2>
+    <p class="subtitle">Fill in your details to get started</p>
+
+    <div class="global-error" id="global-error"></div>
+    <div class="global-success" id="global-success"></div>
+
+    <form id="signup-form" onsubmit="handleSignup(event)">
+      <!-- Name Row -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">First Name</label>
+          <div class="input-wrap"><span>👤</span><input type="text" id="first-name" placeholder="John"></div>
+          <div class="error-msg" id="first-name-error">First name is required</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last Name</label>
+          <div class="input-wrap"><span>👤</span><input type="text" id="last-name" placeholder="Doe"></div>
+          <div class="error-msg" id="last-name-error">Last name is required</div>
+        </div>
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <div class="input-wrap"><span>✉️</span><input type="email" id="email" placeholder="you@example.com"></div>
+        <div class="error-msg" id="email-error">Please enter a valid email address</div>
+      </div>
+
+      <!-- Phone -->
+      <div class="form-group">
+        <label class="form-label">Phone Number</label>
+        <div class="input-wrap"><span>📱</span><input type="tel" id="phone" placeholder="+91 98765 43210"></div>
+        <div class="error-msg" id="phone-error">Please enter a valid phone number</div>
+      </div>
+
+      <!-- Password -->
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="input-wrap"><span>🔒</span><input type="password" id="password" placeholder="Min 8 characters" oninput="checkStrength()"></div>
+        <div class="password-strength">
+          <div class="strength-bar" id="str1"></div>
+          <div class="strength-bar" id="str2"></div>
+          <div class="strength-bar" id="str3"></div>
+          <div class="strength-bar" id="str4"></div>
+        </div>
+        <div class="strength-text" id="strength-text"></div>
+        <div class="error-msg" id="password-error">Password must be at least 8 characters</div>
+      </div>
+
+      <!-- Confirm Password -->
+      <div class="form-group">
+        <label class="form-label">Confirm Password</label>
+        <div class="input-wrap"><span>🔒</span><input type="password" id="confirm-password" placeholder="Re-enter password"></div>
+        <div class="error-msg" id="confirm-password-error">Passwords do not match</div>
+      </div>
+
+      <!-- Terms -->
+      <div class="terms-check">
+        <input type="checkbox" id="terms">
+        <label for="terms">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></label>
+      </div>
+
+      <button type="submit" class="btn-signup">Create Account &rarr;</button>
+    </form>
+
+    <div class="secure-note">Your data is protected with 256-bit encryption</div>
+    <a href="../role-select.html" class="back-role">&larr; Back to role selection</a>
+  </div>
+</div>
+
+<script>
+// Password strength checker
+function checkStrength() {
+  const pw = document.getElementById('password').value;
+  const bars = [document.getElementById('str1'), document.getElementById('str2'), document.getElementById('str3'), document.getElementById('str4')];
+  const text = document.getElementById('strength-text');
+  bars.forEach(b => b.className = 'strength-bar');
+
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+  if (pw.length === 0) { text.textContent = ''; return; }
+
+  for (let i = 0; i < score; i++) {
+    if (score <= 1) bars[i].classList.add('weak');
+    else if (score <= 2) bars[i].classList.add('medium');
+    else bars[i].classList.add('strong');
+  }
+
+  const labels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+  text.textContent = labels[score] || '';
+}
+
+// Signup handler
+function handleSignup(e) {
+  e.preventDefault();
+  let valid = true;
+
+  // Clear all errors
+  document.querySelectorAll('.error-msg').forEach(el => el.classList.remove('show'));
+  document.querySelectorAll('input').forEach(el => el.classList.remove('error'));
+  document.getElementById('global-error').classList.remove('show');
+
+  const firstName = document.getElementById('first-name');
+  const lastName = document.getElementById('last-name');
+  const email = document.getElementById('email');
+  const phone = document.getElementById('phone');
+  const password = document.getElementById('password');
+  const confirmPw = document.getElementById('confirm-password');
+  const terms = document.getElementById('terms');
+
+  // Validate
+  if (!firstName.value.trim()) { firstName.classList.add('error'); document.getElementById('first-name-error').classList.add('show'); valid = false; }
+  if (!lastName.value.trim()) { lastName.classList.add('error'); document.getElementById('last-name-error').classList.add('show'); valid = false; }
+  if (!email.value.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) { email.classList.add('error'); document.getElementById('email-error').classList.add('show'); valid = false; }
+  if (!phone.value.trim() || phone.value.replace(/\D/g,'').length < 10) { phone.classList.add('error'); document.getElementById('phone-error').classList.add('show'); valid = false; }
+  if (password.value.length < 8) { password.classList.add('error'); document.getElementById('password-error').classList.add('show'); valid = false; }
+  if (password.value !== confirmPw.value) { confirmPw.classList.add('error'); document.getElementById('confirm-password-error').classList.add('show'); valid = false; }
+  if (!terms.checked) {
+    const errEl = document.getElementById('global-error');
+    errEl.textContent = 'You must agree to the Terms of Service';
+    errEl.classList.add('show');
+    valid = false;
+  }
+
+  if (!valid) return;
+
+  // Demo: Show success and redirect
+  const successEl = document.getElementById('global-success');
+  successEl.textContent = '🎉 Account created successfully! Redirecting to login...';
+  successEl.classList.add('show');
+  document.querySelector('.btn-signup').disabled = true;
+  document.querySelector('.btn-signup').textContent = 'Creating Account...';
+
+  setTimeout(() => {
+    // Store the new user for demo purposes
+    const newUser = {
+      name: firstName.value.trim() + ' ' + lastName.value.trim(),
+      email: email.value.trim(),
+      phone: phone.value.trim()
+    };
+    sessionStorage.setItem('newUser', JSON.stringify(newUser));
+    window.location.href = '../traveler-login.html';
+  }, 2000);
+}
+
+// Live validation: clear errors on input
+document.querySelectorAll('input').forEach(el => {
+  el.addEventListener('input', function() {
+    this.classList.remove('error');
+    const errEl = document.getElementById(this.id + '-error');
+    if (errEl) errEl.classList.remove('show');
+    document.getElementById('global-error').classList.remove('show');
+  });
+});
+</script>
+</body>
+</html>
+

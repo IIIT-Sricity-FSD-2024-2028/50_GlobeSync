@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP — Ticket Management</title>
+<link rel="stylesheet" href="../static/shared.css">
+<link rel="stylesheet" href="../static/notifications.css">
+<style>
+:root{--primary:#10b981;--primary-dark:#059669;--gradient:linear-gradient(135deg,#10b981 0%,#3b82f6 100%);--gradient-soft:linear-gradient(135deg,#ecfdf5 0%,#eff6ff 100%)}
+.priority-high{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.priority-med{background:#fffbeb;color:#d97706;border:1px solid #fde68a;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.priority-low{background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.timeline-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border-light)}
+.timeline-item:last-child{border-bottom:none}
+.timeline-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.bulk-bar{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:12px 24px;border-radius:var(--radius-lg);display:none;align-items:center;gap:20px;z-index:1000;box-shadow:0 10px 25px -5px rgba(0,0,0,0.3)}
+.bulk-count{font-weight:700;font-size:14px}
+.sla-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:8px}
+.sla-red{background:#ef4444;box-shadow:0 0 8px #ef4444}
+.sla-yellow{background:#f59e0b;box-shadow:0 0 8px #f59e0b}
+.sla-green{background:#10b981;box-shadow:0 0 8px #10b981}
+tr.selected{background:#f8fafc}
+input[type="checkbox"]{cursor:pointer;width:16px;height:16px;accent-color:var(--primary)}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#3b81f6 0%,#06b6d4 100%);color:#fff;font-size:18px">🎧</div><div><div class="logo-text">GlobeSync</div><div class="logo-sub">Support Portal</div></div></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="support-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item active" href="tickets.html"><span class="nav-icon">🎫</span>Tickets</a>
+      <a class="nav-item" href="refunds.html"><span class="nav-icon">💰</span>Refunds</a>
+      <a class="nav-item" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+    </nav>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="page-title">Ticket Management</div><div class="page-subtitle">View and manage all active support requests</div></div>
+      <button class="btn btn-primary" style="background:var(--gradient)" onclick="openModal('create-ticket-modal')">+ Create Ticket</button>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid stats-grid-4 mb-4">
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Total Tickets</div><div class="stat-value" id="total-count">0</div></div><div class="stat-icon blue">📋</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Open</div><div class="stat-value" id="open-count">0</div></div><div class="stat-icon pink">🎫</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">In Progress</div><div class="stat-value" id="progress-count">0</div></div><div class="stat-icon orange">⏳</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Resolved Today</div><div class="stat-value">15</div></div><div class="stat-icon green">✅</div></div>
+    </div>
+
+    <!-- TICKETS CARD -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">All Tickets</span>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <div class="search-bar" style="min-width:250px"><span class="search-icon">🔍</span><input type="text" id="ticket-search" placeholder="Search by ID or issue..."></div>
+          <select class="form-control" style="width:auto;padding:8px 14px" id="priority-filter" onchange="renderTickets()">
+            <option value="">All Priorities</option>
+            <option value="High">High Priority</option>
+            <option value="Medium">Medium Priority</option>
+            <option value="Low">Low Priority</option>
+          </select>
+          <select class="form-control" style="width:auto;padding:8px 14px" id="status-filter" onchange="renderTickets()">
+            <option value="">All Statuses</option>
+            <option value="Open">Open</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Resolved">Resolved</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:40px"><input type="checkbox" onchange="toggleAll(this)"></th>
+            <th>Ticket ID</th>
+            <th>Traveler</th>
+            <th>Issue Type</th>
+            <th>Priority</th>
+            <th>Assignee</th>
+            <th>Status</th>
+            <th>Last Updated</th>
+            <th>Actions</th>
+          </tr></thead>
+          <tbody id="tickets-tbody"></tbody>
+        </table>
+      </div>
+      <div id="empty-tickets" class="empty-state" style="display:none"><div class="empty-icon">🎫</div><h3>No tickets match your filters</h3><p>Try adjusting your search or filters.</p></div>
+    </div>
+  </main>
+</div>
+
+<!-- BULK ACTION BAR -->
+<div class="bulk-bar" id="bulk-bar">
+  <span class="bulk-count" id="bulk-count">0 tickets selected</span>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-primary btn-sm" onclick="bulkAction('assign')">Assign to Me</button>
+    <button class="btn btn-success btn-sm" onclick="bulkAction('resolve')">Mark Resolved</button>
+    <button class="btn btn-secondary btn-sm" onclick="clearSelection()" style="background:#475569;border:none">Cancel</button>
+  </div>
+</div>
+
+<!-- TICKET DETAIL MODAL -->
+<div class="modal-overlay" id="ticket-detail-modal">
+  <div class="modal" style="max-width:700px;max-height:90vh;overflow-y:auto">
+    <div class="modal-header">
+      <div class="modal-title" id="ticket-detail-title">Ticket Details</div>
+      <button class="modal-close" onclick="closeModal('ticket-detail-modal')">✕</button>
+    </div>
+    <div id="ticket-detail-content"></div>
+  </div>
+</div>
+
+<!-- CREATE TICKET MODAL -->
+<div class="modal-overlay" id="create-ticket-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Create New Support Request</div>
+      <button class="modal-close" onclick="closeModal('create-ticket-modal')">✕</button>
+    </div>
+    <form id="ticket-form" onsubmit="createTicket(event)">
+      <div class="form-group">
+        <label class="form-label">Search Traveler *</label>
+        <select class="form-control" id="t-traveler" data-required="Select a traveler">
+          <option value="">Select traveler</option>
+        </select>
+        <div class="form-error" id="t-traveler-error"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Issue Category *</label>
+        <input class="form-control" id="t-issue" placeholder="e.g., Payment Error, Flight Cancelled" data-required="Issue type is required">
+        <div class="form-error" id="t-issue-error"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Issue Details *</label>
+        <textarea class="form-control" id="t-desc" rows="3" placeholder="Provide as much detail as possible..." data-required="Description is required"></textarea>
+        <div class="form-error" id="t-desc-error"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Priority Level *</label>
+          <select class="form-control" id="t-priority" data-required="Select priority">
+            <option value="">Select priority</option>
+            <option value="High">High (Immediate Action)</option>
+            <option value="Medium">Medium (Standard)</option>
+            <option value="Low">Low (General Inquiry)</option>
+          </select>
+          <div class="form-error" id="t-priority-error"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Initial Status</label>
+          <select class="form-control" id="t-status">
+            <option value="Open">Open</option>
+            <option value="In Progress">In Progress</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('create-ticket-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary" style="background:var(--gradient)">Log Support Ticket</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/notifications.js"></script>
+<script>
+if (!Auth.isLoggedIn() || Auth.getRole() !== 'support') window.location.href = '../login.html?role=support';
+const user = Auth.getUser();
+
+function renderTickets() {
+  const search = document.getElementById('ticket-search').value.toLowerCase();
+  const priorityF = document.getElementById('priority-filter').value;
+  const statusF = document.getElementById('status-filter').value;
+  
+  let tickets = [...DB.supportTickets];
+  
+  // Update Stats
+  document.getElementById('total-count').textContent = tickets.length;
+  document.getElementById('open-count').textContent = tickets.filter(t => t.status === 'Open').length;
+  document.getElementById('progress-count').textContent = tickets.filter(t => t.status === 'In Progress').length;
+
+  // Filters
+  if (search) tickets = tickets.filter(t => 
+    t.issue_type.toLowerCase().includes(search) || 
+    t.ticket_id.toString().includes(search) ||
+    t.description.toLowerCase().includes(search)
+  );
+  if (priorityF) tickets = tickets.filter(t => t.priority === priorityF);
+  if (statusF) tickets = tickets.filter(t => t.status === statusF);
+
+  const tbody = document.getElementById('tickets-tbody');
+  const empty = document.getElementById('empty-tickets');
+  
+  if (tickets.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  
+  empty.style.display = 'none';
+  tbody.innerHTML = tickets.map(t => {
+    const traveler = DB.travelers.find(tr => tr.traveler_id === t.traveler_id);
+    const pClass = t.priority === 'High' ? 'priority-high' : t.priority === 'Medium' ? 'priority-med' : 'priority-low';
+    const slaClass = t.priority === 'High' ? 'sla-red' : t.priority === 'Medium' ? 'sla-yellow' : 'sla-green';
+    const isSelected = selectedTickets.has(t.ticket_id);
+    
+    return `<tr class="${isSelected ? 'selected' : ''}">
+      <td><input type="checkbox" onchange="toggleSelect(${t.ticket_id})" ${isSelected ? 'checked' : ''}></td>
+      <td><span style="font-weight:700;color:var(--primary)">#${t.ticket_id}</span></td>
+      <td>
+        <div style="font-weight:600">${traveler ? traveler.name : 'Unknown'}</div>
+        <div style="font-size:11px;color:var(--text-muted)">TC00${t.traveler_id}</div>
+      </td>
+      <td><span class="sla-dot ${slaClass}"></span>${t.issue_type}</td>
+      <td><span class="${pClass}">${t.priority}</span></td>
+      <td>${t.care_id ? 'Agent #'+t.care_id : '<span class="text-muted">Unassigned</span>'}</td>
+      <td>${statusBadge(t.status)}</td>
+      <td style="color:var(--text-muted);font-size:12px">${new Date(t.created).toLocaleDateString()}</td>
+      <td>
+        <div style="display:flex;gap:4px">
+          <button onclick="viewTicket(${t.ticket_id})" class="btn btn-secondary btn-sm" style="background:#f1f5f9;border:none">👁 View</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+let selectedTickets = new Set();
+function toggleSelect(id) {
+  if (selectedTickets.has(id)) selectedTickets.delete(id);
+  else selectedTickets.add(id);
+  updateBulkBar();
+  renderTickets();
+}
+
+function toggleAll(el) {
+  if (el.checked) {
+    DB.supportTickets.forEach(t => selectedTickets.add(t.ticket_id));
+  } else {
+    selectedTickets.clear();
+  }
+  updateBulkBar();
+  renderTickets();
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulk-bar');
+  const count = document.getElementById('bulk-count');
+  if (selectedTickets.size > 0) {
+    bar.style.display = 'flex';
+    count.textContent = `${selectedTickets.size} tickets selected`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function clearSelection() {
+  selectedTickets.clear();
+  updateBulkBar();
+  renderTickets();
+}
+
+function bulkAction(type) {
+  const ids = Array.from(selectedTickets);
+  ids.forEach(id => {
+    const idx = DB.supportTickets.findIndex(t => t.ticket_id === id);
+    if (type === 'assign') DB.supportTickets[idx].care_id = user.care_id;
+    if (type === 'resolve') DB.supportTickets[idx].status = 'Resolved';
+  });
+  saveDB();
+  showToast(`Bulk action "${type}" applied to ${ids.length} tickets!`);
+  clearSelection();
+}
+
+function viewTicket(id) {
+  const ticket = DB.supportTickets.find(t => t.ticket_id === id);
+  const traveler = DB.travelers.find(t => t.traveler_id === ticket.traveler_id);
+  document.getElementById('ticket-detail-title').textContent = `Support Request #${id}`;
+  const pClass = ticket.priority === 'High' ? 'priority-high' : ticket.priority === 'Medium' ? 'priority-med' : 'priority-low';
+  
+  document.getElementById('ticket-detail-content').innerHTML = `
+    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:24px">
+      <div>
+        <div style="background:var(--bg-soft);border-radius:var(--radius-md);padding:20px;margin-bottom:20px;border:1px solid var(--border-light)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:16px;align-items:center">
+            <div style="font-weight:700;font-size:16px">Issue: ${ticket.issue_type}</div>
+            ${statusBadge(ticket.status)}
+          </div>
+          <p style="font-size:14px;color:var(--text-secondary);line-height:1.6;margin-bottom:20px;background:#fff;padding:12px;border-radius:var(--radius-sm)">${ticket.description}</p>
+          <div class="grid-2" style="font-size:13px">
+            <div><div style="color:var(--text-muted);margin-bottom:4px">Priority Level</div><span class="${pClass}">${ticket.priority}</span></div>
+            <div><div style="color:var(--text-muted);margin-bottom:4px">Created Date</div>${new Date(ticket.created).toLocaleString()}</div>
+          </div>
+        </div>
+        
+        <div style="font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px">Activity & Resolution Log</div>
+        <div class="timeline-item"><div class="timeline-dot" style="background:#e0f2fe">➕</div><div><div style="font-weight:600;font-size:14px">Initial Request Logged</div><div style="font-size:12px;color:var(--text-muted)">System • ${new Date(ticket.created).toLocaleDateString()}</div></div></div>
+        <div class="timeline-item"><div class="timeline-dot" style="background:#ecfdf5">👤</div><div><div style="font-weight:600;font-size:14px">Assigned to ${user.name}</div><div style="font-size:12px;color:var(--text-muted)">System • Just now</div></div></div>
+        
+        <div style="margin-top:20px">
+           <label class="form-label" style="font-size:13px">Resolution Notes / Internal Follow-up</label>
+           <textarea class="form-control" id="note-${id}" rows="2" placeholder="Enter status update or resolution details..."></textarea>
+           <button onclick="addInternalNote(${id})" class="btn btn-secondary btn-sm mt-2" style="width:100%">Add Processing Note</button>
+        </div>
+      </div>
+      
+      <div>
+        ${traveler ? `
+        <div style="background:var(--bg-soft);border-radius:var(--radius-md);padding:20px;text-align:center;border:1px solid var(--border-light);margin-bottom:20px">
+          <div style="width:60px;height:60px;border-radius:50%;background:var(--gradient);display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;margin:0 auto 12px">${traveler.name[0]}</div>
+          <div style="font-weight:700;font-size:16px">${traveler.name}</div>
+          <div style="font-size:12px;color:var(--primary);margin-bottom:16px;font-weight:600">Traveler Platinum Member</div>
+          <div style="text-align:left;font-size:13px;display:flex;flex-direction:column;gap:8px">
+            <div class="flex-between"><span class="text-muted">Email</span><span>${traveler.email}</span></div>
+            <div class="flex-between"><span class="text-muted">Phone</span><span>${traveler.phone || 'N/A'}</span></div>
+          </div>
+          <button class="btn btn-primary btn-sm mt-4" style="width:100%;background:var(--gradient)" onclick="location.href='messages.html?travelerId=${traveler.traveler_id}'">Message Traveler</button>
+        </div>` : ''}
+        
+        <div style="font-weight:700;margin-bottom:12px">Support Protocols</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button onclick="location.href='refunds.html'" class="btn btn-secondary" style="justify-content:flex-start;gap:10px;font-size:13px"><span style="font-size:16px">💳</span> Initiate Payment Refund</button>
+          <button class="btn btn-secondary" style="justify-content:flex-start;gap:10px;font-size:13px"><span style="font-size:16px">📅</span> Modify Trip Itinerary</button>
+          <button class="btn btn-secondary" style="justify-content:flex-start;gap:10px;font-size:13px"><span style="font-size:16px">📝</span> Escalation Report</button>
+          ${ticket.status !== 'Resolved' ? `<button onclick="resolveTicket(${id});closeModal('ticket-detail-modal')" class="btn btn-success" style="justify-content:center;margin-top:8px">Mark as Resolved ✓</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  openModal('ticket-detail-modal');
+}
+
+function resolveTicket(id) {
+  const idx = DB.supportTickets.findIndex(t => t.ticket_id === id);
+  if (idx === -1) return;
+  DB.supportTickets[idx].status = 'Resolved';
+  saveDB();
+  showToast(`Ticket #${id} has been successfully resolved!`);
+  renderTickets();
+}
+
+function createTicket(e) {
+  e.preventDefault();
+  if (!validateForm('ticket-form')) return;
+  
+  const newTicket = {
+    ticket_id: generateId(DB.supportTickets, 'ticket_id'),
+    traveler_id: parseInt(document.getElementById('t-traveler').value),
+    issue_type: document.getElementById('t-issue').value,
+    description: document.getElementById('t-desc').value,
+    priority: document.getElementById('t-priority').value,
+    status: document.getElementById('t-status').value,
+    care_id: user.care_id,
+    case_id: Math.floor(Math.random() * 9000) + 1000,
+    created: new Date().toISOString()
+  };
+  
+  DB.supportTickets.push(newTicket);
+  saveDB();
+  closeModal('create-ticket-modal');
+  document.getElementById('ticket-form').reset();
+  showToast('New support ticket logged successfully!');
+  renderTickets();
+}
+
+function addInternalNote(id) {
+  const note = document.getElementById(`note-${id}`).value.trim();
+  if (!note) { showToast('Please enter a note before adding', 'error'); return; }
+  showToast('Internal note added to processing history');
+  document.getElementById(`note-${id}`).value = '';
+}
+
+function populateTravelers() {
+  const sel = document.getElementById('t-traveler');
+  sel.innerHTML = '<option value="">Select traveler</option>' + DB.travelers.map(t => `<option value="${t.traveler_id}">${t.name} (TC00${t.traveler_id})</option>`).join('');
+}
+
+document.getElementById('ticket-search').addEventListener('input', renderTickets);
+populateTravelers();
+setupLiveValidation('ticket-form');
+renderTickets();
+injectNotifBell('support');
+</script>
+</body>
+</html>
+
+

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP Admin — Traveler Reviews</title>
+<link rel="stylesheet" href="../static/shared.css">
+<link rel="stylesheet" href="../static/notifications.css">
+<style>
+:root{--primary:#E8467C;--gradient:linear-gradient(135deg,#E8467C 0%,#F5A623 100%);--gradient-soft:linear-gradient(135deg,#ffeef5 0%,#fff8ee 100%)}
+.rating-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.rating-5{background:#ecfdf5;color:#059669;border:1px solid #a7f3d0}
+.rating-4{background:#f0f9ff;color:#0284c7;border:1px solid #bae6fd}
+.rating-3{background:#fffbeb;color:#d97706;border:1px solid #fde68a}
+.rating-2{background:#fff7ed;color:#ea580c;border:1px solid #fed7aa}
+.rating-1{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
+.comment-text{font-size:13px;color:var(--text-secondary);max-width:300px;line-height:1.5;font-style:italic}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);color:#fff;font-size:18px">🛡️</div><div><div class="logo-text">GlobeSync</div><div class="logo-sub">Admin Portal</div></div></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="admin-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="bookings.html"><span class="nav-icon">🎫</span>Bookings</a>
+      <a class="nav-item" href="trips.html"><span class="nav-icon">📍</span>Trips</a>
+      <a class="nav-item" href="packages.html"><span class="nav-icon">📦</span>Packages</a>
+      <a class="nav-item active" href="reviews.html"><span class="nav-icon">⭐</span>Reviews</a>
+      <a class="nav-item" href="reports.html"><span class="nav-icon">📈</span>Reports</a>
+    </nav>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="page-title">Traveler Reviews</div><div class="page-subtitle">Monitoring feedback and service quality</div></div>
+      <div id="stat-avg" style="font-weight:700;padding:8px 16px;background:#fff;border:1px solid var(--border);border-radius:var(--radius-md);color:var(--primary)">Avg Rating: ⭐ 4.8</div>
+    </div>
+
+    <!-- REVIEWS TABLE -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">All Feedback</span>
+        <div style="display:flex;gap:12px">
+          <select id="rating-filter" class="form-control" style="width:auto" onchange="renderReviews()">
+            <option value="">All Ratings</option>
+            <option value="5">5 Stars</option>
+            <option value="4">4 Stars</option>
+            <option value="3">3 Stars & Below</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Trip & Destination</th>
+              <th>Traveler</th>
+              <th>Trip Rating</th>
+              <th>Guide Rating</th>
+              <th>Comment</th>
+            </tr>
+          </thead>
+          <tbody id="reviews-tbody"></tbody>
+        </table>
+      </div>
+      <div id="empty-reviews" class="empty-state" style="display:none">
+        <div class="empty-icon">⭐</div>
+        <h3>No reviews found</h3>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/notifications.js"></script>
+<script>
+if (!Auth.isLoggedIn() || Auth.getRole() !== 'admin') window.location.href = '../login.html?role=admin';
+
+function renderReviews() {
+  const ratingF = document.getElementById('rating-filter').value;
+  let reviews = [...DB.reviews].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+
+  if (ratingF === '5') reviews = reviews.filter(r => r.trip_rating === 5);
+  else if (ratingF === '4') reviews = reviews.filter(r => r.trip_rating === 4);
+  else if (ratingF === '3') reviews = reviews.filter(r => r.trip_rating <= 3);
+
+  const tbody = document.getElementById('reviews-tbody');
+  const empty = document.getElementById('empty-reviews');
+
+  if (reviews.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+
+  empty.style.display = 'none';
+  tbody.innerHTML = reviews.map(r => {
+    const trip = DB.trips.find(t => t.trip_id === r.trip_id);
+    const traveler = DB.travelers.find(t => t.traveler_id === r.traveler_id);
+    const guide = DB.travelGuides.find(g => g.guide_id === r.guide_id);
+    
+    return `
+      <tr>
+        <td style="font-size:12px;color:var(--text-muted)">${r.created_at}</td>
+        <td>
+          <div style="font-weight:700">${trip ? trip.destination : 'Unknown'}</div>
+          <div style="font-size:11px;color:var(--text-muted)">#T00${r.trip_id}</div>
+        </td>
+        <td>
+          <div style="font-weight:600">${traveler ? traveler.name : 'Unknown'}</div>
+          <div style="font-size:11px;color:var(--text-muted)">ID: ${r.traveler_id}</div>
+        </td>
+        <td><span class="rating-pill rating-${r.trip_rating}">⭐ ${r.trip_rating}</span></td>
+        <td>
+          ${guide ? `<span class="rating-pill rating-${r.guide_rating}">⭐ ${r.guide_rating}</span><br><small style="color:var(--text-muted)">Guide: ${guide.name}</small>` : 'N/A'}
+        </td>
+        <td><div class="comment-text">"${r.comment || 'No comment provided'}"</div></td>
+      </tr>
+    `;
+  }).join('');
+
+  // Update dynamic average
+  const avg = (reviews.reduce((acc, r) => acc + r.trip_rating, 0) / reviews.length).toFixed(1);
+  document.getElementById('stat-avg').textContent = `Avg Rating: ⭐ ${avg || '0.0'}`;
+}
+
+renderReviews();
+injectNotifBell('admin');
+</script>
+</body>
+</html>
+
+

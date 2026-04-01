@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP — Admin Reports</title>
+<link rel="stylesheet" href="../static/shared.css">
+<link rel="stylesheet" href="../static/notifications.css">
+<style>
+:root{--primary:#E8467C;--gradient:linear-gradient(135deg,#E8467C 0%,#F5A623 100%);--gradient-soft:linear-gradient(135deg,#ffeef5 0%,#fff8ee 100%)}
+.analytics-grid{display:grid;grid-template-columns:2fr 1fr;gap:24px;margin-bottom:24px}
+.bar-chart{display:flex;align-items:flex-end;gap:12px;height:200px;padding:24px;background:var(--gradient-soft);border-radius:var(--radius-lg);margin-top:16px}
+.bar-item{flex:1;background:var(--primary);border-radius:4px 4px 0 0;position:relative;transition:all 0.3s;min-width:20px}
+.bar-item:hover{opacity:0.8;transform:translateY(-2px)}
+.bar-label{position:absolute;bottom:-28px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--text-muted);white-space:nowrap;font-weight:500}
+.insight-card{background:#fff;border-radius:var(--radius-md);border-left:4px solid var(--primary);padding:16px;margin-bottom:16px;box-shadow:var(--shadow-sm);transition:transform 0.2s}
+.insight-card:hover{transform:translateX(4px)}
+.insight-title{font-weight:700;font-size:14px;color:var(--text-primary);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.insight-desc{font-size:13px;color:var(--text-secondary);line-height:1.6}
+.guide-rank{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border-light)}
+.guide-rank:last-child{border-bottom:none}
+.rank-num{width:28px;height:28px;border-radius:50%;background:var(--bg-soft);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:var(--text-muted)}
+.rank-num.top{background:var(--gradient);color:white}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);color:#fff;font-size:18px">🛡️</div><div><div class="logo-text">GlobeSync</div><div class="logo-sub">Admin Portal</div></div></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="admin-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="bookings.html"><span class="nav-icon">🎫</span>Bookings</a>
+      <a class="nav-item" href="trips.html"><span class="nav-icon">📍</span>Trips</a>
+      <a class="nav-item" href="packages.html"><span class="nav-icon">📦</span>Packages</a>
+      <a class="nav-item" href="reviews.html"><span class="nav-icon">⭐</span>Reviews</a>
+      <a class="nav-item active" href="reports.html"><span class="nav-icon">📈</span>Reports</a>
+    </nav>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="page-title">Operational Reports</div><div class="page-subtitle">Standard reports for travel management and guide performance</div></div>
+      <div class="topbar-actions">
+        <button class="btn btn-secondary" onclick="window.print()">Print PDF</button>
+        <button class="btn btn-primary" onclick="showToast('Exporting data...')">⬇ CSV Export</button>
+      </div>
+    </div>
+
+    <!-- ADMIN PERFORMANCE STATS -->
+    <div class="stats-grid stats-grid-4 mb-4">
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Monthly Sales</div><div class="stat-value" id="monthly-sales">₹0</div></div><div class="stat-icon pink">💰</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Managed Guides</div><div class="stat-value" id="managed-guides">0</div></div><div class="stat-icon blue">👥</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Avg Guide Rating</div><div class="stat-value">4.7</div></div><div class="stat-icon orange">⭐</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Active Bookings</div><div class="stat-value" id="active-bookings">0</div></div><div class="stat-icon green">🎫</div></div>
+    </div>
+
+    <div class="analytics-grid">
+      <!-- GUIDE PERFORMANCE TRENDS -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">Bookings Managed (Last 6 Months)</span></div>
+        <div class="card-body">
+          <div class="bar-chart" id="admin-chart"></div>
+          <div style="padding:24px 0 0;display:grid;grid-template-columns:1fr 1fr;gap:24px">
+            <div style="background:var(--bg-soft);padding:16px;border-radius:var(--radius-md)">
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Peak Service</div>
+              <div style="font-weight:700;font-size:18px;color:var(--primary)">Hotels (55%)</div>
+            </div>
+            <div style="background:var(--bg-soft);padding:16px;border-radius:var(--radius-md)">
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Management Load</div>
+              <div style="font-weight:700;font-size:18px;color:var(--primary)">Normal (82%)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOP GUIDES IN YOUR REGION -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">Top Guides (Your Admin)</span></div>
+        <div class="card-body" id="top-guides" style="padding-top:0">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </div>
+
+    <!-- OPERATIONAL INSIGHTS -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">Operational Insights</span></div>
+      <div class="card-body">
+        <div class="grid-3" style="gap:24px">
+          <div class="insight-card">
+            <div class="insight-title">📍 High Demand: Bali Packages</div>
+            <div class="insight-desc">Bali bliss retreat has seen a 40% uptick in clicks this week. Ensure guide assignment lists for April are updated and confirmed.</div>
+          </div>
+          <div class="insight-card" style="border-color:#F5A623">
+            <div class="insight-title">🎫 Booking Lifecycle</div>
+            <div class="insight-desc">Average time from 'Planning' to 'Confirmed' status is currently 4.2 days. Aim to reduce this by prioritizing pending payments alerts.</div>
+          </div>
+          <div class="insight-card" style="border-color:#10b981">
+            <div class="insight-title">👥 Guide Availability</div>
+            <div class="insight-desc">Suresh and Vikram are approaching full utilization for the May holiday season. Consider recruiting 2 more regional guides.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/notifications.js"></script>
+<script>
+if (!Auth.isLoggedIn() || Auth.getRole() !== 'admin') window.location.href = '../login.html';
+const admin = Auth.getUser();
+
+function loadAdminAnalytics() {
+  // Stats
+  const myGuides = DB.travelGuides.filter(g => g.admin_id === admin.admin_id);
+  const myBookings = DB.bookings.filter(b => b.status === 'Confirmed');
+  const revenue = DB.payments.reduce((s, p) => s + p.amount, 0) * 0.4; // Simulated share
+  
+  document.getElementById('monthly-sales').textContent = formatCurrency(revenue);
+  document.getElementById('managed-guides').textContent = myGuides.length;
+  document.getElementById('active-bookings').textContent = myBookings.length;
+
+  // Chart
+  const data = [10, 15, 12, 18, 22, 28];
+  const months = ['Oct','Nov','Dec','Jan','Feb','Mar'];
+  const max = Math.max(...data);
+  document.getElementById('admin-chart').innerHTML = data.map((v, i) => `
+    <div class="bar-item" style="height:${Math.round(v/max*100)}%" title="${v} bookings">
+      <div class="bar-label">${months[i]}</div>
+    </div>`).join('');
+
+  // Top Guides
+  document.getElementById('top-guides').innerHTML = myGuides.sort((a,b) => b.rating - a.rating).slice(0, 5).map((g, i) => `
+    <div class="guide-rank">
+      <div class="rank-num ${i === 0 ? 'top' : ''}">${i + 1}</div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:14px">${g.name}</div>
+        <div style="font-size:12px;color:var(--text-muted)">${g.experience} Years Exp • ${g.languages[0]}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:700;color:var(--primary)">⭐ ${g.rating}</div>
+        <div style="font-size:11px;color:var(--text-muted)">Avg Rating</div>
+      </div>
+    </div>`).join('');
+}
+
+loadAdminAnalytics();
+injectNotifBell('admin');
+</script>
+</body>
+</html>
+
+

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP — Guide Dashboard</title>
+<link rel="stylesheet" href="../static/shared.css">
+<link rel="stylesheet" href="../static/notifications.css">
+<style>
+:root { --primary: #F5A623; --primary-dark: #e09520; --gradient: linear-gradient(135deg,#F5A623 0%,#E8467C 100%); --gradient-soft: linear-gradient(135deg,#fff8ee 0%,#ffeef5 100%); }
+.traveler-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border-light)}
+.traveler-row:last-child{border-bottom:none}
+.traveler-avatar{width:44px;height:44px;border-radius:50%;background:var(--gradient);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px;flex-shrink:0}
+.traveler-name{font-weight:700;font-size:14px}
+.traveler-trip{font-size:13px;color:var(--text-muted)}
+.activity-feed-item{padding:12px 0;border-bottom:1px solid var(--border-light);display:flex;gap:10px;align-items:flex-start}
+.activity-feed-item:last-child{border-bottom:none}
+.feed-dot{width:8px;height:8px;border-radius:50%;background:var(--primary);margin-top:5px;flex-shrink:0}
+.feed-text{font-size:14px;flex:1}
+.feed-time{font-size:12px;color:var(--text-muted);white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);color:#fff;font-size:18px">🧭</div><div><div class="logo-text">GlobeSync</div><div class="logo-sub">Guide Portal</div></div></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item active" href="guide-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="travelers.html"><span class="nav-icon">👥</span>Travelers</a>
+      <a class="nav-item" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+    </nav>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="page-title">Welcome, <span id="guide-name">Guide</span>!</div>
+        <div class="page-subtitle">Manage your assigned travelers and their trips</div>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid mb-4">
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Assigned Travelers</div><div class="stat-value" id="stat-travelers">0</div></div><div class="stat-icon orange">👥</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Avg. Performance</div><div class="stat-value">8.5<span style="font-size:16px">/10</span></div><div class="stat-change">↑ Excellent rating</div></div><div class="stat-icon pink">⭐</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Unread Messages</div><div class="stat-value">5</div></div><div class="stat-icon green">💬</div></div>
+    </div>
+
+    <div class="grid-2">
+      <!-- ASSIGNED TRAVELERS -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Assigned Travelers</span>
+          <a href="travelers.html" class="btn btn-secondary btn-sm">View All</a>
+        </div>
+        <div class="card-body" id="travelers-list"></div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <!-- QUICK SUGGESTION -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">Send Quick Suggestion</span></div>
+          <div class="card-body">
+            <div class="form-group">
+              <textarea class="form-control" id="suggestion-text" rows="3" placeholder="Type your suggestion for travelers..."></textarea>
+            </div>
+            <button class="btn btn-primary" style="width:100%;background:linear-gradient(135deg,#10b981,#059669)" onclick="sendSuggestion()">Send to All Travelers</button>
+          </div>
+        </div>
+
+        <!-- ACTIVITY FEED -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">Activity Feed</span></div>
+          <div class="card-body" id="activity-feed"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/notifications.js"></script>
+<script>
+if (!Auth.isLoggedIn() || Auth.getRole() !== 'guide') window.location.href = '../login.html?role=guide';
+const user = Auth.getUser();
+document.getElementById('guide-name').textContent = user.name.split(' ')[0];
+
+function loadTravelers() {
+  const myTrips = DB.trips.filter(t => t.guide_id === user.guide_id);
+  const travelerIds = [...new Set(myTrips.map(t => t.traveler_id))];
+  const travelers = travelerIds.map(id => {
+    const traveler = DB.travelers.find(t => t.traveler_id === id);
+    const trip = myTrips.find(t => t.traveler_id === id);
+    return { ...traveler, trip };
+  });
+  document.getElementById('stat-travelers').textContent = travelers.length;
+  const container = document.getElementById('travelers-list');
+  if (travelers.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><p>No travelers assigned yet</p></div>';
+    return;
+  }
+  container.innerHTML = travelers.map(t => `
+    <div class="traveler-row">
+      <div class="traveler-avatar">${t.name ? t.name[0] : '?'}</div>
+      <div style="flex:1">
+        <div class="traveler-name">${t.name}</div>
+        <div class="traveler-trip">${t.trip ? t.trip.destination + ' • ' + formatDate(t.trip.start_date) + ' - ' + formatDate(t.trip.end_date) : 'No active trip'}</div>
+      </div>
+      ${t.trip ? statusBadge(t.trip.status) : ''}
+      <a href="travelers.html" class="btn btn-secondary btn-sm">→</a>
+    </div>`).join('');
+}
+
+function loadFeed() {
+  const feed = [
+    { text: "Ajith's flight delayed by 2 hours", time: "1h ago", type: "warning" },
+    { text: "New booking added for Priya's trip", time: "3h ago", type: "info" },
+    { text: "Rahul sent you a message", time: "5h ago", type: "message" },
+    { text: "Payment received for Paris trip", time: "1d ago", type: "success" }
+  ];
+  document.getElementById('activity-feed').innerHTML = feed.map(f => `
+    <div class="activity-feed-item">
+      <div class="feed-dot" style="background:${f.type==='warning'?'#f59e0b':f.type==='success'?'#10b981':f.type==='message'?'#3b82f6':'#F5A623'}"></div>
+      <div class="feed-text">${f.text}</div>
+      <div class="feed-time">${f.time}</div>
+    </div>`).join('');
+}
+
+function sendSuggestion() {
+  const text = document.getElementById('suggestion-text').value.trim();
+  if (!text) { showToast('Please enter a suggestion', 'error'); return; }
+  showToast('Suggestion sent to all travelers! ✓');
+  document.getElementById('suggestion-text').value = '';
+}
+
+loadTravelers();
+loadFeed();
+injectNotifBell('guide');
+</script>
+</body>
+</html>
+
+

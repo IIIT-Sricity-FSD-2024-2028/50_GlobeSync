@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlobeSync — Super User Login</title>
+<meta name="description" content="GlobeSync Super User secure portal. Restricted access only.">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --primary:#6366f1;
+  --primary-dark:#4338ca;
+  --secondary:#a855f7;
+  --gradient:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);
+  --btn-gradient:linear-gradient(90deg,#6366f1 0%,#a855f7 100%);
+  --text:#1a1a2e;
+  --muted:#6b7280;
+  --border:#e5e7ff;
+  --danger:#ef4444;
+  --input-bg:#f8f7ff;
+  --box-bg:#f3f2ff;
+  --bg:#faf9ff;
+}
+html,body{height:100%}
+body{
+  font-family:'Inter', sans-serif;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  background:var(--bg);
+  padding:24px;
+  margin:0;
+  position:relative;
+  overflow:hidden;
+}
+
+/* Animated background blobs */
+body::before{
+  content:'';
+  position:fixed;
+  top:-120px;right:-120px;
+  width:400px;height:400px;
+  background:radial-gradient(circle,rgba(99,102,241,0.15) 0%,transparent 70%);
+  border-radius:50%;
+  pointer-events:none;
+  animation:blob1 8s ease-in-out infinite;
+}
+body::after{
+  content:'';
+  position:fixed;
+  bottom:-100px;left:-100px;
+  width:350px;height:350px;
+  background:radial-gradient(circle,rgba(168,85,247,0.12) 0%,transparent 70%);
+  border-radius:50%;
+  pointer-events:none;
+  animation:blob2 10s ease-in-out infinite;
+}
+@keyframes blob1{0%,100%{transform:scale(1) translate(0,0)}50%{transform:scale(1.1) translate(-20px,20px)}}
+@keyframes blob2{0%,100%{transform:scale(1) translate(0,0)}50%{transform:scale(1.08) translate(15px,-15px)}}
+
+.card{
+  background:#fff;
+  border-radius:24px;
+  padding:44px 40px 36px;
+  width:100%;
+  max-width:520px;
+  box-shadow:0 16px 60px rgba(99,102,241,0.12);
+  border:1px solid rgba(99,102,241,0.08);
+  position:relative;
+  z-index:1;
+}
+
+/* Top restricted banner */
+.restricted-banner{
+  background:linear-gradient(90deg,#4338ca,#6366f1,#a855f7);
+  color:#fff;
+  text-align:center;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:2px;
+  padding:7px 16px;
+  border-radius:12px 12px 0 0;
+  margin:-44px -40px 28px;
+  text-transform:uppercase;
+}
+
+.logo-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:20px}
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.logo-icon{
+  width:46px;height:46px;
+  background:var(--gradient);
+  border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:22px;
+  box-shadow:0 6px 20px rgba(99,102,241,0.35);
+}
+.logo-name{font-family:'Inter',sans-serif;font-weight:800;font-size:24px;color:#6366f1}
+
+.access-tier{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--box-bg);
+  border:1px solid rgba(99,102,241,0.25);
+  border-radius:20px;
+  padding:5px 14px;
+  font-size:12px;font-weight:700;
+  color:#6366f1;
+  letter-spacing:0.5px;
+}
+
+h1{
+  font-family:'Inter', sans-serif;
+  font-size:32px;font-weight:800;
+  text-align:center;
+  background:var(--gradient);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  line-height:1.2;
+  margin-bottom:8px;
+  margin-top:20px;
+}
+.subtitle{color:var(--muted);font-size:14px;text-align:center;margin-bottom:28px;line-height:1.5;max-width:280px;margin-left:auto;margin-right:auto}
+
+/* Access Code Field */
+.access-code-group{margin-bottom:18px}
+.access-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:linear-gradient(90deg,#4338ca15,#a855f715);
+  border:1px solid rgba(99,102,241,0.3);
+  border-radius:6px;padding:4px 10px;
+  font-size:11px;font-weight:700;color:#4338ca;
+  margin-bottom:8px;letter-spacing:0.5px;
+}
+.form-group{margin-bottom:18px}
+.form-label{display:block;font-size:14px;font-weight:600;color:var(--text);margin-bottom:7px}
+.input-wrap{position:relative}
+.input-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--primary);pointer-events:none}
+
+input[type=email],
+input[type=password],
+input[type=text].code-input{
+  width:100%;
+  padding:14px 14px 14px 44px;
+  border:1.5px solid var(--border);
+  border-radius:10px;
+  font-size:14px;outline:none;
+  transition:border-color 0.2s,box-shadow 0.2s;
+  font-family:'Inter', sans-serif;
+  background:var(--input-bg);
+  color:var(--text);
+}
+input[type=text].code-input{
+  letter-spacing:2px;font-weight:700;text-transform:uppercase;
+}
+input[type=email]:focus,
+input[type=password]:focus,
+input[type=text].code-input:focus{
+  border-color:var(--primary);
+  box-shadow:0 0 0 3px rgba(99,102,241,0.12);
+}
+input.error{border-color:var(--danger)!important;background:#fff8f8!important}
+input::placeholder{color:#b5b5b5;letter-spacing:normal;font-weight:400;text-transform:none}
+.error-msg{font-size:12px;color:var(--danger);margin-top:4px;display:none}
+.error-msg.show{display:block}
+.code-hint{font-size:11px;color:var(--muted);margin-top:5px}
+
+.form-check{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.check-label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer;font-weight:500}
+.check-label input{accent-color:var(--primary);width:16px;height:16px}
+.forgot{color:var(--primary);font-size:13px;font-weight:500;text-decoration:none}
+.forgot:hover{text-decoration:underline}
+
+.btn-signin{
+  width:100%;padding:14px;
+  background:var(--btn-gradient);
+  color:#fff;border:none;border-radius:10px;
+  font-size:16px;font-weight:600;cursor:pointer;
+  transition:all 0.2s;font-family:'Inter',sans-serif;
+  box-shadow:0 4px 18px rgba(99,102,241,0.35);
+  letter-spacing:0.2px;
+}
+.btn-signin:hover{opacity:0.92;transform:translateY(-1px);box-shadow:0 6px 24px rgba(99,102,241,0.45)}
+
+.global-error{
+  background:#fef2f2;border:1px solid #fecaca;
+  border-radius:8px;padding:10px 14px;
+  font-size:14px;color:var(--danger);
+  margin-bottom:16px;display:none;text-align:center;
+}
+.global-error.show{display:block}
+
+.secure-note{
+  text-align:center;font-size:12px;color:var(--muted);
+  margin-top:18px;display:flex;align-items:center;
+  justify-content:center;gap:6px;
+}
+.back-role{
+  text-align:center;font-size:13px;color:var(--muted);
+  text-decoration:none;display:block;margin-top:10px;
+  font-weight:500;transition:color 0.2s;
+}
+.back-role:hover{color:var(--primary)}
+
+.perks-box{
+  margin-top:28px;
+  background:var(--box-bg);
+  border:1px solid rgba(99,102,241,0.15);
+  border-radius:14px;padding:20px;
+  display:flex;flex-direction:column;align-items:center;
+}
+.perks-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:16px}
+.perks{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;width:100%}
+.perk{text-align:center;font-size:11px;color:var(--muted);font-weight:500;display:flex;flex-direction:column;align-items:center;gap:6px}
+.perk .perk-icon{font-size:22px}
+
+/* Security Box */
+.security-box{
+  background:#f0f0ff;
+  border:1px solid rgba(99,102,241,0.2);
+  border-radius:12px;padding:16px;margin-top:18px;
+  font-size:12px;color:#4338ca;
+  display:flex;gap:12px;align-items:flex-start;line-height:1.5;
+}
+.security-box .sec-icon{font-size:22px;flex-shrink:0;margin-top:2px}
+.security-box .sec-title{font-weight:700;margin-bottom:3px;color:#3730a3;font-size:13px}
+
+@media(max-width:560px){
+  body{padding:16px}
+  .card{padding:24px 20px 24px;border-radius:18px}
+  .restricted-banner{margin:-24px -20px 24px;border-radius:10px 10px 0 0}
+  h1{font-size:26px}
+  .perks{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <!-- Restricted Banner -->
+  <div class="restricted-banner">🛡️ &nbsp; Super User Restricted Portal &nbsp; 🛡️</div>
+
+  <!-- Logo -->
+  <div class="logo-wrap">
+    <div class="logo">
+      <div class="logo-icon">🔱</div>
+      <span class="logo-name">GlobeSync</span>
+    </div>
+    <div class="access-tier">🔑 Tier-1 Access · Super User Only</div>
+  </div>
+
+  <h1>Super User<br>Portal</h1>
+  <p class="subtitle">Highest-privilege access. All credentials and invite codes required.</p>
+
+  <!-- Global Error -->
+  <div class="global-error" id="global-error">❌ Invalid credentials or access code.</div>
+
+  <!-- Form -->
+  <form id="login-form" onsubmit="handleSuperLogin(event)">
+
+    <!-- Access Code -->
+    <div class="form-group access-code-group">
+      <label class="form-label">Super Admin Access Code</label>
+      <div class="access-badge">🛡️ TIER-1 RESTRICTED · INVITE ONLY</div>
+      <div class="input-wrap">
+        <span class="input-icon">🗝️</span>
+        <input type="text" id="access-code" class="code-input" placeholder="Enter super access code" autocomplete="off" value="SUPER-TICP">
+      </div>
+      <div class="error-msg" id="access-error">❌ Invalid super access code</div>
+      <div class="code-hint">💡 Code: SUPER-TICP — issued to Super Admins only</div>
+    </div>
+
+    <!-- Email -->
+    <div class="form-group">
+      <label class="form-label">Super Admin Email</label>
+      <div class="input-wrap">
+        <span class="input-icon">✉</span>
+        <input type="email" id="email" placeholder="superadmin@ticp.com" value="superadmin@ticp.com">
+      </div>
+      <div class="error-msg" id="email-error">Valid email is required</div>
+    </div>
+
+    <!-- Password -->
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <div class="input-wrap">
+        <span class="input-icon">🔒</span>
+        <input type="password" id="password" placeholder="Enter super admin password" value="super123">
+      </div>
+      <div class="error-msg" id="password-error">Password is required</div>
+    </div>
+
+    <div class="form-check">
+      <label class="check-label"><input type="checkbox"> Keep me signed in</label>
+      <a href="#" class="forgot">Forgot password?</a>
+    </div>
+
+    <button type="submit" class="btn-signin" id="submit-btn">Access Super Portal &rarr;</button>
+  </form>
+
+  <div class="secure-note">
+    <span>🛡️</span> Secured with enterprise-grade encryption · 2FA enforced
+  </div>
+  <a href="role-select.html" class="back-role">&larr; Back to role selection</a>
+
+  <!-- Perks Box -->
+  <div class="perks-box">
+    <div class="perks-title">Super User Capabilities:</div>
+    <div class="perks">
+      <div class="perk"><div class="perk-icon">👥</div>All Users</div>
+      <div class="perk"><div class="perk-icon">🔌</div>APIs</div>
+      <div class="perk"><div class="perk-icon">⚙️</div>Rules</div>
+      <div class="perk"><div class="perk-icon">📊</div>Reports</div>
+    </div>
+  </div>
+
+  <!-- Security Note -->
+  <div class="security-box">
+    <div class="sec-icon">🛡️</div>
+    <div>
+      <div class="sec-title">Highest Privilege Level</div>
+      This portal grants full platform control — user management, API configuration, system rules, and audit logs. Unauthorized access attempts are logged.
+    </div>
+  </div>
+</div>
+
+<script src="JS/mockData.js"></script>
+<script>
+const SUPER_ACCESS_CODE = 'SUPER-TICP';
+
+function handleSuperLogin(e) {
+  e.preventDefault();
+  const accessCode = document.getElementById('access-code');
+  const email      = document.getElementById('email');
+  const password   = document.getElementById('password');
+  let valid = true;
+
+  // Clear errors
+  [accessCode, email, password].forEach(el => el.classList.remove('error'));
+  ['access-error','email-error','password-error'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('show');
+  });
+  document.getElementById('global-error').classList.remove('show');
+
+  // Validate access code
+  if ((accessCode.value || '').trim().toUpperCase() !== SUPER_ACCESS_CODE) {
+    accessCode.classList.add('error');
+    document.getElementById('access-error').classList.add('show');
+    valid = false;
+  }
+
+  // Validate email
+  if (!email.value.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
+    email.classList.add('error');
+    document.getElementById('email-error').classList.add('show');
+    valid = false;
+  }
+
+  // Validate password
+  if (!password.value.trim()) {
+    password.classList.add('error');
+    document.getElementById('password-error').classList.add('show');
+    valid = false;
+  }
+  if (!valid) return;
+
+  // Match credentials against DB
+  let matchedUser = null;
+  if (typeof DB !== 'undefined' && DB.administrators) {
+    matchedUser = DB.administrators.find(a =>
+      a.role === 'superuser' &&
+      a.email === email.value &&
+      a.password === password.value
+    );
+  }
+
+  if (!matchedUser) {
+    document.getElementById('global-error').classList.add('show');
+    return;
+  }
+
+  // Store session & redirect
+  sessionStorage.setItem('role', 'superuser');
+  sessionStorage.setItem('user', JSON.stringify(matchedUser));
+  window.location.href = 'super/super-dashboard.html';
+}
+
+// Live error clearing
+document.querySelectorAll('input').forEach(el => el.addEventListener('input', () => {
+  el.classList.remove('error');
+  const err = document.getElementById(el.id + '-error');
+  if (err) err.classList.remove('show');
+  document.getElementById('global-error').classList.remove('show');
+}));
+</script>
+</body>
+</html>
+

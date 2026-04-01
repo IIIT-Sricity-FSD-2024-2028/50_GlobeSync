@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP — Super User Dashboard</title>
+<link rel="stylesheet" href="../static/shared.css">
+<link rel="stylesheet" href="../static/notifications.css">
+<style>
+:root{--primary:#6366f1;--primary-dark:#4338ca;--gradient:linear-gradient(135deg,#6366f1 0%,#E8467C 100%);--gradient-soft:linear-gradient(135deg,#f5f3ff 0%,#ffeef5 100%)}
+.system-status{display:flex;align-items:center;gap:8px;font-size:14px;padding:10px 0;border-bottom:1px solid var(--border-light)}
+.system-status:last-child{border-bottom:none}
+.status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.status-dot.healthy{background:#10b981}
+.status-dot.warning{background:#f59e0b}
+.status-dot.error{background:#ef4444}
+.user-row-admin{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border-light)}
+.user-row-admin:last-child{border-bottom:none}
+.user-ava{width:36px;height:36px;border-radius:50%;background:var(--gradient);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0}
+.alert-item{display:flex;gap:12px;align-items:flex-start;padding:12px;border-radius:var(--radius-sm);margin-bottom:8px}
+.alert-item.warning{background:#fffbeb;border:1px solid #fde68a}
+.alert-item.success{background:#ecfdf5;border:1px solid #a7f3d0}
+.mini-chart-bar{display:flex;align-items:flex-end;gap:4px;height:60px}
+.chart-col{flex:1;background:var(--gradient);border-radius:4px 4px 0 0;min-width:20px;transition:height 0.3s}
+.chart-col:hover{opacity:0.8}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:var(--gradient);color:#fff;font-size:18px">🌐</div><div><div class="logo-text">GlobeSync</div><div class="logo-sub">Super User</div></div></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item active" href="super-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="users.html"><span class="nav-icon">👥</span>Users</a>
+      <a class="nav-item" href="api-management.html"><span class="nav-icon">🔌</span>API Management</a>
+      <a class="nav-item" href="rules-config.html"><span class="nav-icon">⚙</span>Rules Config</a>
+      <a class="nav-item" href="reports.html"><span class="nav-icon">📈</span>Reports</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="padding:10px 12px;font-size:12px;color:var(--text-muted);margin-bottom:4px">Logged in as Super User</div>
+      <button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="page-title">Admin Dashboard</div><div class="page-subtitle" id="welcome-msg">Welcome back, Super Admin!</div></div>
+      <div class="topbar-actions">
+        <div id="notif-bell-slot"></div>
+        <span class="badge badge-info" style="padding:6px 14px;font-size:13px">🔱 Super User</span>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid stats-grid-4 mb-4">
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Active Users</div><div class="stat-value" id="stat-users">0</div></div><div class="stat-icon pink">👥</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Pending Bookings</div><div class="stat-value" id="stat-bookings">0</div></div><div class="stat-icon orange">🎫</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">System Health</div><div class="stat-value">98%</div><div class="stat-change">↑ All systems normal</div></div><div class="stat-icon green">🖥</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Total Revenue</div><div class="stat-value" id="stat-revenue">₹0</div></div><div class="stat-icon blue">💰</div></div>
+    </div>
+
+    <!-- QUICK ACTIONS -->
+    <div class="card mb-4">
+      <div class="card-header"><span class="card-title">Quick Actions</span></div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+          <a href="users.html" style="text-decoration:none;background:var(--gradient-soft);border-radius:var(--radius-md);padding:16px;text-align:center;cursor:pointer;border:1px solid var(--border-light);transition:all 0.2s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+            <div style="font-size:28px;margin-bottom:8px">👥</div><div style="font-weight:700;font-size:13px;color:var(--primary)">Manage Users</div>
+          </a>
+          <a href="api-management.html" style="text-decoration:none;background:var(--gradient-soft);border-radius:var(--radius-md);padding:16px;text-align:center;cursor:pointer;border:1px solid var(--border-light);transition:all 0.2s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+            <div style="font-size:28px;margin-bottom:8px">🔌</div><div style="font-weight:700;font-size:13px;color:var(--primary)">API Management</div>
+          </a>
+          <a href="rules-config.html" style="text-decoration:none;background:var(--gradient-soft);border-radius:var(--radius-md);padding:16px;text-align:center;cursor:pointer;border:1px solid var(--border-light);transition:all 0.2s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+            <div style="font-size:28px;margin-bottom:8px">⚙</div><div style="font-weight:700;font-size:13px;color:var(--primary)">Rules Config</div>
+          </a>
+          <a href="reports.html" style="text-decoration:none;background:var(--gradient-soft);border-radius:var(--radius-md);padding:16px;text-align:center;cursor:pointer;border:1px solid var(--border-light);transition:all 0.2s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+            <div style="font-size:28px;margin-bottom:8px">📈</div><div style="font-weight:700;font-size:13px;color:var(--primary)">View Reports</div>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- USER GROWTH CHART -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">User Growth</span><span class="badge badge-success">+18% this month</span></div>
+        <div class="card-body">
+          <div class="mini-chart-bar" id="user-chart"></div>
+          <div style="display:flex;justify-content:space-around;font-size:12px;color:var(--text-muted);margin-top:8px">
+            <span>Jan</span><span>Feb</span><span>Mar</span>
+          </div>
+        </div>
+        <div class="card-header" style="border-top:1px solid var(--border-light)">
+          <span class="card-title">System Status</span>
+        </div>
+        <div class="card-body" id="system-status"></div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <!-- RECENT USERS -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">Recent Users</span><a href="users.html" class="btn btn-secondary btn-sm">Manage All</a></div>
+          <div class="card-body" style="padding:0 20px" id="recent-users"></div>
+        </div>
+        <!-- SYSTEM ALERTS -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">⚠ System Alerts</span></div>
+          <div class="card-body" id="system-alerts"></div>
+        </div>
+        <!-- RELATED ANSWER TIP -->
+        <div class="card" style="background:#fef2f2;border:1px solid #fecaca">
+          <div class="card-header"><span class="card-title" style="color:#b91c1c">💡 Related Answer: Reports Usage</span></div>
+          <div class="card-body" style="font-size:13px;color:#7f1d1d;line-height:1.5">
+            Use the <strong>Advanced Reports</strong> to monitor platform health and booking trends. If user signups decrease by more than 5%, check active API integrations in <strong>API Management</strong>.
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/notifications.js"></script>
+<script>
+if (!Auth.isLoggedIn() || Auth.getRole() !== 'superuser') window.location.href = '../super-login.html';
+const user = Auth.getUser();
+document.getElementById('welcome-msg').textContent = `Welcome back, ${user.name}!`;
+
+function loadStats() {
+  const allUsers = [...DB.travelers, ...DB.travelGuides, ...DB.customerCare];
+  document.getElementById('stat-users').textContent = allUsers.length;
+  document.getElementById('stat-bookings').textContent = DB.bookings.filter(b => b.status === 'Pending').length;
+  const totalRevenue = DB.payments.reduce((s, p) => s + p.amount, 0);
+  document.getElementById('stat-revenue').textContent = formatCurrency(totalRevenue);
+}
+
+function loadChart() {
+  const data = [80, 95, 120];
+  const max = Math.max(...data);
+  document.getElementById('user-chart').innerHTML = data.map((v, i) => `<div class="chart-col" style="height:${Math.round(v/max*100)}%" title="${v} users"></div>`).join('');
+}
+
+function loadSystemStatus() {
+  const statuses = [
+    { name: 'API Server', status: 'healthy' }, { name: 'Database', status: 'healthy' },
+    { name: 'Payment Gateway', status: 'healthy' }, { name: 'Email Service', status: 'warning' }
+  ];
+  document.getElementById('system-status').innerHTML = statuses.map(s => `
+    <div class="system-status">
+      <div class="status-dot ${s.status}"></div>
+      <div style="flex:1;font-size:14px">${s.name}</div>
+      <span class="badge ${s.status==='healthy'?'badge-success':s.status==='warning'?'badge-warning':'badge-danger'}">${s.status==='healthy'?'Healthy':s.status==='warning'?'Warning':'Error'}</span>
+    </div>`).join('');
+}
+
+function loadRecentUsers() {
+  const users = [
+    { name: 'Ajith Kumar', role: 'Traveler', status: 'Active', time: '2d ago', avatar: 'A' },
+    { name: 'Marie Laurent', role: 'Guide', status: 'Active', time: '5d ago', avatar: 'M' },
+    { name: 'Sarah Johnson', role: 'Support', status: 'Active', time: '1w ago', avatar: 'S' }
+  ];
+  document.getElementById('recent-users').innerHTML = users.map(u => `
+    <div class="user-row-admin">
+      <div class="user-ava">${u.avatar}</div>
+      <div style="flex:1"><div style="font-weight:700;font-size:14px">${u.name}</div><div style="font-size:12px;color:var(--text-muted)">${u.role}</div></div>
+      ${statusBadge(u.status)}
+      <span style="font-size:12px;color:var(--text-muted)">${u.time}</span>
+    </div>`).join('');
+}
+
+function loadAlerts() {
+  document.getElementById('system-alerts').innerHTML = `
+    <div class="alert-item warning">⚠ <div><div style="font-weight:700;font-size:14px">Email service experiencing delays</div><div style="font-size:12px;color:#92400e">2 hours ago</div></div></div>
+    <div class="alert-item success">✅ <div><div style="font-weight:700;font-size:14px">Database backup completed successfully</div><div style="font-size:12px;color:#065f46">5 hours ago</div></div></div>`;
+}
+
+loadStats(); loadChart(); loadSystemStatus(); loadRecentUsers(); loadAlerts();
+showToast('Welcome back, Administrator! ✓');
+injectNotifBell('superuser');
+</script>
+</body>
+</html>
+
+

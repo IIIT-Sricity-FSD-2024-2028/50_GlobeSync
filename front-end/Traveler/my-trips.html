@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP — My Trips</title>
+<link rel="stylesheet" href="../static/shared.css">
+<link rel="stylesheet" href="../static/notifications.css">
+<style>
+.trip-detail-card{background:#fff;border-radius:var(--radius-lg);border:1px solid rgba(0,0,0,0.04);overflow:hidden;margin-bottom:24px;box-shadow:0 6px 24px rgba(0,0,0,0.03)}
+.trip-header{padding:24px;display:flex;align-items:center;gap:16px;background:#fdfbe8;}
+.trip-emoji{width:56px;height:56px;border-radius:14px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.05);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0}
+.trip-dest-title{font-family:var(--font-main);font-size:22px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:8px}
+.trip-dates-text{font-size:14px;color:var(--text-muted);margin-top:4px}
+.trip-actions-row{display:flex;gap:12px;padding:20px 24px;border-bottom:1px solid var(--border-light)}
+.btn-grad{background:linear-gradient(90deg,#E8467C,#F5A623);color:#fff;border:none}
+.btn-outline-yel{border:1px solid #F5A623;color:#d97706;background:transparent}
+.btn-outline-org{border:1px solid #f97316;color:#c2410c;background:transparent}
+.btn-outline-red{border:1px solid #ef4444;color:#ef4444;background:transparent}
+.summary-boxes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:20px 24px;border-bottom:1px solid var(--border-light)}
+.sum-box{background:#f8fafc;border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:space-between}
+.sum-label{font-size:14px;color:var(--text-muted);font-weight:500}
+.sum-val{font-size:20px;font-weight:700}
+.sum-val.blue{color:#3b82f6} .sum-val.green{color:#10b981} .sum-val.org{color:#f59e0b}
+.trip-sections{display:grid;grid-template-columns:2fr 1fr;gap:24px;padding:24px}
+.itinerary-day{margin-bottom:24px;border:1px solid var(--border-light);border-radius:12px;overflow:hidden}
+.day-header{background:#f8fafc;padding:12px 16px;font-weight:600;font-size:14px;color:var(--text-primary);display:flex;justify-content:space-between}
+.activity-row{display:flex;align-items:center;gap:16px;padding:16px;border-bottom:1px solid var(--border-light);background:#fff}
+.activity-row:last-child{border-bottom:none}
+.activity-time-badge{font-size:13px;color:var(--text-muted);font-weight:500;min-width:70px}
+.activity-name{flex:1;font-size:15px;font-weight:500;color:var(--text-primary)}
+.map-placeholder{background:#f1f5f9;border-radius:12px;height:200px;display:flex;align-items:center;justify-content:center;flex-direction:column;color:var(--text-muted);font-size:32px;border:1px dashed #cbd5e1;margin-bottom:16px}
+/* RATING STARS */
+.star-rating{display:flex;flex-direction:row-reverse;gap:4px;justify-content:flex-end}
+.star-rating input{display:none}
+.star-rating label{font-size:28px;color:#d1d5db;cursor:pointer;transition:all 0.2s}
+.star-rating input:checked ~ label{color:#fbbf24}
+.review-tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:#10b981;border-radius:20px;background:#ecfdf5;padding:2px 8px;margin-top:4px}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#f59e0b 0%,#ef4444 100%);color:#fff;font-size:18px">✈</div><div><div class="logo-text">GlobeSync</div><div class="logo-sub">Traveler Portal</div></div></div>
+    <nav class="sidebar-nav">
+   <a class="nav-item" data-page="dashboard" href="traveler-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item active" data-page="trips" href="my-trips.html"><span class="nav-icon">📍</span>My Trips</a>
+      <a class="nav-item" data-page="itinerary" href="create-itinerary.html"><span class="nav-icon">📅</span>Create Itinerary</a>
+      <a class="nav-item" data-page="bookings" href="bookings.html"><span class="nav-icon">🎫</span>Bookings</a>
+      <a class="nav-item" data-page="expenses" href="expenses.html"><span class="nav-icon">💰</span>Expenses</a>
+      <a class="nav-item" data-page="messages" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+      <a class="nav-item" data-page="support" href="support.html"><span class="nav-icon">🎧</span>Support</a>
+    </nav>
+     <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="page-title">My Trips</div><div class="page-subtitle">Manage all your travel plans</div></div>
+      <div class="topbar-actions">
+        <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="trip-search" placeholder="Search trips..."></div>
+        <select id="status-filter" class="form-control" style="width:auto;padding:8px 14px" onchange="renderTrips()">
+          <option value="">All Status</option>
+          <option value="Confirmed">Confirmed</option>
+          <option value="Pending">Pending</option>
+          <option value="Planning">Planning</option>
+        </select>
+        <button class="btn btn-primary" onclick="openModal('add-trip-modal')">+ New Trip</button>
+      </div>
+    </div>
+
+    <div id="trips-container"></div>
+  </main>
+</div>
+
+<!-- ADD/EDIT TRIP MODAL -->
+<div class="modal-overlay" id="add-trip-modal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <div class="modal-title" id="trip-modal-title">Add New Trip</div>
+      <button class="modal-close" onclick="closeModal('add-trip-modal')">✕</button>
+    </div>
+    <form id="trip-form" onsubmit="saveTrip(event)">
+      <input type="hidden" id="edit-trip-id">
+      <div class="form-row">
+        <div class="form-group" style="grid-column: 1 / -1">
+          <label class="form-label">Destination *</label>
+          <input class="form-control" id="t-dest" placeholder="e.g., Paris, France" data-required="Destination is required">
+          <div class="form-error" id="t-dest-error"></div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Start Date *</label>
+          <input class="form-control" type="date" id="t-start" data-required="Start date is required">
+          <div class="form-error" id="t-start-error"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">End Date *</label>
+          <input class="form-control" type="date" id="t-end" data-required="End date is required">
+          <div class="form-error" id="t-end-error"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Trip Type</label>
+        <select class="form-control" id="t-type">
+          <option value="custom">Custom Trip</option>
+          <option value="package">Package Trip</option>
+        </select>
+      </div>
+      <div class="form-group" id="package-group" style="display:none">
+        <label class="form-label">Select Package</label>
+        <select class="form-control" id="t-package">
+          <option value="">-- No Package --</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('add-trip-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Trip</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ADD ACTIVITY MODAL -->
+<div class="modal-overlay" id="activity-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add New Activity</div>
+      <button class="modal-close" onclick="closeModal('activity-modal')">✕</button>
+    </div>
+    <form id="activity-form" onsubmit="saveActivity(event)">
+      <input type="hidden" id="act-trip-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Time *</label>
+          <input class="form-control" type="time" id="act-time" data-required="Time is required">
+          <div class="form-error" id="act-time-error"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-control" id="act-status"><option>Pending</option><option>Confirmed</option><option>Completed</option></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Activity Title *</label>
+        <input class="form-control" id="act-title" placeholder="e.g., Visit Eiffel Tower" data-required="Activity title is required">
+        <div class="form-error" id="act-title-error"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Location</label>
+        <input class="form-control" id="act-location" placeholder="e.g., Champ de Mars, Paris">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Day Number *</label>
+        <input class="form-control" type="number" id="act-day" placeholder="1" data-required="Day is required" data-min="1" value="1">
+        <div class="form-error" id="act-day-error"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('activity-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">+ Add Activity</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- CANCEL CONFIRM MODAL -->
+<div class="modal-overlay" id="cancel-modal">
+  <div class="modal" style="max-width:420px;text-align:center">
+    <div style="font-size:48px;margin-bottom:16px">⚠️</div>
+    <div class="modal-title" style="margin-bottom:8px">Cancel Trip?</div>
+    <p style="color:var(--text-secondary);font-size:14px;margin-bottom:24px">This action cannot be undone. Any confirmed bookings may have cancellation fees.</p>
+    <input type="hidden" id="cancel-trip-id">
+    <div class="modal-footer" style="justify-content:center">
+      <button class="btn btn-secondary" onclick="closeModal('cancel-modal')">Keep Trip</button>
+      <button class="btn btn-danger" onclick="confirmCancel()">Yes, Cancel Trip</button>
+    </div>
+  </div>
+</div>
+
+<!-- RATING MODAL -->
+<div class="modal-overlay" id="rating-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">Rate Your Experience</div>
+      <button class="modal-close" onclick="closeModal('rating-modal')">✕</button>
+    </div>
+    <form id="rating-form" onsubmit="submitReview(event)">
+      <input type="hidden" id="rev-trip-id">
+      <input type="hidden" id="rev-guide-id">
+      
+      <div style="margin-bottom:20px">
+        <label class="form-label">How was your overall trip? *</label>
+        <div class="star-rating" id="trip-stars">
+          <input type="radio" name="trip-rating" id="t-star5" value="5"><label for="t-star5">★</label>
+          <input type="radio" name="trip-rating" id="t-star4" value="4"><label for="t-star4">★</label>
+          <input type="radio" name="trip-rating" id="t-star3" value="3"><label for="t-star3">★</label>
+          <input type="radio" name="trip-rating" id="t-star2" value="2"><label for="t-star2">★</label>
+          <input type="radio" name="trip-rating" id="t-star1" value="1"><label for="t-star1">★</label>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px" id="guide-rating-section">
+        <label class="form-label">How was your guide service? *</label>
+        <div class="star-rating" id="guide-stars">
+          <input type="radio" name="guide-rating" id="g-star5" value="5"><label for="g-star5">★</label>
+          <input type="radio" name="guide-rating" id="g-star4" value="4"><label for="g-star4">★</label>
+          <input type="radio" name="guide-rating" id="g-star3" value="3"><label for="g-star3">★</label>
+          <input type="radio" name="guide-rating" id="g-star2" value="2"><label for="g-star2">★</label>
+          <input type="radio" name="guide-rating" id="g-star1" value="1"><label for="g-star1">★</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Tell us more about your experience</label>
+        <textarea class="form-control" id="rev-comment" rows="4" placeholder="What did you love or what can we improve?"></textarea>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('rating-modal')">Maybe Later</button>
+        <button type="submit" class="btn btn-primary" style="background:var(--gradient)">Submit Review</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/notifications.js"></script>
+<script src="../JS/traveler-trips.js"></script>
+<script>injectNotifBell('traveler');</script>
+</body>
+</html>
+
