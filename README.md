@@ -1,186 +1,733 @@
-# GlobeSync Travel Platform
+# GlobeSync – Travel Itinerary Planning and Coordination Platform
 
-A full-stack travel management platform with role-based portals for Travelers, Guides, Support agents, Admins, and Super Users.
+GlobeSync is a travel itinerary planning and coordination platform developed for Review–4 evaluation. The system supports multiple user roles such as Traveler, Guide, Customer Support, Admin, and Superuser.
 
----
-
-## Review–4 Setup Instructions
-
-### 1. Backend Installation & Startup
-
-```bash
-# Navigate to the backend directory
-cd back-end
-
-# Install all dependencies
-npm install
-
-# Start the development server (with hot reload)
-npm run start:dev
-```
-
-The backend starts on **http://localhost:3000**
+The project includes a frontend interface and a NestJS backend. The backend uses in-memory data structures, REST APIs, role-based access control, DTO validation, proper error handling, and Swagger API documentation.
 
 ---
 
-### 2. Frontend
+## Project Structure
 
-The frontend is pure HTML/CSS/JavaScript — no build step required.
-
-**Option A — Open directly in browser:**
-```
-front-end/index.html
-```
-
-**Option B — Serve with VS Code Live Server:**
-- Install the "Live Server" extension
-- Right-click `front-end/index.html` → Open with Live Server
-
-**Option C — Simple HTTP server:**
-```bash
-cd front-end
-npx serve .
+```text
+root/
+├── front-end/
+├── back-end/
+│   ├── docs/
+│   │   └── swagger.json
+├── Videos/
+└── README.md
 ```
 
 ---
 
-### 3. Swagger UI
+## Tech Stack
 
-Once the backend is running, open:
+### Frontend
 
+- HTML
+- CSS
+- JavaScript
+- Fetch API
+
+### Backend
+
+- NestJS
+- TypeScript
+- In-memory arrays and objects
+- DTO validation using `class-validator`
+- Swagger API documentation
+- Role-Based Access Control using Guards
+
+---
+
+## User Roles
+
+The application supports the following roles:
+
+```text
+traveler
+guide
+support
+admin
+superuser
 ```
+
+Each role has different access permissions.
+
+---
+
+## Main Features
+
+### Traveler
+
+- Traveler login
+- View travel packages
+- View available guides
+- Create trip
+- Create itinerary
+- View and manage own trips
+- View bookings
+- Add expenses
+- Raise support tickets
+- Send and view messages
+
+### Guide
+
+- Guide login
+- View assigned trips
+- Accept or reject trip requests
+- Update trip status
+- View assigned travelers
+- View completed trips
+- Send and view messages
+
+### Customer Support
+
+- Support login
+- View support tickets
+- Update ticket status
+- Handle refund requests
+- Communicate with travelers
+
+### Admin
+
+- Admin login
+- View dashboard reports
+- Manage packages
+- Manage trips
+- Manage bookings
+- Manage guides
+- View reviews
+- View reports
+
+### Superuser
+
+- Superuser login
+- Full system access
+- Manage users
+- Manage packages
+- Manage trips
+- Manage bookings
+- View system-level reports
+
+---
+
+## Backend Architecture
+
+The backend is developed using NestJS and follows modular architecture.
+
+Each major feature is separated into its own module. Each module contains:
+
+```text
+module
+controller
+service
+DTOs
+```
+
+### Backend Modules
+
+```text
+auth
+travelers
+guides
+packages
+trips
+bookings
+payments
+refunds
+itineraries
+expenses
+reviews
+support-tickets
+messages
+dashboard
+health
+```
+
+---
+
+## Modules, Controllers, and Services
+
+### Modules
+
+Modules organize each feature area of the backend.
+
+Example modules:
+
+```text
+packages.module.ts
+trips.module.ts
+guides.module.ts
+bookings.module.ts
+```
+
+Each module connects its controller and service to the NestJS application.
+
+### Controllers
+
+Controllers handle incoming API requests.
+
+Example controllers:
+
+```text
+packages.controller.ts
+trips.controller.ts
+support-tickets.controller.ts
+```
+
+Controllers define REST endpoints such as:
+
+```text
+GET
+POST
+PUT
+PATCH
+DELETE
+```
+
+### Services
+
+Services contain the business logic.
+
+Examples:
+
+- Package service adds, updates, deletes, and returns packages.
+- Trip service creates trips and updates trip status.
+- Support ticket service creates and updates support tickets.
+- Dashboard service calculates dashboard statistics.
+
+Controllers call services, and services work with in-memory data.
+
+---
+
+## In-Memory Data Management
+
+No external database is used in this project.
+
+All data is stored using arrays and objects inside the backend data folder. The data represents entities from the project ER diagram.
+
+Main entities include:
+
+```text
+travelers
+guides
+admins
+packages
+trips
+bookings
+payments
+refunds
+itineraries
+expenses
+reviews
+support tickets
+messages
+```
+
+Relationships are maintained using IDs such as:
+
+```text
+travelerId
+guideId
+tripId
+packageId
+bookingId
+paymentId
+refundId
+ticketId
+```
+
+Example:
+
+A trip is connected to a traveler, guide, and package using:
+
+```text
+travelerId
+guideId
+packageId
+```
+
+---
+
+## Role-Based Access Control
+
+Role-Based Access Control is implemented using request headers.
+
+The main role header is:
+
+```text
+x-user-role
+```
+
+Some APIs also use:
+
+```text
+x-user-id
+```
+
+Example headers:
+
+```text
+x-user-role: guide
+x-user-id: 1
+```
+
+A custom Roles decorator and RolesGuard are used to restrict API access.
+
+### Access Rules
+
+- Traveler can view packages and create or manage own trips.
+- Guide can view assigned trips and update assigned trip status.
+- Support can manage support tickets and refunds.
+- Admin can manage packages, trips, bookings, guides, reviews, and reports.
+- Superuser has full access to all modules.
+
+If the role is missing or unauthorized, the backend returns:
+
+```text
+403 Forbidden
+```
+
+---
+
+## DTO Validation
+
+DTOs are used to validate request bodies before data reaches the service layer.
+
+Validation is implemented using `class-validator` decorators such as:
+
+```text
+@IsString()
+@IsNumber()
+@IsNotEmpty()
+@IsOptional()
+@Min()
+```
+
+Example package DTO validates:
+
+```text
+name
+destinations
+budget
+duration
+description
+highlights
+image
+```
+
+If required fields are missing or invalid, the backend returns:
+
+```text
+400 Bad Request
+```
+
+---
+
+## Error Handling
+
+The backend handles common errors using proper HTTP status codes.
+
+```text
+200 OK              - request successful
+201 Created         - resource created successfully
+400 Bad Request     - invalid or missing input
+403 Forbidden       - unauthorized role access
+404 Not Found       - invalid ID or resource not found
+```
+
+---
+
+## Swagger Documentation
+
+Swagger is configured for API documentation.
+
+Swagger UI:
+
+```text
 http://localhost:3000/api
 ```
 
-**Swagger JSON** is auto-generated on startup at:
-```
+Swagger JSON file:
+
+```text
 back-end/docs/swagger.json
 ```
 
-It is also accessible live at:
-```
-http://localhost:3000/api-json
-```
+Swagger documents:
+
+- API endpoints
+- Request body schema
+- Response schema
+- Role headers
+- Status codes
+- Path parameters
+- API descriptions
 
 ---
 
-### 4. Role Header Examples
+## How to Run Backend
 
-All protected API calls require the `x-user-role` header. Some also require `x-user-id`.
+Open terminal and go to the backend folder:
 
-| Role | Header |
-|---|---|
-| Super User | `x-user-role: superuser` |
-| Admin | `x-user-role: admin` |
-| Guide | `x-user-role: guide` |
-| Support Agent | `x-user-role: support` |
-| Traveler | `x-user-role: traveler` + `x-user-id: <travelerId>` |
-
-**Example cURL:**
 ```bash
-# Get all travelers (superuser)
-curl http://localhost:3000/travelers -H "x-user-role: superuser"
+cd back-end
+```
 
-# Get all support tickets (support)
-curl http://localhost:3000/support-tickets -H "x-user-role: support"
+Install dependencies:
 
-# Get traveler dashboard (traveler, id=1)
-curl http://localhost:3000/dashboard/traveler/1 -H "x-user-role: traveler" -H "x-user-id: 1"
+```bash
+npm install
+```
 
-# Get messages conversation (support)
-curl "http://localhost:3000/messages/conversation?senderType=traveler&senderId=1&receiverType=guide&receiverId=1" \
-  -H "x-user-role: support"
+Start backend:
+
+```bash
+npm run start:dev
+```
+
+Backend runs at:
+
+```text
+http://localhost:3000
+```
+
+Health check:
+
+```text
+http://localhost:3000/health
+```
+
+Expected health response:
+
+```json
+{
+  "status": "ok",
+  "service": "GlobeSync API",
+  "version": "1.0.0"
+}
+```
+
+Swagger documentation:
+
+```text
+http://localhost:3000/api
 ```
 
 ---
 
-### 5. Sample Test Credentials
+## How to Run Frontend
 
-These credentials work on the login pages and authenticate via `POST /auth/login`:
+Open another terminal from the project root:
 
-| Role | Email | Password | Portal |
-|---|---|---|---|
-| Super User | `super@globesync.com` | `super123` | `front-end/super-login.html` |
-| Admin | `admin@globesync.com` | `admin123` | `front-end/login.html` |
-| Guide | `ravi@guide.com` | `guide123` | `front-end/login.html` |
-| Support | `support@globesync.com` | `support123` | `front-end/login.html` |
-| Traveler | `arjun@gmail.com` | `pass123` | `front-end/traveler-login.html` |
-
----
-
-### 6. RBAC Verification
-
-| Scenario | Expected |
-|---|---|
-| No `x-user-role` header | **403 Forbidden** |
-| Wrong role (e.g., `traveler` on `/travelers`) | **403 Forbidden** |
-| Correct role | **200 OK** |
-| Missing required fields (POST) | **400 Bad Request** |
-| Invalid ID (e.g., `/travelers/99999`) | **404 Not Found** |
-
----
-
-### 7. Implemented Backend Modules
-
-All 14 modules are registered in `AppModule` and fully operational:
-
-| Module | Endpoints |
-|---|---|
-| **health** | `GET /health` |
-| **auth** | `POST /auth/login`, `POST /auth/login/staff` |
-| **travelers** | Full CRUD `/travelers` |
-| **guides** | Full CRUD `/guides` |
-| **packages** | Full CRUD `/packages` |
-| **trips** | Full CRUD `/trips`, `PATCH /trips/:id/status` |
-| **bookings** | Full CRUD `/bookings` |
-| **itineraries** | CRUD `/itineraries/trip/:tripId` |
-| **expenses** | CRUD `/expenses/trip/:tripId` |
-| **payments** | `GET`, `POST /payments` |
-| **refunds** | `GET`, `POST /refunds`, `PATCH /refunds/:id/status` |
-| **reviews** | `GET`, `POST`, `DELETE /reviews` |
-| **support-tickets** | Full CRUD `/support-tickets`, `PATCH /support-tickets/:id/status` |
-| **messages** | `GET /messages`, `GET /messages/conversation`, `POST /messages` |
-| **dashboard** | `GET /dashboard/superuser`, `/dashboard/admin`, `/dashboard/traveler/:id`, `/dashboard/guide/:id`, `/dashboard/support` |
-
----
-
-### 8. Frontend Portals
-
-| Portal | Entry Point | Role |
-|---|---|---|
-| **Super User** | `front-end/super/super-dashboard.html` | superuser |
-| **Admin** | `front-end/admin/admin-dashboard.html` | admin |
-| **Support** | `front-end/support/support-dashboard.html` | support |
-| **Guide** | `front-end/guide/` | guide |
-| **Traveler** | `front-end/Traveler/` | traveler |
-
-All portals are fully migrated from `mockData.js` to live backend API calls via `front-end/JS/api.js`.
-
----
-
-### 9. API Helper (api.js)
-
-All frontend API calls go through `front-end/JS/api.js`:
-
-```javascript
-// GET with automatic camelCase→snake_case conversion
-const travelers = await apiGetSnake('/travelers');
-
-// POST
-const ticket = await apiPost('/support-tickets', { subject, description, travelerId });
-
-// PUT (full update)
-await apiPut(`/packages/${id}`, pkgData);
-
-// PATCH (partial update)
-await apiPatch(`/support-tickets/${id}/status`, { status: 'Resolved' });
-
-// DELETE
-await apiDelete(`/travelers/${id}`);
+```bash
+npx http-server -p 5501
 ```
 
-The `x-user-role` and `x-user-id` headers are automatically injected from `localStorage` on every request.
+Open in browser:
+
+```text
+http://127.0.0.1:5501/front-end/
+```
+
+The frontend communicates with the backend using Fetch API.
+
+Backend base URL:
+
+```text
+http://localhost:3000
+```
 
 ---
 
-*GlobeSync — Review 4 | Backend: NestJS | Frontend: Vanilla HTML/CSS/JS*
+## Important APIs
+
+### Auth APIs
+
+```http
+POST /auth/traveler-login
+POST /auth/staff-login
+```
+
+Staff login is used for:
+
+```text
+guide
+support
+admin
+superuser
+```
+
+---
+
+### Package APIs
+
+```http
+GET /packages
+GET /packages/:id
+POST /packages
+PUT /packages/:id
+DELETE /packages/:id
+```
+
+Example create package request body:
+
+```json
+{
+  "name": "Goa Beach Escape",
+  "destinations": "Goa",
+  "budget": 12000,
+  "duration": 3,
+  "description": "Beach package",
+  "highlights": "Baga Beach, Fort Aguada",
+  "image": "../static/destinations/goa.png"
+}
+```
+
+---
+
+### Trip APIs
+
+```http
+GET /trips
+GET /trips/:id
+GET /trips/traveler/:travelerId
+GET /trips/guide/:guideId
+POST /trips
+PUT /trips/:id
+PATCH /trips/:id/status
+DELETE /trips/:id
+```
+
+---
+
+### Booking APIs
+
+```http
+GET /bookings
+GET /bookings/:id
+GET /bookings/traveler/:travelerId
+POST /bookings
+PUT /bookings/:id
+DELETE /bookings/:id
+```
+
+---
+
+### Guide APIs
+
+```http
+GET /guides
+GET /guides/:id
+POST /guides
+PUT /guides/:id
+DELETE /guides/:id
+GET /trips/guide/:guideId
+GET /dashboard/guide/:guideId
+```
+
+---
+
+### Support Ticket APIs
+
+```http
+GET /support-tickets
+GET /support-tickets/:id
+GET /support-tickets/traveler/:travelerId
+POST /support-tickets
+PATCH /support-tickets/:id/status
+DELETE /support-tickets/:id
+```
+
+---
+
+### Dashboard APIs
+
+```http
+GET /dashboard/admin
+GET /dashboard/superuser
+GET /dashboard/traveler/:travelerId
+GET /dashboard/guide/:guideId
+GET /dashboard/support
+```
+
+---
+
+## Sample Role Headers
+
+### Traveler
+
+```text
+x-user-role: traveler
+x-user-id: 1
+```
+
+### Guide
+
+```text
+x-user-role: guide
+x-user-id: 1
+```
+
+### Support
+
+```text
+x-user-role: support
+```
+
+### Admin
+
+```text
+x-user-role: admin
+```
+
+### Superuser
+
+```text
+x-user-role: superuser
+```
+
+---
+
+## Sample Guide Login
+
+```text
+Email: Devansh@gmail.com
+Password: guide123
+Access Code: GUIDE-2026
+```
+
+---
+
+## Review–4 Requirements Covered
+
+### Backend Development
+
+- Backend developed using NestJS.
+- Proper modular architecture is followed.
+- Modules, controllers, services, and DTOs are separated.
+
+### In-Memory Data Management
+
+- No external database is used.
+- Data is stored using arrays and objects.
+- CRUD operations are implemented.
+
+### Role-Based Access Control
+
+- Roles are passed using request headers.
+- Guards are used to enforce access control.
+- Unauthorized access returns 403 Forbidden.
+
+### REST API Development
+
+- APIs are implemented using GET, POST, PUT, PATCH, and DELETE.
+- APIs are aligned with frontend modules.
+- Request and response formats are kept consistent.
+
+### Validation and Error Handling
+
+- DTOs are used for validation.
+- Invalid inputs and missing data are handled.
+- Proper HTTP status codes are returned.
+
+### Frontend–Backend Integration
+
+- Frontend uses backend APIs through Fetch API.
+- Major CRUD operations are backend-driven.
+- Mock data usage is replaced with backend API calls for core workflows.
+
+### API Documentation
+
+- Swagger documentation is available at `/api`.
+- Swagger JSON is generated inside `back-end/docs/swagger.json`.
+- Swagger includes request body, response schema, role headers, and status codes.
+
+### Code Structure
+
+- Code is clean and modular.
+- Controllers, services, DTOs, guards, and data are separated properly.
+
+---
+
+## Demo Workflows
+
+Recommended workflows for demonstration:
+
+1. Traveler login and dashboard
+2. Traveler views packages
+3. Traveler views guides
+4. Traveler creates a trip
+5. Traveler views and manages trips
+6. Traveler creates a support ticket
+7. Admin login and dashboard
+8. Admin package CRUD
+9. Admin trips and bookings management
+10. Guide login and assigned trips
+11. Guide accepts or rejects a trip request
+12. Support updates ticket or refund status
+13. Superuser dashboard and user management
+14. Swagger and DTO demonstration
+
+---
+
+## Backend Code Walkthrough Points
+
+During backend code walkthrough, explain:
+
+1. `back-end/src` contains backend source code.
+2. Each feature is divided into a separate module.
+3. Controllers handle API routes.
+4. Services contain business logic.
+5. DTOs validate request bodies.
+6. Data folder contains in-memory arrays.
+7. Common folder contains RBAC decorators and guards.
+8. Relationships are maintained using IDs.
+9. `main.ts` configures CORS, validation, Swagger, and server startup.
+10. `back-end/docs/swagger.json` contains generated API documentation.
+
+---
+
+## DTO and Swagger Demonstration APIs
+
+Show at least these APIs in Swagger:
+
+1. `POST /auth/traveler-login`
+2. `GET /packages`
+3. `POST /packages`
+4. `GET /trips/guide/{guideId}`
+5. `PATCH /support-tickets/{id}/status`
+
+For each API, show:
+
+- Request body
+- Response schema
+- Role header
+- Status codes
+
+---
+
+## Notes
+
+- This project uses in-memory data only.
+- Data resets when the backend server restarts.
+- No external database is used.
+- No JWT authentication is used.
+- Authorization is handled through the `x-user-role` header.
+- Swagger documentation is available at `/api`.
+- The project follows Review–4 folder structure and requirements.
+
+---
+
+## Project Status
+
+```text
+Frontend: Integrated with backend APIs
+Backend: NestJS modular backend completed
+Database: In-memory arrays and objects
+RBAC: Implemented using x-user-role header
+Validation: Implemented using DTOs
+Swagger: Implemented
+Review–4: Ready for demonstration
+```
