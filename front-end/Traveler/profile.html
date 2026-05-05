@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlobeSync — My Profile</title>
+<link rel="stylesheet" href="../static/shared.css">
+<link rel="stylesheet" href="../static/notifications.css">
+<style>
+/* Profile Page Styles */
+.profile-hero {
+  background: var(--gradient);
+  border-radius: var(--radius-lg);
+  padding: 40px 36px 36px;
+  margin-bottom: 28px;
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+}
+.profile-hero::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+}
+.profile-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -40px; left: -40px;
+  width: 140px; height: 140px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+}
+.profile-hero-content {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  position: relative;
+  z-index: 1;
+}
+.profile-avatar {
+  width: 96px; height: 96px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44px;
+  border: 3px solid rgba(255,255,255,0.4);
+  flex-shrink: 0;
+}
+.profile-hero-info h2 {
+  font-family: var(--font-main);
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.profile-hero-info p {
+  font-size: 14px;
+  opacity: 0.85;
+  margin-bottom: 8px;
+}
+.profile-hero-badges {
+  display: flex;
+  gap: 10px;
+}
+.hero-badge {
+  background: rgba(255,255,255,0.18);
+  backdrop-filter: blur(8px);
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Profile Form Card */
+.profile-section {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 24px;
+  flex-shrink: 0; /* Prevent squashing in flex containers */
+  overflow: visible; /* Allow internal elements to show correctly */
+}
+.profile-section-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.profile-section-title {
+  font-family: var(--font-main);
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.profile-section-body {
+  padding: 24px;
+}
+
+/* View Mode */
+.profile-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 12px;
+}
+.profile-field {
+  margin-bottom: 14px;
+}
+.field-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+  display: block;
+}
+.field-value {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  padding: 12px 16px;
+  background: var(--bg-soft);
+  border-radius: var(--radius-sm);
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid transparent;
+}
+.profile-section-body {
+  padding: 24px;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Edit Mode */
+.edit-mode .field-value { display: none; }
+.edit-mode .field-edit { display: block; }
+.field-edit { display: none; }
+
+.passenger-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:16px}
+.passenger-card{background:var(--bg-soft);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;display:flex;justify-content:space-between;align-items:center;transition:all 0.2s}
+.passenger-card:hover{border-color:var(--primary);transform:translateY(-2px)}
+.pass-actions{display:flex;gap:8px}
+.btn-icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:6px;cursor:pointer;border:1px solid var(--border);background:#fff;font-size:14px;transition:all 0.2s}
+.btn-icon:hover{background:var(--bg-card);border-color:var(--primary);color:var(--primary)}
+.pass-avatar{width:40px;height:40px;border-radius:50%;background:rgba(99,102,241,0.1);display:flex;align-items:center;justify-content:center;font-size:18px;margin-right:12px}
+
+/* Modal for Saved Passengers */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:1000}
+.modal-overlay.active{display:flex}
+.modal{background:#fff;border-radius:var(--radius-md);width:90%;max-width:400px;overflow:hidden;box-shadow:var(--shadow-lg)}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center}
+.modal-body{padding:20px}
+.modal-footer{padding:16px 20px;border-top:1px solid var(--border-light);display:flex;justify-content:flex-end;gap:10px;background:var(--bg-soft)}
+
+.field-edit input,
+.field-edit select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: var(--font-body);
+  color: var(--text-primary);
+  background: var(--bg);
+  transition: border-color 0.2s;
+  outline: none;
+}
+.field-edit input:focus,
+.field-edit select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(232,70,124,0.1);
+}
+.field-edit input.error {
+  border-color: var(--danger);
+  background: #fff8f8;
+}
+.field-edit .form-error {
+  font-size: 12px;
+  color: var(--danger);
+  margin-top: 4px;
+  display: none;
+}
+.field-edit .form-error.show {
+  display: block;
+}
+
+/* Edit / Save buttons */
+.btn-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  color: var(--text-primary);
+  transition: all 0.2s;
+}
+.btn-edit:hover {
+  border-color: var(--primary);
+  background: #ffeef5;
+  color: var(--primary);
+}
+.btn-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: var(--gradient);
+  color: #fff;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(232,70,124,0.2);
+}
+.btn-save:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+.btn-cancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+.btn-cancel:hover {
+  background: #f3f4f6;
+}
+
+/* Action buttons row */
+.profile-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Stats Row */
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.profile-stat-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+  text-align: center;
+  transition: all 0.2s;
+}
+.profile-stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+.profile-stat-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+.profile-stat-value {
+  font-family: var(--font-main);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+.profile-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Password section */
+.pw-section {
+  display: none;
+}
+.pw-section.active {
+  display: block;
+}
+.pw-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  color: var(--text-primary);
+  transition: all 0.2s;
+  margin-top: 8px;
+}
+.pw-toggle-btn:hover {
+  border-color: var(--secondary);
+  background: #fff8ee;
+  color: var(--secondary);
+}
+
+/* Toast override for this page */
+.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; }
+
+/* Success animation */
+@keyframes saveFlash {
+  0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+  70% { box-shadow: 0 0 0 12px rgba(16,185,129,0); }
+  100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+}
+.save-flash {
+  animation: saveFlash 0.6s ease;
+}
+
+@media (max-width: 768px) {
+  .profile-hero-content { flex-direction: column; text-align: center; }
+  .profile-hero-badges { justify-content: center; }
+  .profile-field-row { grid-template-columns: 1fr; }
+  .profile-stats { grid-template-columns: 1fr 1fr; }
+}
+
+/* Phone input group with country code */
+.phone-input-group{display:flex;gap:8px;align-items:stretch}
+.phone-input-group select{width:130px;padding:10px 8px 10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font-body);background:var(--bg);color:var(--text-primary);outline:none;transition:border-color 0.2s;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:24px;flex-shrink:0}
+.phone-input-group select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(232,70,124,0.1)}
+.phone-input-group select.error{border-color:var(--danger);background:#fff8f8}
+.phone-input-group .phone-digits-input{flex:1}
+.phone-input-group input[type=tel]{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font-body);color:var(--text-primary);background:var(--bg);transition:border-color 0.2s;outline:none}
+</style>
+</head>
+<body>
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);color:#fff;font-size:18px">🌐</div><div><div class="logo-text" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">GlobeSync</div><div class="logo-sub">Traveler Portal</div></div></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" data-page="dashboard" href="traveler-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" data-page="trips" href="my-trips.html"><span class="nav-icon">📍</span>My Trips</a>
+      <a class="nav-item" data-page="itinerary" href="create-itinerary.html"><span class="nav-icon">📅</span>Create Itinerary</a>
+      <a class="nav-item" data-page="bookings" href="bookings.html"><span class="nav-icon">🎫</span>Bookings</a>
+      <a class="nav-item" data-page="expenses" href="expenses.html"><span class="nav-icon">💰</span>Expenses</a>
+      <a class="nav-item" data-page="messages" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+      <a class="nav-item active" data-page="profile" href="profile.html"><span class="nav-icon">👤</span>My Profile</a>
+      <a class="nav-item" data-page="support" href="support.html"><span class="nav-icon">🎧</span>Support</a>
+    </nav>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="page-title">My Profile</div>
+        <div class="page-subtitle">View and update your personal information</div>
+      </div>
+      <div class="topbar-actions"></div>
+    </div>
+
+    <!-- HERO BANNER -->
+    <div class="profile-hero" id="profile-hero">
+      <div class="profile-hero-content">
+        <div class="profile-avatar" id="profile-avatar">👤</div>
+        <div class="profile-hero-info">
+          <h2 id="hero-name">—</h2>
+          <p id="hero-email">—</p>
+          <div class="profile-hero-badges">
+            <span class="hero-badge">🌍 Traveler</span>
+            <span class="hero-badge" id="hero-trip-count">📍 0 Trips</span>
+            <span class="hero-badge" id="hero-member-since">📅 Member since 2026</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="profile-stats">
+      <div class="profile-stat-card">
+        <div class="profile-stat-icon">✈️</div>
+        <div class="profile-stat-value" id="stat-total-trips">0</div>
+        <div class="profile-stat-label">Total Trips</div>
+      </div>
+      <div class="profile-stat-card">
+        <div class="profile-stat-icon">✅</div>
+        <div class="profile-stat-value" id="stat-completed">0</div>
+        <div class="profile-stat-label">Completed</div>
+      </div>
+      <div class="profile-stat-card">
+        <div class="profile-stat-icon">🎫</div>
+        <div class="profile-stat-value" id="stat-bookings">0</div>
+        <div class="profile-stat-label">Bookings</div>
+      </div>
+      <div class="profile-stat-card">
+        <div class="profile-stat-icon">💰</div>
+        <div class="profile-stat-value" id="stat-spent">₹0</div>
+        <div class="profile-stat-label">Total Spent</div>
+      </div>
+    </div>
+
+    <!-- PERSONAL INFO SECTION -->
+    <div class="profile-section" id="personal-section">
+      <div class="profile-section-header">
+        <div class="profile-section-title">📋 Personal Information</div>
+        <div class="profile-actions" id="personal-actions">
+          <button class="btn-edit" id="btn-edit-personal" onclick="enableEdit()">✏️ Edit Profile</button>
+        </div>
+      </div>
+      <div class="profile-section-body" id="personal-body">
+        <!-- Row 1: First Name & Last Name -->
+        <div class="profile-field-row">
+          <div class="profile-field">
+            <div class="field-label">First Name</div>
+            <div class="field-value" id="view-firstname">—</div>
+            <div class="field-edit">
+              <input type="text" id="edit-firstname" placeholder="First name">
+              <div class="form-error" id="edit-firstname-error">First name is required</div>
+            </div>
+          </div>
+          <div class="profile-field">
+            <div class="field-label">Last Name</div>
+            <div class="field-value" id="view-lastname">—</div>
+            <div class="field-edit">
+              <input type="text" id="edit-lastname" placeholder="Last name">
+              <div class="form-error" id="edit-lastname-error">Last name is required</div>
+            </div>
+          </div>
+        </div>
+        <!-- Row 2: Email & Phone -->
+        <div class="profile-field-row">
+          <div class="profile-field">
+            <div class="field-label">Email Address</div>
+            <div class="field-value" id="view-email">—</div>
+            <div class="field-edit">
+              <input type="email" id="edit-email" placeholder="you@gmail.com">
+              <div class="form-error" id="edit-email-error">Valid email is required</div>
+            </div>
+          </div>
+          <div class="profile-field">
+            <div class="field-label">Phone Number</div>
+            <div class="field-value" id="view-phone">—</div>
+            <div class="field-edit">
+              <div class="phone-input-group">
+                <select id="edit-country-code" aria-label="Country code">
+                  <option value="+91">🇮🇳 +91</option>
+                  <option value="+1">🇺🇸 +1</option>
+                  <option value="+44">🇬🇧 +44</option>
+                  <option value="+61">🇦🇺 +61</option>
+                  <option value="+81">🇯🇵 +81</option>
+                  <option value="+49">🇩🇪 +49</option>
+                  <option value="+33">🇫🇷 +33</option>
+                  <option value="+86">🇨🇳 +86</option>
+                  <option value="+971">🇦🇪 +971</option>
+                  <option value="+65">🇸🇬 +65</option>
+                  <option value="+55">🇧🇷 +55</option>
+                  <option value="+27">🇿🇦 +27</option>
+                  <option value="+82">🇰🇷 +82</option>
+                  <option value="+39">🇮🇹 +39</option>
+                  <option value="+34">🇪🇸 +34</option>
+                  <option value="+7">🇷🇺 +7</option>
+                  <option value="+62">🇮🇩 +62</option>
+                  <option value="+60">🇲🇾 +60</option>
+                  <option value="+66">🇹🇭 +66</option>
+                  <option value="+52">🇲🇽 +52</option>
+                  <option value="+234">🇳🇬 +234</option>
+                  <option value="+254">🇰🇪 +254</option>
+                  <option value="+63">🇵🇭 +63</option>
+                  <option value="+94">🇱🇰 +94</option>
+                  <option value="+977">🇳🇵 +977</option>
+                  <option value="+880">🇧🇩 +880</option>
+                  <option value="+92">🇵🇰 +92</option>
+                  <option value="+64">🇳🇿 +64</option>
+                </select>
+                <div class="phone-digits-input"><input type="tel" id="edit-phone" placeholder="9876543210" maxlength="10" inputmode="numeric" pattern="[0-9]{10}"></div>
+              </div>
+              <div class="form-error" id="edit-phone-error">Phone number must be exactly 10 digits</div>
+            </div>
+          </div>
+        </div>
+        <!-- Row 3: Gender & Age -->
+        <div class="profile-field-row">
+          <div class="profile-field">
+            <div class="field-label">Gender</div>
+            <div class="field-value" id="view-gender">—</div>
+            <div class="field-edit">
+              <select id="edit-gender">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+              </select>
+            </div>
+          </div>
+          <div class="profile-field">
+            <div class="field-label">Age</div>
+            <div class="field-value" id="view-age">—</div>
+            <div class="field-edit">
+              <input type="number" id="edit-age" placeholder="25" min="13" max="120">
+              <div class="form-error" id="edit-age-error">Valid age is required (13–120)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- SAVED PASSENGERS SECTION (MASTER LIST) -->
+    <div class="profile-section">
+      <div class="profile-section-header">
+        <div class="profile-section-title">👥 Saved Passengers (Master List)</div>
+        <button class="btn btn-primary" style="padding:8px 16px;font-size:13px" onclick="openPassModal()">+ Add New</button>
+      </div>
+      <div class="profile-section-body">
+        <p style="font-size:14px;color:var(--text-secondary);margin-bottom:14px">Manage your family and travel companions for faster trip bookings.</p>
+        <div id="saved-passengers-grid" class="passenger-grid">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </div>
+
+    <!-- PASSWORD SECTION -->
+    <div class="profile-section">
+      <div class="profile-section-header">
+        <div class="profile-section-title">🔒 Security</div>
+      </div>
+      <div class="profile-section-body">
+        <p style="font-size:14px;color:var(--text-secondary);margin-bottom:14px">Update your password to keep your account secure.</p>
+        <button class="pw-toggle-btn" id="pw-toggle" onclick="togglePasswordSection()">🔑 Change Password</button>
+        <div class="pw-section" id="pw-section">
+          <div style="margin-top:20px">
+            <div class="profile-field-row">
+              <div class="profile-field">
+                <div class="field-label">Current Password</div>
+                <div class="field-edit" style="display:block">
+                  <input type="password" id="pw-current" placeholder="Enter current password">
+                  <div class="form-error" id="pw-current-error">Current password is required</div>
+                </div>
+              </div>
+              <div class="profile-field">
+                <!-- spacer -->
+              </div>
+            </div>
+            <div class="profile-field-row">
+              <div class="profile-field">
+                <div class="field-label">New Password</div>
+                <div class="field-edit" style="display:block">
+                  <input type="password" id="pw-new" placeholder="Min 8 characters">
+                  <div class="form-error" id="pw-new-error">Password must be at least 8 characters</div>
+                </div>
+              </div>
+              <div class="profile-field">
+                <div class="field-label">Confirm New Password</div>
+                <div class="field-edit" style="display:block">
+                  <input type="password" id="pw-confirm" placeholder="Re-enter new password">
+                  <div class="form-error" id="pw-confirm-error">Passwords do not match</div>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:8px">
+              <button class="btn-save" onclick="changePassword()">🔒 Update Password</button>
+              <button class="btn-cancel" onclick="togglePasswordSection()">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DANGER ZONE -->
+    <div class="profile-section" style="border-color:#fecaca">
+      <div class="profile-section-header" style="background:#fef2f2">
+        <div class="profile-section-title" style="color:var(--danger)">⚠️ Danger Zone</div>
+      </div>
+      <div class="profile-section-body">
+        <p style="font-size:14px;color:var(--text-secondary);margin-bottom:14px">Permanently delete your account and all associated data. This action cannot be undone.</p>
+        <button class="btn btn-danger" onclick="deleteAccount()">🗑️ Delete My Account</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ADD/EDIT PASSENGER MODAL -->
+<div class="modal-overlay" id="pass-modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div style="font-weight:700" id="pass-modal-title">Add New Passenger</div>
+      <button style="background:none;border:none;cursor:pointer;font-size:20px" onclick="closePassModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input type="text" id="p-name" class="form-control" placeholder="Name as on ID">
+      </div>
+      <div class="grid-2" style="gap:12px">
+        <div class="form-group">
+          <label class="form-label">Age</label>
+          <input type="number" id="p-age" class="form-control" placeholder="Years">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Gender</label>
+          <select id="p-gender" class="form-control">
+            <option>Male</option>
+            <option>Female</option>
+            <option>Others</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closePassModal()">Cancel</button>
+      <button class="btn-save" onclick="savePassenger()" id="btn-pass-save">💾 Save Passenger</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/notifications.js"></script>
+<script src="../JS/api.js"></script>
+<script>
+let user = null;
+let uid = null;
+let isEditing = false;
+
+// Variables for API data
+let _traveler = null;
+let _myTrips = [];
+let _myBookings = [];
+
+// ==============================
+// LOAD PROFILE DATA
+// ==============================
+async function loadProfile() {
+  try {
+    _traveler = await apiGetSnake(`/travelers/${uid}`);
+    if (!_traveler) { showToast('Profile data not found', 'error'); return; }
+
+    const nameParts = (_traveler.name || '').split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    // Hero section
+    document.getElementById('hero-name').textContent = _traveler.name;
+    document.getElementById('hero-email').textContent = _traveler.email;
+    document.getElementById('profile-avatar').textContent = _traveler.gender === 'Female' ? '👩' : '👨';
+
+    // View mode values
+    document.getElementById('view-firstname').textContent = firstName;
+    document.getElementById('view-lastname').textContent = lastName;
+    document.getElementById('view-email').innerHTML = `<span style="color:var(--primary)">✉️</span> ${_traveler.email}`;
+    document.getElementById('view-phone').innerHTML = `<span>📱</span> ${_traveler.phone || 'Not specified'}`;
+    document.getElementById('view-gender').textContent = _traveler.gender || 'Not specified';
+    document.getElementById('view-age').textContent = _traveler.age ? `${_traveler.age} years old` : 'Not specified';
+
+    // Edit mode values
+    document.getElementById('edit-firstname').value = firstName;
+    document.getElementById('edit-lastname').value = lastName;
+    document.getElementById('edit-email').value = _traveler.email;
+    
+    // Parse phone: extract country code and digits
+    const phoneRaw = _traveler.phone || '';
+    const phoneMatch = phoneRaw.match(/^(\+\d{1,4})\s*(.*)$/);
+    const countryCode = phoneMatch ? phoneMatch[1] : '+91';
+    const phoneDigits = phoneMatch ? phoneMatch[2].replace(/\D/g, '') : phoneRaw.replace(/\D/g, '');
+    document.getElementById('edit-country-code').value = countryCode;
+    document.getElementById('edit-phone').value = phoneDigits;
+    document.getElementById('edit-gender').value = _traveler.gender || 'Male';
+    document.getElementById('edit-age').value = _traveler.age || '';
+
+    await loadStats();
+    renderSavedPassengers();
+  } catch (error) {
+    console.error('Error loading profile:', error);
+    showToast('Failed to load profile data', 'error');
+  }
+}
+
+async function loadStats() {
+  try {
+    const [tripsData, bookingsData] = await Promise.all([
+      apiGetSnake(`/trips/traveler/${uid}`),
+      apiGetSnake(`/bookings/traveler/${uid}`)
+    ]);
+
+    // Handle NestJS / PowerShell array wrapper ({ value: [...], Count: X }) or normal array
+    _myTrips = Array.isArray(tripsData) ? tripsData : (tripsData.value || []);
+    _myBookings = Array.isArray(bookingsData) ? bookingsData : (bookingsData.value || []);
+
+    document.getElementById('hero-trip-count').textContent = `📍 ${_myTrips.length} Trips`;
+    
+    // In a real app we'd fetch payments, but for now we'll estimate or use bookings cost
+    let totalSpent = 0;
+    _myBookings.forEach(b => {
+      // Assuming some mock logic for total spent if price not available from API
+      totalSpent += (b.total_cost || b.price || b.amount || 0);
+    });
+
+    const completed = _myTrips.filter(t => t.status === 'Completed').length;
+
+    document.getElementById('stat-total-trips').textContent = _myTrips.length;
+    document.getElementById('stat-completed').textContent = completed;
+    document.getElementById('stat-bookings').textContent = _myBookings.length;
+    document.getElementById('stat-spent').textContent = formatCurrency(totalSpent);
+  } catch (error) {
+    console.error('Error loading stats:', error);
+  }
+}
+
+function renderSavedPassengers() {
+  const container = document.getElementById('saved-passengers-grid');
+  let passengers = DB.savedPassengers.filter(p => p.traveler_id == uid);
+  
+  if (passengers.length === 0) {
+    container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);background:var(--bg-soft);border-radius:var(--radius-sm)">No saved passengers found. Add some to speed up your bookings!</div>';
+    return;
+  }
+
+  container.innerHTML = passengers.map(p => `
+    <div class="passenger-card">
+      <div style="display:flex;align-items:center">
+        <div class="pass-avatar">${p.gender === 'Female' ? '👩' : '👨'}</div>
+        <div>
+          <div style="font-weight:600;font-size:14px">${p.name}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${p.age} years • ${p.gender}</div>
+        </div>
+      </div>
+      <div class="pass-actions">
+        <div class="btn-icon" title="Edit" onclick="openPassModal(${p.pass_id})">✏️</div>
+        <div class="btn-icon" title="Delete" onclick="deletePassenger(${p.pass_id})" style="color:var(--danger)">🗑️</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+let editingPassId = null;
+function openPassModal(id = null) {
+  editingPassId = id;
+  const modal = document.getElementById('pass-modal-overlay');
+  const title = document.getElementById('pass-modal-title');
+  const btn = document.getElementById('btn-pass-save');
+  const passengers = DB.savedPassengers.filter(p => p.traveler_id == uid);
+  
+  if (id) {
+    const p = passengers.find(x => x.pass_id === id);
+    document.getElementById('p-name').value = p.name;
+    document.getElementById('p-age').value = p.age;
+    document.getElementById('p-gender').value = p.gender;
+    title.textContent = 'Edit Passenger';
+    btn.textContent = 'Save Changes';
+  } else {
+    document.getElementById('p-name').value = '';
+    document.getElementById('p-age').value = '';
+    document.getElementById('p-gender').value = 'Male';
+    title.textContent = 'Add New Passenger';
+    btn.textContent = 'Save Passenger';
+  }
+  modal.classList.add('active');
+}
+
+function closePassModal() {
+  document.getElementById('pass-modal-overlay').classList.remove('active');
+}
+
+function savePassenger() {
+  const name = document.getElementById('p-name').value.trim();
+  const age = document.getElementById('p-age').value;
+  const gender = document.getElementById('p-gender').value;
+
+  if (!name || !age) { showToast('Please fill all fields', 'error'); return; }
+
+  if (editingPassId) {
+    const p = DB.savedPassengers.find(x => x.pass_id === editingPassId);
+    if(p) { p.name = name; p.age = age; p.gender = gender; }
+    showToast('Passenger updated!');
+  } else {
+    const newId = DB.savedPassengers.length > 0 ? Math.max(...DB.savedPassengers.map(x => x.pass_id)) + 1 : 1;
+    DB.savedPassengers.push({ pass_id: newId, traveler_id: Number(uid), name, age, gender });
+    showToast('Passenger added to Master List!');
+  }
+  
+  saveDB();
+  renderSavedPassengers();
+  closePassModal();
+}
+
+function deletePassenger(id) {
+  if (confirm('Remove this passenger from your Master List?')) {
+    DB.savedPassengers = DB.savedPassengers.filter(p => p.pass_id !== id);
+    saveDB();
+    renderSavedPassengers();
+    showToast('Passenger removed');
+  }
+}
+
+// ==============================
+// EDIT MODE
+// ==============================
+function enableEdit() {
+  isEditing = true;
+  document.getElementById('personal-body').classList.add('edit-mode');
+  document.getElementById('personal-actions').innerHTML = `
+    <button class="btn-save" onclick="saveProfile()">💾 Save Changes</button>
+    <button class="btn-cancel" onclick="cancelEdit()">Cancel</button>
+  `;
+  document.getElementById('edit-firstname').focus();
+}
+
+function cancelEdit() {
+  isEditing = false;
+  document.getElementById('personal-body').classList.remove('edit-mode');
+  document.getElementById('personal-actions').innerHTML = `
+    <button class="btn-edit" id="btn-edit-personal" onclick="enableEdit()">✏️ Edit Profile</button>
+  `;
+  document.querySelectorAll('.field-edit input').forEach(el => el.classList.remove('error'));
+  document.querySelectorAll('.field-edit .form-error').forEach(el => el.classList.remove('show'));
+  loadProfile();
+}
+
+// ==============================
+// SAVE PROFILE
+// ==============================
+async function saveProfile() {
+  const firstName = document.getElementById('edit-firstname').value.trim();
+  const lastName = document.getElementById('edit-lastname').value.trim();
+  const email = document.getElementById('edit-email').value.trim();
+  const phone = document.getElementById('edit-phone').value.trim();
+  const gender = document.getElementById('edit-gender').value;
+  const age = parseInt(document.getElementById('edit-age').value);
+
+  document.querySelectorAll('.field-edit input').forEach(el => el.classList.remove('error'));
+  document.querySelectorAll('.field-edit .form-error').forEach(el => el.classList.remove('show'));
+
+  let valid = true;
+
+  if (!firstName) { showFieldError('edit-firstname', 'First name is required'); valid = false; }
+  if (!lastName) { showFieldError('edit-lastname', 'Last name is required'); valid = false; }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showFieldError('edit-email', 'Please enter a valid email address');
+    valid = false;
+  }
+
+  const phoneDigitsOnly = phone.replace(/\D/g, '');
+  if (!phoneDigitsOnly || phoneDigitsOnly.length !== 10) {
+    showFieldError('edit-phone', !phoneDigitsOnly ? 'Phone number is required' : 'Phone number must be exactly 10 digits');
+    valid = false;
+  }
+
+  if (isNaN(age) || age < 13 || age > 120) {
+    showFieldError('edit-age', 'Age must be between 13 and 120');
+    valid = false;
+  }
+
+  if (!valid) {
+    showToast('Please fix the errors below', 'error');
+    return;
+  }
+
+  try {
+    const payload = {
+      name: firstName + ' ' + lastName,
+      email: email,
+      phone: document.getElementById('edit-country-code').value + ' ' + phoneDigitsOnly,
+      gender: gender,
+      age: age
+    };
+
+    const updated = await apiPut(`/travelers/${uid}`, payload);
+
+    // Update session storage user
+    user = { ...user, ...updated };
+    localStorage.setItem('user', JSON.stringify(user));
+
+    // Exit edit mode
+    isEditing = false;
+    document.getElementById('personal-body').classList.remove('edit-mode');
+    document.getElementById('personal-actions').innerHTML = `
+      <button class="btn-edit" id="btn-edit-personal" onclick="enableEdit()">✏️ Edit Profile</button>
+    `;
+
+    const section = document.getElementById('personal-section');
+    section.classList.add('save-flash');
+    setTimeout(() => section.classList.remove('save-flash'), 600);
+
+    showToast('✅ Profile updated successfully!');
+    loadProfile();
+  } catch (error) {
+    console.error('Error saving profile:', error);
+    showToast(error.message || 'Failed to save profile', 'error');
+  }
+}
+
+function showFieldError(inputId, message) {
+  const input = document.getElementById(inputId);
+  const errorEl = document.getElementById(inputId + '-error');
+  input.classList.add('error');
+  if (errorEl) {
+    errorEl.textContent = message;
+    errorEl.classList.add('show');
+  }
+}
+
+// ==============================
+// PASSWORD CHANGE
+// ==============================
+function togglePasswordSection() {
+  const section = document.getElementById('pw-section');
+  const isActive = section.classList.contains('active');
+  if (isActive) {
+    section.classList.remove('active');
+    document.getElementById('pw-current').value = '';
+    document.getElementById('pw-new').value = '';
+    document.getElementById('pw-confirm').value = '';
+    document.querySelectorAll('#pw-section .form-error').forEach(el => el.classList.remove('show'));
+    document.querySelectorAll('#pw-section input').forEach(el => el.classList.remove('error'));
+  } else {
+    section.classList.add('active');
+    document.getElementById('pw-current').focus();
+  }
+}
+
+async function changePassword() {
+  const current = document.getElementById('pw-current').value;
+  const newPw = document.getElementById('pw-new').value;
+  const confirm = document.getElementById('pw-confirm').value;
+
+  document.querySelectorAll('#pw-section input').forEach(el => el.classList.remove('error'));
+  document.querySelectorAll('#pw-section .form-error').forEach(el => el.classList.remove('show'));
+
+  let valid = true;
+
+  if (!current) {
+    showFieldError('pw-current', 'Current password is required');
+    valid = false;
+  } 
+
+  if (!newPw || newPw.length < 8) {
+    showFieldError('pw-new', 'Password must be at least 8 characters');
+    valid = false;
+  }
+
+  if (newPw !== confirm) {
+    showFieldError('pw-confirm', 'Passwords do not match');
+    valid = false;
+  }
+
+  if (!valid) return;
+
+  try {
+    // Attempt to verify and update password
+    await apiPut(`/travelers/${uid}`, { password: newPw });
+    
+    togglePasswordSection();
+    showToast('🔒 Password updated successfully!');
+  } catch (error) {
+    console.error('Error changing password:', error);
+    showToast('Failed to update password. Please check current password.', 'error');
+  }
+}
+
+// ==============================
+// DELETE ACCOUNT
+// ==============================
+async function deleteAccount() {
+  if (!confirm('⚠️ Are you sure you want to delete your account?\n\nThis will permanently remove all your trips, bookings, and data. This action CANNOT be undone.')) return;
+  if (!confirm('🗑️ Final confirmation: Delete your account permanently?')) return;
+
+  try {
+    await fetch(`http://localhost:3000/travelers/${uid}`, {
+      method: 'DELETE',
+      headers: {
+        'x-user-role': 'traveler',
+        'x-user-id': uid.toString()
+      }
+    });
+
+    showToast('Account deleted. Redirecting...', 'error');
+    setTimeout(() => {
+      Auth.logout();
+    }, 1500);
+  } catch (error) {
+    console.error('Error deleting account:', error);
+    showToast('Failed to delete account', 'error');
+  }
+}
+
+// Live validation
+document.querySelectorAll('.field-edit input').forEach(el => {
+  el.addEventListener('input', function() {
+    this.classList.remove('error');
+    const errorEl = document.getElementById(this.id + '-error');
+    if (errorEl) errorEl.classList.remove('show');
+  });
+});
+
+// ==============================
+// INIT
+// ==============================
+document.addEventListener('DOMContentLoaded', () => {
+  // Use mockData's Auth to check login status
+  if (typeof Auth === 'undefined' || !Auth.isLoggedIn() || Auth.getRole() !== 'traveler') {
+    window.location.href = '../traveler-login.html';
+    return;
+  }
+  user = Auth.getUser();
+  uid = getUserId(); // Use getUserId from api.js
+  
+  injectNotifBell('traveler');
+  loadProfile();
+});
+</script>
+</body>
+</html>

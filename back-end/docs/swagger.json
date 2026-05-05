@@ -1,0 +1,4225 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "description": "Returns the health status of the API",
+        "operationId": "HealthController_getHealth",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "API is healthy"
+          }
+        },
+        "summary": "Health check",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/auth/traveler-login": {
+      "post": {
+        "description": "Authenticate a traveler using email and password from in-memory data.",
+        "operationId": "AuthController_travelerLogin",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TravelerLoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error — email or password missing/invalid"
+          },
+          "401": {
+            "description": "Invalid email or password"
+          }
+        },
+        "summary": "Traveler login",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/staff-login": {
+      "post": {
+        "description": "Authenticate admin, superuser, guide, or support staff using email and password.",
+        "operationId": "AuthController_staffLogin",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffLoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error — email or password missing/invalid"
+          },
+          "401": {
+            "description": "Invalid email or password"
+          }
+        },
+        "summary": "Staff login",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/travelers": {
+      "get": {
+        "description": "Returns list of all travelers. Accessible by superuser, admin, support, and guide.",
+        "operationId": "TravelersController_findAll",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of travelers returned successfully"
+          },
+          "403": {
+            "description": "Forbidden — insufficient role"
+          }
+        },
+        "summary": "Get all travelers",
+        "tags": [
+          "travelers"
+        ]
+      },
+      "post": {
+        "description": "Creates a traveler account. Publicly accessible.",
+        "operationId": "TravelersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTravelerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Traveler created successfully"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "403": {
+            "description": "Forbidden — insufficient role"
+          }
+        },
+        "summary": "Create a new traveler",
+        "tags": [
+          "travelers"
+        ]
+      }
+    },
+    "/travelers/{id}": {
+      "get": {
+        "description": "Returns a single traveler. Accessible by superuser, admin, support, and guide.",
+        "operationId": "TravelersController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Traveler ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Traveler found"
+          },
+          "403": {
+            "description": "Forbidden — insufficient role"
+          },
+          "404": {
+            "description": "Traveler not found"
+          }
+        },
+        "summary": "Get traveler by ID",
+        "tags": [
+          "travelers"
+        ]
+      },
+      "put": {
+        "description": "Updates traveler details. Accessible by superuser and admin.",
+        "operationId": "TravelersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Traveler ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTravelerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Traveler updated successfully"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "403": {
+            "description": "Forbidden — insufficient role"
+          },
+          "404": {
+            "description": "Traveler not found"
+          }
+        },
+        "summary": "Update a traveler",
+        "tags": [
+          "travelers"
+        ]
+      },
+      "delete": {
+        "description": "Removes a traveler. Accessible by superuser and admin.",
+        "operationId": "TravelersController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Traveler ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Traveler deleted successfully"
+          },
+          "403": {
+            "description": "Forbidden — insufficient role"
+          },
+          "404": {
+            "description": "Traveler not found"
+          }
+        },
+        "summary": "Delete a traveler",
+        "tags": [
+          "travelers"
+        ]
+      }
+    },
+    "/guides": {
+      "get": {
+        "description": "Returns list of all guides. Accessible by superuser, admin, traveler, and guide.",
+        "operationId": "GuidesController_findAll",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of guides returned successfully"
+          },
+          "403": {
+            "description": "Forbidden — insufficient role"
+          }
+        },
+        "summary": "Get all guides",
+        "tags": [
+          "guides"
+        ]
+      },
+      "post": {
+        "description": "Creates a guide account. Accessible by superuser and admin.",
+        "operationId": "GuidesController_create",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGuideDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Guide created successfully"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "403": {
+            "description": "Forbidden — insufficient role"
+          }
+        },
+        "summary": "Create a new guide",
+        "tags": [
+          "guides"
+        ]
+      }
+    },
+    "/guides/{id}": {
+      "get": {
+        "description": "Returns a single guide. Accessible by superuser, admin, traveler, and guide.",
+        "operationId": "GuidesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Guide ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Guide found"
+          },
+          "403": {
+            "description": "Forbidden — insufficient role"
+          },
+          "404": {
+            "description": "Guide not found"
+          }
+        },
+        "summary": "Get guide by ID",
+        "tags": [
+          "guides"
+        ]
+      },
+      "put": {
+        "description": "Updates guide details. Accessible by superuser, admin, and the guide themselves.",
+        "operationId": "GuidesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Guide ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGuideDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Guide updated successfully"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "403": {
+            "description": "Forbidden — insufficient role"
+          },
+          "404": {
+            "description": "Guide not found"
+          }
+        },
+        "summary": "Update a guide",
+        "tags": [
+          "guides"
+        ]
+      },
+      "delete": {
+        "description": "Removes a guide. Accessible by superuser and admin.",
+        "operationId": "GuidesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Guide ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Guide deleted successfully"
+          },
+          "403": {
+            "description": "Forbidden — insufficient role"
+          },
+          "404": {
+            "description": "Guide not found"
+          }
+        },
+        "summary": "Delete a guide",
+        "tags": [
+          "guides"
+        ]
+      }
+    },
+    "/packages": {
+      "get": {
+        "description": "Returns list of all travel packages. Accessible by superuser, admin, traveler, and guide.",
+        "operationId": "PackagesController_findAll",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of packages returned successfully"
+          },
+          "403": {
+            "description": "Forbidden — insufficient role"
+          }
+        },
+        "summary": "Get all packages",
+        "tags": [
+          "packages"
+        ]
+      },
+      "post": {
+        "description": "Creates a travel package. Accessible by superuser and admin.",
+        "operationId": "PackagesController_create",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePackageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Package created successfully"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "403": {
+            "description": "Forbidden — insufficient role"
+          }
+        },
+        "summary": "Create a new package",
+        "tags": [
+          "packages"
+        ]
+      }
+    },
+    "/packages/{id}": {
+      "get": {
+        "description": "Returns a single package. Accessible by superuser, admin, traveler, and guide.",
+        "operationId": "PackagesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Package ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Package found"
+          },
+          "403": {
+            "description": "Forbidden — insufficient role"
+          },
+          "404": {
+            "description": "Package not found"
+          }
+        },
+        "summary": "Get package by ID",
+        "tags": [
+          "packages"
+        ]
+      },
+      "put": {
+        "description": "Updates package details. Accessible by superuser and admin.",
+        "operationId": "PackagesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Package ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePackageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Package updated successfully"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "403": {
+            "description": "Forbidden — insufficient role"
+          },
+          "404": {
+            "description": "Package not found"
+          }
+        },
+        "summary": "Update a package",
+        "tags": [
+          "packages"
+        ]
+      },
+      "delete": {
+        "description": "Removes a travel package. Accessible by superuser and admin.",
+        "operationId": "PackagesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Package ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Package deleted successfully"
+          },
+          "403": {
+            "description": "Forbidden — insufficient role"
+          },
+          "404": {
+            "description": "Package not found"
+          }
+        },
+        "summary": "Delete a package",
+        "tags": [
+          "packages"
+        ]
+      }
+    },
+    "/trips": {
+      "get": {
+        "description": "Returns all trips. Accessible by superuser, admin, and support.",
+        "operationId": "TripsController_findAll",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of all trips"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "Get all trips",
+        "tags": [
+          "trips"
+        ]
+      },
+      "post": {
+        "operationId": "TripsController_create",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTripDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Trip created"
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        },
+        "summary": "Create a new trip",
+        "tags": [
+          "trips"
+        ]
+      }
+    },
+    "/trips/{id}": {
+      "get": {
+        "operationId": "TripsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trip found"
+          },
+          "404": {
+            "description": "Trip not found"
+          }
+        },
+        "summary": "Get trip by ID",
+        "tags": [
+          "trips"
+        ]
+      },
+      "put": {
+        "operationId": "TripsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTripDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Trip updated"
+          },
+          "404": {
+            "description": "Trip not found"
+          }
+        },
+        "summary": "Update a trip",
+        "tags": [
+          "trips"
+        ]
+      },
+      "delete": {
+        "operationId": "TripsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trip deleted"
+          },
+          "404": {
+            "description": "Trip not found"
+          }
+        },
+        "summary": "Delete a trip",
+        "tags": [
+          "trips"
+        ]
+      }
+    },
+    "/trips/traveler/{travelerId}": {
+      "get": {
+        "description": "Returns all trips for a traveler.",
+        "operationId": "TripsController_findByTraveler",
+        "parameters": [
+          {
+            "name": "travelerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trips for traveler"
+          }
+        },
+        "summary": "Get trips by traveler ID",
+        "tags": [
+          "trips"
+        ]
+      }
+    },
+    "/trips/guide/{guideId}": {
+      "get": {
+        "description": "Returns all trips assigned to a guide.",
+        "operationId": "TripsController_findByGuide",
+        "parameters": [
+          {
+            "name": "guideId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trips for guide"
+          }
+        },
+        "summary": "Get trips by guide ID",
+        "tags": [
+          "trips"
+        ]
+      }
+    },
+    "/trips/{id}/status": {
+      "patch": {
+        "description": "Updates only the status of a trip. Guides can update status of assigned trips.",
+        "operationId": "TripsController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTripStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Trip status updated"
+          },
+          "404": {
+            "description": "Trip not found"
+          }
+        },
+        "summary": "Update trip status",
+        "tags": [
+          "trips"
+        ]
+      }
+    },
+    "/bookings": {
+      "get": {
+        "description": "Accessible by superuser, admin, support, and guide.",
+        "operationId": "BookingsController_findAll",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of all bookings"
+          }
+        },
+        "summary": "Get all bookings",
+        "tags": [
+          "bookings"
+        ]
+      },
+      "post": {
+        "operationId": "BookingsController_create",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Booking created"
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        },
+        "summary": "Create a new booking",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/{id}": {
+      "get": {
+        "operationId": "BookingsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Booking found"
+          },
+          "404": {
+            "description": "Booking not found"
+          }
+        },
+        "summary": "Get booking by ID",
+        "tags": [
+          "bookings"
+        ]
+      },
+      "put": {
+        "operationId": "BookingsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBookingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Booking updated"
+          },
+          "404": {
+            "description": "Booking not found"
+          }
+        },
+        "summary": "Update a booking",
+        "tags": [
+          "bookings"
+        ]
+      },
+      "delete": {
+        "operationId": "BookingsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Booking deleted"
+          },
+          "404": {
+            "description": "Booking not found"
+          }
+        },
+        "summary": "Delete a booking",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/traveler/{travelerId}": {
+      "get": {
+        "operationId": "BookingsController_findByTraveler",
+        "parameters": [
+          {
+            "name": "travelerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bookings for traveler"
+          }
+        },
+        "summary": "Get bookings by traveler ID",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/itineraries/trip/{tripId}": {
+      "get": {
+        "description": "Returns all itinerary items for a trip.",
+        "operationId": "ItinerariesController_findByTrip",
+        "parameters": [
+          {
+            "name": "tripId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Itinerary items for trip"
+          }
+        },
+        "summary": "Get itinerary by trip ID",
+        "tags": [
+          "itineraries"
+        ]
+      }
+    },
+    "/itineraries": {
+      "post": {
+        "operationId": "ItinerariesController_create",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateItineraryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Itinerary created"
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        },
+        "summary": "Create itinerary item",
+        "tags": [
+          "itineraries"
+        ]
+      }
+    },
+    "/itineraries/{id}": {
+      "put": {
+        "operationId": "ItinerariesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateItineraryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Itinerary updated"
+          },
+          "404": {
+            "description": "Itinerary not found"
+          }
+        },
+        "summary": "Update itinerary item",
+        "tags": [
+          "itineraries"
+        ]
+      },
+      "delete": {
+        "operationId": "ItinerariesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Itinerary deleted"
+          },
+          "404": {
+            "description": "Itinerary not found"
+          }
+        },
+        "summary": "Delete itinerary item",
+        "tags": [
+          "itineraries"
+        ]
+      }
+    },
+    "/expenses/trip/{tripId}": {
+      "get": {
+        "description": "Returns all expenses for a trip.",
+        "operationId": "ExpensesController_findByTrip",
+        "parameters": [
+          {
+            "name": "tripId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expenses for trip"
+          }
+        },
+        "summary": "Get expenses by trip ID",
+        "tags": [
+          "expenses"
+        ]
+      }
+    },
+    "/expenses": {
+      "post": {
+        "operationId": "ExpensesController_create",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateExpenseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Expense created"
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        },
+        "summary": "Create an expense",
+        "tags": [
+          "expenses"
+        ]
+      }
+    },
+    "/expenses/{id}": {
+      "put": {
+        "operationId": "ExpensesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateExpenseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Expense updated"
+          },
+          "404": {
+            "description": "Expense not found"
+          }
+        },
+        "summary": "Update an expense",
+        "tags": [
+          "expenses"
+        ]
+      },
+      "delete": {
+        "operationId": "ExpensesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expense deleted"
+          },
+          "404": {
+            "description": "Expense not found"
+          }
+        },
+        "summary": "Delete an expense",
+        "tags": [
+          "expenses"
+        ]
+      }
+    },
+    "/payments": {
+      "get": {
+        "operationId": "PaymentsController_findAll",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of all payments"
+          }
+        },
+        "summary": "Get all payments",
+        "tags": [
+          "payments"
+        ]
+      },
+      "post": {
+        "operationId": "PaymentsController_create",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaymentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Payment created"
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        },
+        "summary": "Create a payment",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/payments/{id}": {
+      "get": {
+        "operationId": "PaymentsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment found"
+          },
+          "404": {
+            "description": "Payment not found"
+          }
+        },
+        "summary": "Get payment by ID",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/payments/booking/{bookingId}": {
+      "get": {
+        "operationId": "PaymentsController_findByBooking",
+        "parameters": [
+          {
+            "name": "bookingId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payments for booking"
+          }
+        },
+        "summary": "Get payments by booking ID",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/refunds": {
+      "get": {
+        "operationId": "RefundsController_findAll",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of all refunds"
+          }
+        },
+        "summary": "Get all refunds",
+        "tags": [
+          "refunds"
+        ]
+      },
+      "post": {
+        "operationId": "RefundsController_create",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRefundDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Refund created"
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        },
+        "summary": "Create a refund request",
+        "tags": [
+          "refunds"
+        ]
+      }
+    },
+    "/refunds/{id}": {
+      "get": {
+        "operationId": "RefundsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Refund found"
+          },
+          "404": {
+            "description": "Refund not found"
+          }
+        },
+        "summary": "Get refund by ID",
+        "tags": [
+          "refunds"
+        ]
+      }
+    },
+    "/refunds/{id}/status": {
+      "patch": {
+        "operationId": "RefundsController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRefundStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Refund status updated"
+          },
+          "404": {
+            "description": "Refund not found"
+          }
+        },
+        "summary": "Update refund status",
+        "tags": [
+          "refunds"
+        ]
+      }
+    },
+    "/reviews": {
+      "get": {
+        "operationId": "ReviewsController_findAll",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of all reviews"
+          }
+        },
+        "summary": "Get all reviews",
+        "tags": [
+          "reviews"
+        ]
+      },
+      "post": {
+        "operationId": "ReviewsController_create",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Review created"
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        },
+        "summary": "Create a review",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/reviews/{id}": {
+      "get": {
+        "operationId": "ReviewsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Review found"
+          },
+          "404": {
+            "description": "Review not found"
+          }
+        },
+        "summary": "Get review by ID",
+        "tags": [
+          "reviews"
+        ]
+      },
+      "delete": {
+        "operationId": "ReviewsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Review deleted"
+          },
+          "404": {
+            "description": "Review not found"
+          }
+        },
+        "summary": "Delete a review",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/reviews/trip/{tripId}": {
+      "get": {
+        "operationId": "ReviewsController_findByTrip",
+        "parameters": [
+          {
+            "name": "tripId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reviews for trip"
+          }
+        },
+        "summary": "Get reviews by trip ID",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/support-tickets": {
+      "get": {
+        "operationId": "SupportTicketsController_findAll",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of all tickets"
+          }
+        },
+        "summary": "Get all support tickets",
+        "tags": [
+          "support-tickets"
+        ]
+      },
+      "post": {
+        "operationId": "SupportTicketsController_create",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTicketDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Ticket created"
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        },
+        "summary": "Create a support ticket",
+        "tags": [
+          "support-tickets"
+        ]
+      }
+    },
+    "/support-tickets/{id}": {
+      "get": {
+        "operationId": "SupportTicketsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ticket found"
+          },
+          "404": {
+            "description": "Ticket not found"
+          }
+        },
+        "summary": "Get support ticket by ID",
+        "tags": [
+          "support-tickets"
+        ]
+      },
+      "delete": {
+        "operationId": "SupportTicketsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ticket deleted"
+          },
+          "404": {
+            "description": "Ticket not found"
+          }
+        },
+        "summary": "Delete a support ticket",
+        "tags": [
+          "support-tickets"
+        ]
+      }
+    },
+    "/support-tickets/traveler/{travelerId}": {
+      "get": {
+        "operationId": "SupportTicketsController_findByTraveler",
+        "parameters": [
+          {
+            "name": "travelerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tickets for traveler"
+          }
+        },
+        "summary": "Get tickets by traveler ID",
+        "tags": [
+          "support-tickets"
+        ]
+      }
+    },
+    "/support-tickets/{id}/status": {
+      "patch": {
+        "operationId": "SupportTicketsController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTicketStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ticket status updated"
+          },
+          "404": {
+            "description": "Ticket not found"
+          }
+        },
+        "summary": "Update ticket status",
+        "tags": [
+          "support-tickets"
+        ]
+      }
+    },
+    "/messages": {
+      "get": {
+        "description": "Admin-only: returns every message in the system.",
+        "operationId": "MessagesController_findAll",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of all messages"
+          }
+        },
+        "summary": "Get all messages",
+        "tags": [
+          "messages"
+        ]
+      },
+      "post": {
+        "operationId": "MessagesController_create",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Message sent"
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        },
+        "summary": "Send a message",
+        "tags": [
+          "messages"
+        ]
+      }
+    },
+    "/messages/user/{userType}/{userId}": {
+      "get": {
+        "description": "Returns all messages where the user is sender or receiver.",
+        "operationId": "MessagesController_findByUser",
+        "parameters": [
+          {
+            "name": "userType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "traveler",
+                "guide",
+                "support"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User messages"
+          }
+        },
+        "summary": "Get all messages for a user",
+        "tags": [
+          "messages"
+        ]
+      }
+    },
+    "/messages/conversation": {
+      "get": {
+        "description": "Returns bidirectional messages between sender and receiver.",
+        "operationId": "MessagesController_findConversation",
+        "parameters": [
+          {
+            "name": "senderType",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "traveler",
+                "guide",
+                "support"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "senderId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "receiverType",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "traveler",
+                "guide",
+                "support"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "receiverId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversation messages"
+          }
+        },
+        "summary": "Get conversation between two users",
+        "tags": [
+          "messages"
+        ]
+      }
+    },
+    "/dashboard/admin": {
+      "get": {
+        "description": "High-level business metrics: trips, bookings, revenue, etc.",
+        "operationId": "DashboardController_getAdminDashboard",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Admin dashboard data"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "Admin dashboard",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/dashboard/superuser": {
+      "get": {
+        "description": "System-wide overview: users by role, entity counts, totals.",
+        "operationId": "DashboardController_getSuperuserDashboard",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Superuser dashboard data"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "Superuser dashboard",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/dashboard/traveler/{travelerId}": {
+      "get": {
+        "description": "Personal metrics: my trips, bookings, expenses, tickets, upcoming trips.",
+        "operationId": "DashboardController_getTravelerDashboard",
+        "parameters": [
+          {
+            "name": "travelerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Traveler dashboard data"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "Traveler dashboard",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/dashboard/guide/{guideId}": {
+      "get": {
+        "description": "Assignment metrics: assigned trips, completed, pending, messages.",
+        "operationId": "DashboardController_getGuideDashboard",
+        "parameters": [
+          {
+            "name": "guideId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Guide dashboard data"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "Guide dashboard",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/dashboard/support": {
+      "get": {
+        "description": "Ticket & refund metrics: total, open, resolved, refunds.",
+        "operationId": "DashboardController_getSupportDashboard",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Support dashboard data"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "Support dashboard",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "GlobeSync API",
+    "description": "GlobeSync Travel Platform Backend API",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "health",
+      "description": "Health check endpoints"
+    },
+    {
+      "name": "auth",
+      "description": "Authentication endpoints"
+    },
+    {
+      "name": "travelers",
+      "description": "Traveler management"
+    },
+    {
+      "name": "guides",
+      "description": "Guide management"
+    },
+    {
+      "name": "packages",
+      "description": "Travel package management"
+    },
+    {
+      "name": "trips",
+      "description": "Trip management"
+    },
+    {
+      "name": "bookings",
+      "description": "Booking management"
+    },
+    {
+      "name": "itineraries",
+      "description": "Itinerary management"
+    },
+    {
+      "name": "expenses",
+      "description": "Expense management"
+    },
+    {
+      "name": "payments",
+      "description": "Payment management"
+    },
+    {
+      "name": "refunds",
+      "description": "Refund management"
+    },
+    {
+      "name": "reviews",
+      "description": "Review management"
+    },
+    {
+      "name": "support-tickets",
+      "description": "Support ticket management"
+    },
+    {
+      "name": "messages",
+      "description": "Messaging"
+    },
+    {
+      "name": "dashboard",
+      "description": "Dashboard & reports"
+    }
+  ],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "TravelerLoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Traveler email address",
+            "example": "Arjun@gmail.com"
+          },
+          "password": {
+            "type": "string",
+            "description": "Traveler password",
+            "example": "traveler123"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "LoginResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Login successful"
+          },
+          "role": {
+            "type": "string",
+            "example": "traveler",
+            "enum": [
+              "traveler",
+              "admin",
+              "superuser",
+              "guide",
+              "support"
+            ]
+          },
+          "user": {
+            "type": "object",
+            "description": "User object (shape depends on role)",
+            "example": {
+              "travelerId": 1,
+              "name": "Arjun Mehta",
+              "email": "Arjun@gmail.com",
+              "phone": "9876543210",
+              "gender": "Male",
+              "age": 28
+            }
+          }
+        },
+        "required": [
+          "message",
+          "role",
+          "user"
+        ]
+      },
+      "StaffLoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Staff email address",
+            "example": "admin@ticp.com"
+          },
+          "password": {
+            "type": "string",
+            "description": "Staff password",
+            "example": "admin123"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "CreateTravelerDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Priya Sharma",
+            "description": "Full name of the traveler"
+          },
+          "email": {
+            "type": "string",
+            "example": "priya@gmail.com",
+            "description": "Email address"
+          },
+          "password": {
+            "type": "string",
+            "example": "traveler123",
+            "description": "Account password"
+          },
+          "phone": {
+            "type": "string",
+            "example": "9876543210",
+            "description": "Phone number"
+          },
+          "gender": {
+            "type": "string",
+            "example": "Female",
+            "description": "Gender"
+          },
+          "age": {
+            "type": "number",
+            "example": 26,
+            "description": "Age",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "password"
+        ]
+      },
+      "UpdateTravelerDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Priya Sharma",
+            "description": "Full name"
+          },
+          "email": {
+            "type": "string",
+            "example": "priya@gmail.com",
+            "description": "Email address"
+          },
+          "password": {
+            "type": "string",
+            "example": "newpassword",
+            "description": "New password"
+          },
+          "phone": {
+            "type": "string",
+            "example": "9876543210",
+            "description": "Phone number"
+          },
+          "gender": {
+            "type": "string",
+            "example": "Female",
+            "description": "Gender"
+          },
+          "age": {
+            "type": "number",
+            "example": 26,
+            "description": "Age",
+            "minimum": 1
+          }
+        }
+      },
+      "CreateGuideDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Sophia",
+            "description": "Guide name"
+          },
+          "email": {
+            "type": "string",
+            "example": "sophia@gmail.com",
+            "description": "Email address"
+          },
+          "password": {
+            "type": "string",
+            "example": "guide123",
+            "description": "Account password"
+          },
+          "languages": {
+            "example": [
+              "English",
+              "Spanish"
+            ],
+            "description": "Languages spoken",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "experience": {
+            "type": "number",
+            "example": 5,
+            "description": "Years of experience"
+          },
+          "rating": {
+            "type": "number",
+            "example": 4.5,
+            "description": "Rating (0-5)"
+          },
+          "pricePerTrip": {
+            "type": "number",
+            "example": 7000,
+            "description": "Price per trip"
+          },
+          "contact": {
+            "type": "string",
+            "example": "9876543210",
+            "description": "Contact number"
+          },
+          "adminId": {
+            "type": "number",
+            "example": 1,
+            "description": "Assigned admin ID"
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "password"
+        ]
+      },
+      "UpdateGuideDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Sophia",
+            "description": "Guide name"
+          },
+          "email": {
+            "type": "string",
+            "example": "sophia@gmail.com",
+            "description": "Email address"
+          },
+          "password": {
+            "type": "string",
+            "example": "newpassword",
+            "description": "New password"
+          },
+          "languages": {
+            "example": [
+              "English",
+              "Spanish"
+            ],
+            "description": "Languages spoken",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "experience": {
+            "type": "number",
+            "example": 5,
+            "description": "Years of experience"
+          },
+          "rating": {
+            "type": "number",
+            "example": 4.5,
+            "description": "Rating (0-5)"
+          },
+          "pricePerTrip": {
+            "type": "number",
+            "example": 7000,
+            "description": "Price per trip"
+          },
+          "contact": {
+            "type": "string",
+            "example": "9876543210",
+            "description": "Contact number"
+          },
+          "adminId": {
+            "type": "number",
+            "example": 1,
+            "description": "Assigned admin ID"
+          }
+        }
+      },
+      "CreatePackageDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Maldives Paradise",
+            "description": "Package name"
+          },
+          "destinations": {
+            "type": "string",
+            "example": "Maldives",
+            "description": "Destination(s)"
+          },
+          "budget": {
+            "type": "number",
+            "example": 185000,
+            "description": "Package budget/price"
+          },
+          "duration": {
+            "type": "number",
+            "example": 7,
+            "description": "Duration in days"
+          },
+          "description": {
+            "type": "string",
+            "example": "Crystal clear waters and luxury overwater villas.",
+            "description": "Package description"
+          },
+          "highlights": {
+            "type": "string",
+            "example": "Snorkeling, Sunset Cruise, Spa",
+            "description": "Trip highlights"
+          },
+          "image": {
+            "type": "string",
+            "example": "../static/destinations/maldives.png",
+            "description": "Image path"
+          }
+        },
+        "required": [
+          "name",
+          "destinations",
+          "budget",
+          "duration"
+        ]
+      },
+      "UpdatePackageDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Maldives Paradise",
+            "description": "Package name"
+          },
+          "destinations": {
+            "type": "string",
+            "example": "Maldives",
+            "description": "Destination(s)"
+          },
+          "budget": {
+            "type": "number",
+            "example": 185000,
+            "description": "Package budget/price"
+          },
+          "duration": {
+            "type": "number",
+            "example": 7,
+            "description": "Duration in days"
+          },
+          "description": {
+            "type": "string",
+            "example": "Updated description.",
+            "description": "Package description"
+          },
+          "highlights": {
+            "type": "string",
+            "example": "Snorkeling, Sunset Cruise",
+            "description": "Trip highlights"
+          },
+          "image": {
+            "type": "string",
+            "example": "../static/destinations/maldives.png",
+            "description": "Image path"
+          }
+        }
+      },
+      "CreateTripDto": {
+        "type": "object",
+        "properties": {
+          "destination": {
+            "type": "string",
+            "example": "Maldives",
+            "description": "Trip destination"
+          },
+          "startDate": {
+            "type": "string",
+            "example": "2026-08-01",
+            "description": "Start date (YYYY-MM-DD)"
+          },
+          "endDate": {
+            "type": "string",
+            "example": "2026-08-07",
+            "description": "End date (YYYY-MM-DD)"
+          },
+          "budget": {
+            "type": "number",
+            "example": 150000,
+            "description": "Trip budget"
+          },
+          "travelerId": {
+            "type": "number",
+            "example": 1,
+            "description": "Traveler ID"
+          },
+          "guideId": {
+            "type": "number",
+            "example": 1,
+            "description": "Guide ID (nullable)"
+          },
+          "packageId": {
+            "type": "number",
+            "example": 1,
+            "description": "Package ID (optional — omit for custom trips)"
+          },
+          "status": {
+            "type": "string",
+            "example": "Planning",
+            "enum": [
+              "Planning",
+              "Pending",
+              "Confirmed",
+              "Completed",
+              "Cancelled"
+            ]
+          }
+        },
+        "required": [
+          "destination",
+          "startDate",
+          "endDate",
+          "budget",
+          "travelerId"
+        ]
+      },
+      "UpdateTripDto": {
+        "type": "object",
+        "properties": {
+          "destination": {
+            "type": "string",
+            "example": "Maldives"
+          },
+          "startDate": {
+            "type": "string",
+            "example": "2026-08-01"
+          },
+          "endDate": {
+            "type": "string",
+            "example": "2026-08-07"
+          },
+          "budget": {
+            "type": "number",
+            "example": 150000
+          },
+          "travelerId": {
+            "type": "number",
+            "example": 1
+          },
+          "guideId": {
+            "type": "number",
+            "example": 1
+          },
+          "packageId": {
+            "type": "number",
+            "example": 1
+          },
+          "status": {
+            "type": "string",
+            "example": "Confirmed",
+            "enum": [
+              "Planning",
+              "Pending",
+              "Confirmed",
+              "Completed",
+              "Cancelled"
+            ]
+          }
+        }
+      },
+      "UpdateTripStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "Confirmed",
+            "enum": [
+              "Planning",
+              "Pending",
+              "Confirmed",
+              "Completed",
+              "Cancelled"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "CreateBookingDto": {
+        "type": "object",
+        "properties": {
+          "bookingDate": {
+            "type": "string",
+            "example": "2026-08-01"
+          },
+          "tripId": {
+            "type": "number",
+            "example": 1
+          },
+          "travelerId": {
+            "type": "number",
+            "example": 1
+          },
+          "service": {
+            "type": "string",
+            "example": "Emirates EK-101"
+          },
+          "type": {
+            "type": "string",
+            "example": "Flight",
+            "enum": [
+              "Flight",
+              "Hotel",
+              "Transport",
+              "Activity"
+            ]
+          },
+          "amount": {
+            "type": "number",
+            "example": 52000
+          },
+          "status": {
+            "type": "string",
+            "example": "Pending",
+            "enum": [
+              "Pending",
+              "Confirmed",
+              "Cancelled"
+            ]
+          }
+        },
+        "required": [
+          "bookingDate",
+          "tripId",
+          "travelerId",
+          "service",
+          "type",
+          "amount"
+        ]
+      },
+      "UpdateBookingDto": {
+        "type": "object",
+        "properties": {
+          "bookingDate": {
+            "type": "string",
+            "example": "2026-08-01"
+          },
+          "tripId": {
+            "type": "number",
+            "example": 1
+          },
+          "travelerId": {
+            "type": "number",
+            "example": 1
+          },
+          "service": {
+            "type": "string",
+            "example": "Emirates EK-101"
+          },
+          "type": {
+            "type": "string",
+            "example": "Flight",
+            "enum": [
+              "Flight",
+              "Hotel",
+              "Transport",
+              "Activity"
+            ]
+          },
+          "amount": {
+            "type": "number",
+            "example": 52000
+          },
+          "status": {
+            "type": "string",
+            "example": "Confirmed",
+            "enum": [
+              "Pending",
+              "Confirmed",
+              "Cancelled"
+            ]
+          }
+        }
+      },
+      "CreateItineraryDto": {
+        "type": "object",
+        "properties": {
+          "tripId": {
+            "type": "number",
+            "example": 1
+          },
+          "city": {
+            "type": "string",
+            "example": "Paris"
+          },
+          "dayNumber": {
+            "type": "number",
+            "example": 1
+          },
+          "activity": {
+            "type": "string",
+            "example": "Visit Eiffel Tower"
+          },
+          "activityStatus": {
+            "type": "string",
+            "example": "Pending",
+            "enum": [
+              "Pending",
+              "Confirmed",
+              "Completed"
+            ]
+          },
+          "time": {
+            "type": "string",
+            "example": "10:00"
+          }
+        },
+        "required": [
+          "tripId",
+          "city",
+          "dayNumber",
+          "activity",
+          "time"
+        ]
+      },
+      "UpdateItineraryDto": {
+        "type": "object",
+        "properties": {
+          "tripId": {
+            "type": "number",
+            "example": 1
+          },
+          "city": {
+            "type": "string",
+            "example": "Paris"
+          },
+          "dayNumber": {
+            "type": "number",
+            "example": 1
+          },
+          "activity": {
+            "type": "string",
+            "example": "Visit Eiffel Tower"
+          },
+          "activityStatus": {
+            "type": "string",
+            "example": "Confirmed",
+            "enum": [
+              "Pending",
+              "Confirmed",
+              "Completed"
+            ]
+          },
+          "time": {
+            "type": "string",
+            "example": "10:00"
+          }
+        }
+      },
+      "CreateExpenseDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "example": 15000
+          },
+          "type": {
+            "type": "string",
+            "example": "Hotel",
+            "enum": [
+              "Hotel",
+              "Flight",
+              "Transport",
+              "Food",
+              "Activity",
+              "Shopping"
+            ]
+          },
+          "tripId": {
+            "type": "number",
+            "example": 1
+          },
+          "description": {
+            "type": "string",
+            "example": "Airport lounge access"
+          }
+        },
+        "required": [
+          "amount",
+          "type",
+          "tripId",
+          "description"
+        ]
+      },
+      "UpdateExpenseDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "example": 15000
+          },
+          "type": {
+            "type": "string",
+            "example": "Food",
+            "enum": [
+              "Hotel",
+              "Flight",
+              "Transport",
+              "Food",
+              "Activity",
+              "Shopping"
+            ]
+          },
+          "tripId": {
+            "type": "number",
+            "example": 1
+          },
+          "description": {
+            "type": "string",
+            "example": "Updated description"
+          }
+        }
+      },
+      "CreatePaymentDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "example": 52000
+          },
+          "paymentDate": {
+            "type": "string",
+            "example": "2026-08-01"
+          },
+          "method": {
+            "type": "string",
+            "example": "Card",
+            "enum": [
+              "Card",
+              "UPI",
+              "Cash"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "example": "Paid",
+            "enum": [
+              "Paid",
+              "Pending"
+            ]
+          },
+          "bookingId": {
+            "type": "number",
+            "example": 1
+          }
+        },
+        "required": [
+          "amount",
+          "paymentDate",
+          "method",
+          "bookingId"
+        ]
+      },
+      "CreateRefundDto": {
+        "type": "object",
+        "properties": {
+          "paymentId": {
+            "type": "number",
+            "example": 2
+          },
+          "refundDate": {
+            "type": "string",
+            "example": "2026-08-01"
+          },
+          "refundTime": {
+            "type": "string",
+            "example": "14:30:00"
+          },
+          "refundStatus": {
+            "type": "string",
+            "example": "Processing",
+            "enum": [
+              "Processing",
+              "Completed",
+              "Rejected"
+            ]
+          }
+        },
+        "required": [
+          "paymentId",
+          "refundDate"
+        ]
+      },
+      "UpdateRefundStatusDto": {
+        "type": "object",
+        "properties": {
+          "refundStatus": {
+            "type": "string",
+            "example": "Completed",
+            "enum": [
+              "Processing",
+              "Completed",
+              "Rejected"
+            ]
+          }
+        },
+        "required": [
+          "refundStatus"
+        ]
+      },
+      "CreateReviewDto": {
+        "type": "object",
+        "properties": {
+          "tripId": {
+            "type": "number",
+            "example": 1
+          },
+          "travelerId": {
+            "type": "number",
+            "example": 1
+          },
+          "guideId": {
+            "type": "number",
+            "example": 1
+          },
+          "tripRating": {
+            "type": "number",
+            "example": 5,
+            "minimum": 1,
+            "maximum": 5
+          },
+          "guideRating": {
+            "type": "number",
+            "example": 5,
+            "minimum": 1,
+            "maximum": 5
+          },
+          "comment": {
+            "type": "string",
+            "example": "Amazing trip!"
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-08-01"
+          }
+        },
+        "required": [
+          "tripId",
+          "travelerId",
+          "guideId",
+          "tripRating",
+          "guideRating",
+          "comment"
+        ]
+      },
+      "CreateTicketDto": {
+        "type": "object",
+        "properties": {
+          "travelerId": {
+            "type": "number",
+            "example": 1
+          },
+          "issueType": {
+            "type": "string",
+            "example": "Booking issue"
+          },
+          "description": {
+            "type": "string",
+            "example": "My booking shows wrong dates."
+          },
+          "careId": {
+            "type": "number",
+            "example": 1
+          },
+          "priority": {
+            "type": "string",
+            "example": "High",
+            "enum": [
+              "High",
+              "Medium",
+              "Low"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "example": "Open",
+            "enum": [
+              "Open",
+              "In Progress",
+              "Resolved",
+              "Closed"
+            ]
+          }
+        },
+        "required": [
+          "travelerId",
+          "issueType",
+          "description"
+        ]
+      },
+      "UpdateTicketStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "Resolved",
+            "enum": [
+              "Open",
+              "In Progress",
+              "Resolved",
+              "Closed"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "CreateMessageDto": {
+        "type": "object",
+        "properties": {
+          "sender": {
+            "type": "string",
+            "example": "traveler",
+            "enum": [
+              "traveler",
+              "guide",
+              "support"
+            ]
+          },
+          "senderId": {
+            "type": "number",
+            "example": 1
+          },
+          "receiver": {
+            "type": "string",
+            "example": "guide",
+            "enum": [
+              "traveler",
+              "guide",
+              "support"
+            ]
+          },
+          "receiverId": {
+            "type": "number",
+            "example": 1
+          },
+          "content": {
+            "type": "string",
+            "example": "Hello! I have a question about my trip."
+          }
+        },
+        "required": [
+          "sender",
+          "senderId",
+          "receiver",
+          "receiverId",
+          "content"
+        ]
+      }
+    }
+  }
+}

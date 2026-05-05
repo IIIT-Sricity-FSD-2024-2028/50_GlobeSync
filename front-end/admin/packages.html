@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP Admin — Packages</title>
+<link rel="stylesheet" href="../static/shared.css">
+<style>
+:root{--primary:#E8467C;--gradient:linear-gradient(135deg,#E8467C 0%,#F5A623 100%);--gradient-soft:linear-gradient(135deg,#ffeef5 0%,#fff8ee 100%)}
+.pkg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+.pkg-card{background:#fff;border-radius:var(--radius-md);border:1px solid var(--border-light);overflow:hidden;transition:all 0.2s}
+.pkg-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.pkg-banner{height:160px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;position:relative}
+.pkg-banner img{width:100%;height:100%;object-fit:cover}
+.pkg-badge{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.95);padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;color:var(--primary);box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.pkg-body{padding:20px}
+.pkg-name{font-family:var(--font-main);font-size:17px;font-weight:700;margin-bottom:4px}
+.pkg-dest{font-size:13px;color:var(--text-muted);margin-bottom:12px}
+.pkg-desc{font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:14px}
+.pkg-highlights{font-size:12px;color:var(--text-muted);margin-bottom:14px;padding:10px;background:var(--gradient-soft);border-radius:8px}
+.pkg-highlights strong{color:var(--text-primary)}
+.pkg-footer{display:flex;justify-content:space-between;align-items:center;padding-top:14px;border-top:1px solid var(--border-light)}
+.pkg-price{font-family:var(--font-main);font-size:20px;font-weight:800;color:var(--primary)}
+.pkg-duration{font-size:13px;color:var(--text-muted);font-weight:600}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);color:#fff;font-size:18px">🌐</div><div><div class="logo-text" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">GlobeSync</div><div class="logo-sub">Admin Portal</div></div></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="admin-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="bookings.html"><span class="nav-icon">🎫</span>Bookings</a>
+      <a class="nav-item" href="trips.html"><span class="nav-icon">📍</span>Trips</a>
+      <a class="nav-item active" href="packages.html"><span class="nav-icon">📦</span>Packages</a>
+      <a class="nav-item" href="reviews.html"><span class="nav-icon">⭐</span>Reviews</a>
+      <a class="nav-item" href="reports.html"><span class="nav-icon">📈</span>Reports</a>
+      <a class="nav-item" data-page="profile" href="profile.html"><span class="nav-icon">🔴</span>My Profile</a>
+    </nav>
+    <div style="padding:12px;margin-top:auto">
+      <div style="background:#ffeef5;border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:#9d174d;border:1px solid #fecdd3">
+        👔 <strong>Admin Role</strong><br>Operational access only.
+      </div>
+    </div>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="page-title">Travel Packages</div><div class="page-subtitle">Browse and manage available trip packages</div></div>
+      <div style="display:flex;gap:12px;align-items:center">
+        <span class="badge badge-pink" style="padding:6px 14px;font-size:13px">📦 <span id="pkg-count">0</span> Packages</span>
+        <button class="btn btn-primary" onclick="openPackageModal()">+ Add New Package</button>
+      </div>
+    </div>
+
+    <div class="pkg-grid" id="pkg-grid"></div>
+
+    <!-- ADD / EDIT PACKAGE MODAL -->
+    <div class="modal-overlay" id="package-modal">
+      <div class="modal" style="max-width:550px">
+        <div class="modal-header">
+          <h3 id="modal-title">Add New Package</h3>
+          <button class="modal-close" onclick="closePackageModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <form id="package-form" onsubmit="savePackage(event)">
+            <input type="hidden" id="pkg-id">
+            
+            <div class="form-group">
+              <label class="form-label">Package Name *</label>
+              <input type="text" id="pkg-name" class="form-control" placeholder="e.g., Paris Deluxe" data-required="Package Name is required">
+              <div class="form-error" id="pkg-name-error"></div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Destinations *</label>
+              <input type="text" id="pkg-dest" class="form-control" placeholder="e.g., Paris, Versailles" data-required="Destinations are required">
+              <div class="form-error" id="pkg-dest-error"></div>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">Duration (Days) *</label>
+                <input type="number" id="pkg-dur" class="form-control" min="1" placeholder="e.g., 7" data-required="Duration is required">
+                <div class="form-error" id="pkg-dur-error"></div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Budget (₹) *</label>
+                <input type="number" id="pkg-budget" class="form-control" min="1" placeholder="e.g., 145000" data-required="Budget is required">
+                <div class="form-error" id="pkg-budget-error"></div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Highlights (Optional)</label>
+              <input type="text" id="pkg-high" class="form-control" placeholder="e.g., Eiffel Tower, Louvre">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Description</label>
+              <textarea id="pkg-desc" class="form-control" rows="3" placeholder="Briefly describe the package..."></textarea>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:24px">
+              <button type="button" class="btn btn-secondary" onclick="closePackageModal()">Cancel</button>
+              <button type="submit" class="btn btn-primary">Save Package</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/api.js"></script>
+<script>
+if (!Auth.isLoggedIn() || Auth.getRole() !== 'admin') window.location.href = '../login.html?role=admin';
+
+const emojis = {'Paris':'🗼','Tokyo':'🗾','Swiss':'🏔','New York':'🗽','Bali':'🏝','Dubai':'🏗','Goa':'🏖','Kerala':'🛶','Rajasthan':'🏰','Singapore':'🦁'};
+
+function getEmoji(dest) { for (const k in emojis) if (dest && dest.includes(k)) return emojis[k]; return '✈'; }
+
+let _packages = [];
+
+async function loadData() {
+  try {
+    _packages = await apiGetSnake('/packages');
+    renderPackages();
+  } catch (e) { console.error('Failed to load packages:', e); }
+}
+
+function renderPackages() {
+  document.getElementById('pkg-count').textContent = _packages.length;
+
+  document.getElementById('pkg-grid').innerHTML = _packages.map((p, i) => {
+    return `
+    <div class="pkg-card">
+      <div class="pkg-banner">
+        <img src="${getDestImg(p.destinations)}" alt="${p.title || p.name}">
+        <div class="pkg-badge">📦 Package #${p.package_id}</div>
+      </div>
+      <div class="pkg-body">
+        <div class="pkg-name">${p.title || p.name}</div>
+        <div class="pkg-dest">📍 ${p.destinations || '—'}</div>
+        <div class="pkg-desc" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${p.description || 'Explore this amazing destination with our guided package.'}</div>
+        ${p.highlights ? `<div class="pkg-highlights"><strong>Highlights:</strong> ${p.highlights}</div>` : ''}
+        <div class="pkg-footer">
+          <div class="pkg-price">${formatCurrency(p.budget)}</div>
+          <div class="pkg-duration">📅 ${p.duration} days</div>
+        </div>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--border-light);display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn btn-secondary btn-sm" onclick="editPackage(${p.package_id})">✎ Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deletePackage(${p.package_id})">✕ Delete</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Open modal for Add
+window.openPackageModal = function() {
+  document.getElementById('modal-title').textContent = 'Add New Package';
+  document.getElementById('package-form').reset();
+  document.getElementById('pkg-id').value = '';
+  openModal('package-modal');
+};
+
+// Open modal for Edit
+window.editPackage = function(id) {
+  const pkg = _packages.find(p => p.package_id === id);
+  if (!pkg) return;
+  
+  document.getElementById('modal-title').textContent = 'Edit Package';
+  document.getElementById('pkg-id').value = pkg.package_id;
+  document.getElementById('pkg-name').value = pkg.title || pkg.name || '';
+  document.getElementById('pkg-dest').value = pkg.destinations || '';
+  document.getElementById('pkg-dur').value = pkg.duration || '';
+  document.getElementById('pkg-budget').value = pkg.budget || '';
+  document.getElementById('pkg-high').value = pkg.highlights || '';
+  document.getElementById('pkg-desc').value = pkg.description || '';
+  
+  openModal('package-modal');
+};
+
+// Close modal
+window.closePackageModal = function() {
+  closeModal('package-modal');
+};
+
+// Save Package (Add or Edit)
+window.savePackage = async function(e) {
+  e.preventDefault();
+  if (!validateForm('package-form')) return;
+
+  const id = document.getElementById('pkg-id').value;
+  const pkgData = {
+    title: document.getElementById('pkg-name').value,
+    destinations: document.getElementById('pkg-dest').value,
+    duration: parseInt(document.getElementById('pkg-dur').value),
+    budget: parseInt(document.getElementById('pkg-budget').value),
+    highlights: document.getElementById('pkg-high').value,
+    description: document.getElementById('pkg-desc').value
+  };
+
+  try {
+    if (id) {
+      await apiPut(`/packages/${id}`, pkgData);
+      showToast('Package updated successfully! Syncing with platform...');
+    } else {
+      await apiPost('/packages', pkgData);
+      showToast('Package added successfully! Available to all travelers now.');
+    }
+    closePackageModal();
+    await loadData();
+  } catch (e) {
+    console.error('Failed to save package:', e);
+  }
+};
+
+// Delete Package
+window.deletePackage = function(id) {
+  confirmDelete('Are you sure you want to delete this package? It will be permanently removed.', async () => {
+    try {
+      await apiDelete(`/packages/${id}`);
+      showToast('Package deleted!', 'error');
+      await loadData();
+    } catch (e) {
+      console.error('Failed to delete package:', e);
+    }
+  });
+};
+
+setupLiveValidation('package-form');
+loadData();
+</script>
+</body>
+</html>
+
+
+
+

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlobeSync — About TICP</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--primary:#E8467C;--secondary:#F5A623;--gradient:linear-gradient(135deg,#E8467C 0%,#F5A623 100%);--text:#1a1a2e;--muted:#6b7280;--border:#e5e7eb;--bg:#fff;--soft:#fafafa}
+body{font-family:'Inter', sans-serif;color:var(--text);background:var(--bg)}
+
+/* NAV */
+nav{display:flex;align-items:center;justify-content:space-between;padding:16px 60px;background:rgba(255,255,255,0.95);backdrop-filter:blur(10px);position:sticky;top:0;z-index:100;border-bottom:1px solid var(--border)}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-icon{width:36px;height:36px;background:var(--gradient);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px}
+.logo-name{font-family:'Inter', sans-serif;font-weight:700;font-size:18px;color:var(--primary)}
+.nav-links{display:flex;align-items:center;gap:32px;list-style:none}
+.nav-links a{text-decoration:none;color:var(--muted);font-size:14px;font-weight:500;transition:color 0.2s}
+.nav-links a:hover,.nav-links a.active{color:var(--primary)}
+.btn-login{padding:8px 20px;border:1.5px solid var(--primary);border-radius:8px;color:var(--primary);font-size:14px;font-weight:600;text-decoration:none;transition:all 0.2s;cursor:pointer;background:none}
+.btn-login:hover{background:var(--primary);color:#fff}
+
+/* HERO BANNER */
+.about-hero{background:var(--gradient);padding:80px 60px;text-align:center;position:relative;overflow:hidden}
+.about-hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
+.about-hero h1{font-family:'Inter', sans-serif;font-size:48px;font-weight:800;color:#fff;margin-bottom:16px;position:relative;z-index:1}
+.about-hero p{font-size:17px;color:rgba(255,255,255,0.9);max-width:600px;margin:0 auto;line-height:1.7;position:relative;z-index:1}
+
+/* VALUES */
+.values-section{padding:80px 60px;background:var(--soft)}
+.values-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;max-width:900px;margin:0 auto}
+.value-card{background:#fff;border-radius:16px;padding:36px 28px;text-align:center;border:1px solid var(--border);transition:all 0.3s}
+.value-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,0.08)}
+.value-icon{width:56px;height:56px;background:var(--gradient);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 20px;color:#fff}
+.value-title{font-family:'Inter', sans-serif;font-size:18px;font-weight:700;margin-bottom:12px}
+.value-desc{font-size:14px;color:var(--muted);line-height:1.7}
+
+/* TEAM */
+.team-section{padding:80px 60px;text-align:center}
+.team-section h2{font-family:'Inter', sans-serif;font-size:32px;font-weight:800;margin-bottom:48px}
+.team-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;max-width:1000px;margin:0 auto}
+.team-card{background:#fff;border-radius:16px;padding:32px 20px;border:1px solid var(--border);text-align:center;transition:all 0.3s}
+.team-card:hover{transform:translateY(-4px);box-shadow:0 8px 32px rgba(0,0,0,0.08)}
+.team-avatar{width:80px;height:80px;border-radius:50%;background:var(--gradient);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:36px;color:#fff;opacity:0.85}
+.team-name{font-family:'Inter', sans-serif;font-size:16px;font-weight:700;margin-bottom:4px}
+.team-role{font-size:13px;color:var(--muted);font-weight:500}
+
+/* JOURNEY */
+.journey-section{padding:80px 60px;background:var(--soft);text-align:center}
+.journey-section h2{font-family:'Inter', sans-serif;font-size:32px;font-weight:800;margin-bottom:48px}
+.journey-timeline{display:flex;justify-content:center;gap:48px;margin-bottom:20px}
+.journey-item{text-align:center}
+.journey-year{width:80px;height:80px;border-radius:50%;background:var(--gradient);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Inter', sans-serif;font-size:18px;font-weight:800;margin:0 auto 16px;box-shadow:0 6px 20px rgba(232,70,124,0.25)}
+.journey-label{font-size:14px;color:var(--muted);font-weight:600}
+
+/* FOOTER */
+footer{background:#1a1a2e;padding:32px 60px;color:#9ca3af;text-align:center;font-size:13px}
+
+@media (max-width:768px) {
+  .values-grid,.team-grid{grid-template-columns:1fr 1fr}
+  .journey-timeline{flex-wrap:wrap;gap:24px}
+  nav{padding:16px 24px}
+  .about-hero{padding:48px 24px}
+  .values-section,.team-section,.journey-section{padding:48px 24px}
+}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav>
+  <a href="index.html" class="nav-logo">
+    <div class="logo-icon">✈</div>
+    <span class="logo-name">GlobeSync</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="index.html#features">Features</a></li>
+    <li><a href="index.html#destinations">Destinations</a></li>
+    <li><a href="about.html" class="active">About</a></li>
+    <li><a href="contact.html">Contact</a></li>
+  </ul>
+  <a href="role-select.html" class="btn-login">Login</a>
+</nav>
+
+<!-- HERO -->
+<section class="about-hero">
+  <h1>About TICP</h1>
+  <p>We're on a mission to simplify travel planning and coordination for everyone, making dream trips accessible and stress-free.</p>
+</section>
+
+<!-- VALUES -->
+<section class="values-section">
+  <div class="values-grid">
+    <div class="value-card">
+      <div class="value-icon">🎯</div>
+      <div class="value-title">Our Mission</div>
+      <div class="value-desc">To provide a comprehensive platform that makes travel planning effortless and enjoyable.</div>
+    </div>
+    <div class="value-card">
+      <div class="value-icon">👥</div>
+      <div class="value-title">Our Community</div>
+      <div class="value-desc">Connecting travelers, guides, and service providers in one seamless ecosystem.</div>
+    </div>
+    <div class="value-card">
+      <div class="value-icon">⚡</div>
+      <div class="value-title">Innovation</div>
+      <div class="value-desc">Leveraging technology to create smarter, more efficient travel solutions.</div>
+    </div>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section class="team-section">
+  <h2>Meet Our Team</h2>
+  <div class="team-grid">
+    <div class="team-card">
+      <div class="team-avatar">👤</div>
+      <div class="team-name">Manoj Gupta</div>
+      <div class="team-role">Founder & CEO</div>
+    </div>
+    <div class="team-card">
+      <div class="team-avatar">👤</div>
+      <div class="team-name">Arjun Mehta</div>
+      <div class="team-role">Head of Operations</div>
+    </div>
+    <div class="team-card">
+      <div class="team-avatar">👤</div>
+      <div class="team-name">Nitin</div>
+      <div class="team-role">Lead Developer</div>
+    </div>
+    <div class="team-card">
+      <div class="team-avatar">👤</div>
+      <div class="team-name">Mateo</div>
+      <div class="team-role">Customer Success</div>
+    </div>
+  </div>
+</section>
+
+<!-- JOURNEY -->
+<section class="journey-section">
+  <h2>Our Journey</h2>
+  <div class="journey-timeline">
+    <div class="journey-item">
+      <div class="journey-year">2024</div>
+      <div class="journey-label">Platform Launched</div>
+    </div>
+    <div class="journey-item">
+      <div class="journey-year">2025</div>
+      <div class="journey-label">1000+ Users</div>
+    </div>
+    <div class="journey-item">
+      <div class="journey-year">2026</div>
+      <div class="journey-label">Global Expansion</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>© 2026 TICP Travel Itinerary & Coordination Platform. All rights reserved.</p>
+</footer>
+
+</body>
+</html>

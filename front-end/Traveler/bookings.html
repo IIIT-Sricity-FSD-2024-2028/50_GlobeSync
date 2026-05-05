@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP — My Bookings</title>
+<link rel="stylesheet" href="../static/shared.css">
+<link rel="stylesheet" href="../static/notifications.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);color:#fff;font-size:18px">🌐</div><div><div class="logo-text" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">GlobeSync</div><div class="logo-sub">Traveler Portal</div></div></div>
+    <nav class="sidebar-nav">
+    <a class="nav-item" data-page="dashboard" href="traveler-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" data-page="trips" href="my-trips.html"><span class="nav-icon">📍</span>My Trips</a>
+      <a class="nav-item" data-page="itinerary" href="create-itinerary.html"><span class="nav-icon">📅</span>Create Itinerary</a>
+      <a class="nav-item active" data-page="bookings" href="bookings.html"><span class="nav-icon">🎫</span>Bookings</a>
+      <a class="nav-item" data-page="expenses" href="expenses.html"><span class="nav-icon">💰</span>Expenses</a>
+      <a class="nav-item" data-page="messages" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+      <a class="nav-item" data-page="profile" href="profile.html"><span class="nav-icon">👤</span>My Profile</a>
+      <a class="nav-item" data-page="support" href="support.html"><span class="nav-icon">🎧</span>Support</a>
+    </nav>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="page-title">My Bookings</div><div class="page-subtitle">Manage all your travel bookings</div></div>
+      <div class="topbar-actions">
+        <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="booking-search" placeholder="Search bookings..."></div>
+        <select id="type-filter" class="form-control" style="width:auto;padding:8px 14px" onchange="renderBookings()">
+          <option value="">All Types</option>
+          <option value="Flight">Flight</option>
+          <option value="Hotel">Hotel</option>
+          <option value="Transport">Transport</option>
+        </select>
+        <select id="status-filter" class="form-control" style="width:auto;padding:8px 14px" onchange="renderBookings()">
+          <option value="">All Status</option>
+          <option value="Confirmed">Confirmed</option>
+          <option value="Pending">Pending</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Booking ID</th>
+              <th>Service</th>
+              <th>Trip</th>
+              <th>Type</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Amount</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="bookings-tbody"></tbody>
+        </table>
+      </div>
+      <div id="empty-bookings" class="empty-state" style="display:none">
+        <div class="empty-icon">🎫</div>
+        <h3>No bookings found</h3>
+        <p>Bookings are automatically generated when you create a trip.</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+
+<!-- PAYMENT MODAL -->
+<div class="modal-overlay" id="payment-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">💳 Complete Payment</div>
+      <button class="modal-close" onclick="closeModal('payment-modal')">✕</button>
+    </div>
+    <div style="background:var(--gradient-soft);border-radius:var(--radius-sm);padding:16px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:14px;color:var(--text-secondary)">Total Amount</span>
+      <span style="font-size:24px;font-weight:700;color:var(--primary)" id="pay-amount">₹0.00</span>
+    </div>
+    <input type="hidden" id="pay-booking-id">
+    <form id="payment-form" onsubmit="processPayment(event)">
+      <div class="form-group">
+        <label class="form-label">Card Number *</label>
+        <input class="form-control" id="p-card" placeholder="1234 5678 9012 3456" maxlength="19" data-required="Card number is required" data-minlen="14">
+        <div class="form-error" id="p-card-error"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Expiry Date *</label>
+          <input class="form-control" id="p-expiry" placeholder="MM/YY" maxlength="5" data-required="Expiry date is required">
+          <div class="form-error" id="p-expiry-error"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">CVV *</label>
+          <input class="form-control" id="p-cvv" placeholder="123" maxlength="3" data-required="CVV is required" data-minlen="3">
+          <div class="form-error" id="p-cvv-error"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cardholder Name *</label>
+        <input class="form-control" id="p-name" placeholder="John Doe" data-required="Cardholder name is required">
+        <div class="form-error" id="p-name-error"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted);margin-bottom:20px">🔒 Your payment information is encrypted and secure</div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('payment-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary" style="background:var(--success);flex:1" id="pay-btn">Pay <span id="pay-btn-amount"></span></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- VIEW BOOKING MODAL -->
+<div class="modal-overlay" id="view-booking-modal">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <div class="modal-title">Booking Details</div>
+      <button class="modal-close" onclick="closeModal('view-booking-modal')">✕</button>
+    </div>
+    <div id="view-booking-content"></div>
+  </div>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/notifications.js"></script>
+<script src="../JS/api.js"></script>
+<script>
+if (!Auth.isLoggedIn() || Auth.getRole() !== 'traveler') window.location.href = '../traveler-login.html';
+const user = Auth.getUser();
+const uid = getUserId();
+
+const typeIcons = { Flight: '✈', Hotel: '🏨', Transport: '🚌', Activity: '🎯' };
+let _bookings = [];
+let _trips = [];
+
+async function loadData() {
+  try {
+    [_bookings, _trips] = await Promise.all([
+      apiGetSnake(`/bookings/traveler/${uid}`),
+      apiGetSnake(`/trips/traveler/${uid}`)
+    ]);
+  } catch (e) { console.error('Failed to load data:', e); }
+}
+
+function renderBookings() {
+  const search = document.getElementById('booking-search').value.toLowerCase();
+  const typeF = document.getElementById('type-filter').value;
+  const statusF = document.getElementById('status-filter').value;
+  let bookings = [..._bookings];
+  if (search) bookings = bookings.filter(b => (b.service||'').toLowerCase().includes(search) || (b.booking_id||'').toString().includes(search));
+  if (typeF) bookings = bookings.filter(b => b.type === typeF);
+  if (statusF) bookings = bookings.filter(b => b.status === statusF);
+  const tbody = document.getElementById('bookings-tbody');
+  const empty = document.getElementById('empty-bookings');
+  if (bookings.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = bookings.map(b => {
+    const trip = _trips.find(t => t.trip_id === b.trip_id);
+    return `
+    <tr>
+      <td><span style="font-weight:700;color:var(--primary)">BK00${b.booking_id}</span></td>
+      <td><div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px">${typeIcons[b.type]||'📋'}</span><div><div style="font-weight:600">${b.service}</div><div style="font-size:12px;color:var(--text-muted)">${b.type}</div></div></div></td>
+      <td><div style="font-weight:600;color:var(--secondary)">📍 ${trip ? trip.destination : 'Custom'}</div></td>
+      <td>${b.type}</td>
+      <td>${formatDate(b.booking_date)}</td>
+      <td>${statusBadge(b.status)}</td>
+      <td style="font-weight:700">${formatCurrency(b.amount)}</td>
+      <td>
+        <div style="display:flex;gap:6px;align-items:center">
+          ${b.status === 'Pending' ? `<button onclick="openPayment(${b.booking_id})" class="btn btn-sm" style="background:#ecfdf5;color:#059669;border:1px solid #a7f3d0">💳 Pay Now</button>` : ''}
+          <button onclick="viewBooking(${b.booking_id})" class="btn btn-secondary btn-sm">👁 View</button>
+          <button onclick="location.href='support.html?booking=${b.booking_id}'" class="btn btn-secondary btn-sm" style="color:var(--primary);border-color:var(--primary)">🚑 Help</button>
+          <button onclick="cancelBooking(${b.booking_id})" class="btn btn-danger btn-sm">✕</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function viewBooking(id) {
+  const b = _bookings.find(b => b.booking_id === id);
+  const trip = _trips.find(t => t.trip_id === b.trip_id);
+  document.getElementById('view-booking-content').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:14px;padding:4px 0">
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Booking ID</span><span style="font-weight:700;color:var(--primary)">BK00${b.booking_id}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Service</span><span style="font-weight:600">${b.service}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Type</span><span>${typeIcons[b.type]} ${b.type}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Trip</span><span>${trip ? trip.destination : 'N/A'}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Date</span><span>${formatDate(b.booking_date)}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">Status</span><span>${statusBadge(b.status)}</span></div>
+      <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border-light);padding-top:14px"><span style="font-weight:700">Amount</span><span style="font-size:20px;font-weight:700;color:var(--primary)">${formatCurrency(b.amount)}</span></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('view-booking-modal')">Close</button></div>`;
+  openModal('view-booking-modal');
+}
+
+async function cancelBooking(id) {
+  confirmDelete('Cancel this booking? This action cannot be undone.', async () => {
+    try {
+      const b = _bookings.find(b => b.booking_id === id);
+      const payload = { ...b, status: 'Cancelled' };
+      delete payload.booking_id;
+      await apiPutSnake(`/bookings/${id}`, payload);
+      showToast('Booking cancelled', 'error');
+      await loadData();
+      renderBookings();
+    } catch (e) { console.error('Failed to cancel:', e); }
+  });
+}
+
+// Payment
+function openPayment(id) {
+  const b = _bookings.find(b => b.booking_id === id);
+  document.getElementById('pay-booking-id').value = id;
+  document.getElementById('pay-amount').textContent = formatCurrency(b.amount);
+  document.getElementById('pay-btn-amount').textContent = formatCurrency(b.amount);
+  document.getElementById('payment-form').reset();
+  openModal('payment-modal');
+}
+
+async function processPayment(e) {
+  e.preventDefault();
+  if (!validateForm('payment-form')) return;
+  const expiry = document.getElementById('p-expiry').value;
+  if (!/^\d{2}\/\d{2}$/.test(expiry)) { document.getElementById('p-expiry').classList.add('error'); document.getElementById('p-expiry-error').textContent = 'Format must be MM/YY'; document.getElementById('p-expiry-error').classList.add('show'); return; }
+  const id = parseInt(document.getElementById('pay-booking-id').value);
+  const b = _bookings.find(b => b.booking_id === id);
+  try {
+    // Update booking status
+    const payload = { ...b, status: 'Confirmed' };
+    delete payload.booking_id;
+    await apiPutSnake(`/bookings/${id}`, payload);
+
+    // Sync the trip status to 'Confirmed'
+    if (b.trip_id) {
+      await apiPatchSnake(`/trips/${b.trip_id}/status`, { status: 'Confirmed' }).catch(err => console.error('Failed to update trip status:', err));
+    }
+
+    // Create payment record
+    await apiPostSnake('/payments', { amount: b.amount, payment_date: new Date().toISOString().split('T')[0], method: 'Card', status: 'Paid', booking_id: id });
+    closeModal('payment-modal');
+    showToast('Payment successful! Booking and Trip confirmed ✓');
+    await loadData();
+    renderBookings();
+  } catch (e) { console.error('Payment failed:', e); }
+}
+
+// Card number formatting
+document.getElementById('p-card').addEventListener('input', function() {
+  this.value = this.value.replace(/\D/g, '').replace(/(\d{4})/g, '$1 ').trim().slice(0, 19);
+});
+document.getElementById('p-expiry').addEventListener('input', function() {
+  this.value = this.value.replace(/\D/g, '').replace(/(\d{2})(\d)/, '$1/$2').slice(0, 5);
+});
+document.getElementById('p-cvv').addEventListener('input', function() {
+  this.value = this.value.replace(/\D/g, '').slice(0, 3);
+});
+
+document.getElementById('booking-search').addEventListener('input', renderBookings);
+setupLiveValidation('payment-form');
+injectNotifBell('traveler');
+
+(async () => { await loadData(); renderBookings(); })();
+</script>
+</body>
+</html>
+

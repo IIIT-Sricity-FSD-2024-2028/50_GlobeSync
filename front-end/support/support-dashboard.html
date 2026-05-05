@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP — Support Dashboard</title>
+<link rel="stylesheet" href="../static/shared.css">
+<link rel="stylesheet" href="../static/notifications.css">
+<style>
+:root{--primary:#10b981;--primary-dark:#059669;--gradient:linear-gradient(135deg,#10b981 0%,#3b82f6 100%);--gradient-soft:linear-gradient(135deg,#ecfdf5 0%,#eff6ff 100%)}
+.priority-high{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.priority-med{background:#fffbeb;color:#d97706;border:1px solid #fde68a;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.priority-low{background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.timeline-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border-light)}
+.timeline-item:last-child{border-bottom:none}
+.timeline-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.timeline-line{width:2px;background:var(--border-light);margin:4px 15px;height:20px}
+.chart-bar-container{height:180px;display:flex;align-items:flex-end;gap:8px;padding:20px;background:var(--bg-soft);border-radius:var(--radius-md);margin-top:16px}
+.chart-bar{flex:1;background:var(--primary);border-radius:4px 4px 0 0;transition:all 0.3s;position:relative}
+.chart-bar:hover{opacity:0.8}
+.chart-label{position:absolute;bottom:-24px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--text-muted)}
+.agent-toggle{display:flex;align-items:center;gap:10px;background:#fff;padding:6px 12px;border-radius:20px;border:1px solid var(--border);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s}
+.agent-toggle.online{color:#059669;border-color:#10b981;background:#ecfdf5}
+.agent-toggle .dot{width:8px;height:8px;border-radius:50%;background:#d1d5db}
+.agent-toggle.online .dot{background:#10b981;box-shadow:0 0 8px #10b981}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);color:#fff;font-size:18px">🌐</div><div><div class="logo-text" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">GlobeSync</div><div class="logo-sub">Support Portal</div></div></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item active" href="support-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="tickets.html"><span class="nav-icon">🎫</span>Tickets</a>
+      <a class="nav-item" href="refunds.html"><span class="nav-icon">💰</span>Refunds</a>
+      <a class="nav-item" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+      <a class="nav-item" data-page="profile" href="profile.html"><span class="nav-icon">🔴</span>My Profile</a>
+    </nav>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="page-title">Support Overview</div><div class="page-subtitle">Strategic monitoring and agent performance</div></div>
+      <div style="display:flex;gap:12px;align-items:center">
+        <div class="agent-toggle online" id="agent-status" onclick="toggleStatus()">
+          <div class="dot"></div>
+          <span id="status-text">Agent Online</span>
+        </div>
+        <button class="btn btn-primary" style="background:var(--gradient)" onclick="openModal('create-ticket-modal')">+ Create Ticket</button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid stats-grid-4 mb-4">
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Tickets in Your Queue</div><div class="stat-value" id="my-count">0</div></div><div class="stat-icon pink">👤</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">SLA Compliance</div><div class="stat-value">98.4%</div><div class="stat-change" style="color:#10b981">↑ Professional</div></div><div class="stat-icon orange">⏱</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Avg CSAT</div><div class="stat-value">4.8/5</div><div class="stat-change" style="color:#10b981">↑ Satisfied</div></div><div class="stat-icon green">⭐</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Open Global Tickets</div><div class="stat-value" id="open-count">0</div></div><div class="stat-icon blue">🎫</div></div>
+    </div>
+
+    <!-- ANALYTICS GRID -->
+    <div class="grid-2 mb-4">
+      <!-- RESOLUTION TRENDS -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">Resolution Velocity (Last 7 Days)</span></div>
+        <div class="card-body">
+          <div class="chart-bar-container" id="velocity-chart">
+            <!-- Simulated chart bars -->
+          </div>
+          <div style="margin-top:40px;display:flex;justify-content:space-around;text-align:center">
+            <div><div style="font-size:12px;color:var(--text-muted)">Avg Response</div><div style="font-weight:700;font-size:18px">1.4h</div></div>
+            <div><div style="font-size:12px;color:var(--text-muted)">Satisfaction</div><div style="font-weight:700;font-size:18px;color:#10b981">9.2/10</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RECENT ACTIVITY FEED -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">Recent System Activity</span></div>
+        <div class="card-body">
+          <div class="timeline-item">
+            <div class="timeline-dot" style="background:#e0f2fe">➕</div>
+            <div>
+              <div style="font-weight:600;font-size:14px">New Ticket Logged</div>
+              <div style="font-size:13px;color:var(--text-secondary)">Traveler Arjun Mehta reported a hotel mismatch.</div>
+              <div style="font-size:11px;color:var(--text-muted)">2 minutes ago</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot" style="background:#ecfdf5">✓</div>
+            <div>
+              <div style="font-weight:600;font-size:14px">Ticket Resolved</div>
+              <div style="font-size:13px;color:var(--text-secondary)">Ticket #102 closed by ${user.name}.</div>
+              <div style="font-size:11px;color:var(--text-muted)">15 minutes ago</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot" style="background:#fff8ee">📝</div>
+            <div>
+              <div style="font-weight:600;font-size:14px">Note Added</div>
+              <div style="font-size:13px;color:var(--text-secondary)">Follow-up note added to Ticket #104.</div>
+              <div style="font-size:11px;color:var(--text-muted)">1 hour ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECENT TICKETS -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Recent Support Requests</span>
+        <a href="tickets.html" class="btn btn-secondary btn-sm">View Full Ticket Queue</a>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Ticket ID</th><th>Traveler</th><th>Issue</th><th>Priority</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="tickets-tbody"></tbody>
+        </table>
+      </div>
+      <div id="empty-tickets" class="empty-state" style="display:none"><div class="empty-icon">🎫</div><h3>No recent tickets</h3></div>
+    </div>
+  </main>
+</div>
+
+<!-- TICKET DETAIL MODAL -->
+<div class="modal-overlay" id="ticket-detail-modal">
+  <div class="modal" style="max-width:680px;max-height:85vh;overflow-y:auto">
+    <div class="modal-header">
+      <div class="modal-title" id="ticket-detail-title">Ticket Details</div>
+      <button class="modal-close" onclick="closeModal('ticket-detail-modal')">✕</button>
+    </div>
+    <div id="ticket-detail-content"></div>
+  </div>
+</div>
+
+<!-- CREATE TICKET MODAL -->
+<div class="modal-overlay" id="create-ticket-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Create New Ticket</div>
+      <button class="modal-close" onclick="closeModal('create-ticket-modal')">✕</button>
+    </div>
+    <form id="ticket-form" onsubmit="createTicket(event)">
+      <div class="form-group">
+        <label class="form-label">Traveler *</label>
+        <select class="form-control" id="t-traveler" data-required="Please select a traveler">
+          <option value="">Select traveler</option>
+        </select>
+        <div class="form-error" id="t-traveler-error"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Issue Type *</label>
+        <input class="form-control" id="t-issue" placeholder="e.g., Hotel booking mismatch" data-required="Issue type is required">
+        <div class="form-error" id="t-issue-error"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description *</label>
+        <textarea class="form-control" id="t-desc" rows="3" placeholder="Describe the issue in detail..." data-required="Description is required"></textarea>
+        <div class="form-error" id="t-desc-error"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Priority *</label>
+          <select class="form-control" id="t-priority" data-required="Please select priority">
+            <option value="">Select priority</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+          <div class="form-error" id="t-priority-error"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-control" id="t-status">
+            <option value="Open">Open</option>
+            <option value="In Progress">In Progress</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('create-ticket-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary" style="background:var(--gradient)">Create Ticket</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/notifications.js"></script>
+<script src="../JS/api.js"></script>
+<script>
+if (!Auth.isLoggedIn() || Auth.getRole() !== 'support') window.location.href = '../login.html?role=support';
+const user = Auth.getUser();
+let _tickets = [], _travelers = [];
+
+async function loadData() {
+  try {
+    [_tickets, _travelers] = await Promise.all([
+      apiGetSnake('/support-tickets'),
+      apiGetSnake('/travelers')
+    ]);
+    renderTickets();
+    populateTravelers();
+  } catch (e) { console.error('Failed to load support dashboard:', e); }
+}
+
+function renderTickets() {
+  let tickets = [..._tickets].reverse().slice(0, 5);
+  document.getElementById('my-count').textContent = _tickets.filter(t => t.care_id == user.care_id && t.status !== 'Resolved').length;
+  document.getElementById('open-count').textContent = _tickets.filter(t => t.status === 'Open').length;
+
+  const chart = document.getElementById('velocity-chart');
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const values = [12, 19, 15, 22, 18, 10, 8];
+  const max = Math.max(...values);
+  chart.innerHTML = values.map((v, i) => `
+    <div class="chart-bar" style="height:${(v/max*100)}%">
+      <div class="chart-label">${days[i]}</div>
+    </div>
+  `).join('');
+
+  const tbody = document.getElementById('tickets-tbody');
+  const empty = document.getElementById('empty-tickets');
+  if (tickets.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = tickets.map(t => {
+    const traveler = _travelers.find(tr => tr.traveler_id === t.traveler_id);
+    const pClass = t.priority === 'High' ? 'priority-high' : t.priority === 'Medium' ? 'priority-med' : 'priority-low';
+    return `<tr>
+      <td><span style="font-weight:700;color:var(--primary)">#${t.ticket_id}</span></td>
+      <td>${traveler ? traveler.name : 'Unknown'}</td>
+      <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.issue_type}</td>
+      <td><span class="${pClass}">${t.priority}</span></td>
+      <td>${statusBadge(t.status)}</td>
+      <td><button onclick="viewTicket(${t.ticket_id})" class="btn btn-secondary btn-sm">View details</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function viewTicket(id) {
+  const ticket = _tickets.find(t => t.ticket_id === id);
+  const traveler = _travelers.find(t => t.traveler_id === ticket.traveler_id);
+  document.getElementById('ticket-detail-title').textContent = `Ticket #${id} — ${ticket.issue_type}`;
+  const pClass = ticket.priority === 'High' ? 'priority-high' : ticket.priority === 'Medium' ? 'priority-med' : 'priority-low';
+  document.getElementById('ticket-detail-content').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div style="background:var(--bg-soft);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="font-weight:700">Ticket Information</div>
+            ${statusBadge(ticket.status)}
+          </div>
+          <div style="font-weight:700;margin-bottom:8px">Description</div>
+          <p style="font-size:14px;color:var(--text-secondary);line-height:1.7;margin-bottom:16px">${ticket.description}</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:14px">
+            <div><div style="color:var(--text-muted);margin-bottom:4px">Priority</div><span class="${pClass}">${ticket.priority}</span></div>
+            <div><div style="color:var(--text-muted);margin-bottom:4px">Created</div>${new Date(ticket.created).toLocaleDateString()}</div>
+          </div>
+        </div>
+        <div style="margin-top:16px">
+          <label class="form-label">Add Resolution Note</label>
+          <textarea class="form-control" id="resolution-note-${id}" rows="3" placeholder="Enter resolution details..."></textarea>
+          <button onclick="addNote(${id})" class="btn btn-primary btn-sm mt-4" style="background:var(--gradient)">Add Note</button>
+        </div>
+      </div>
+      <div>
+        ${traveler ? `
+        <div style="background:var(--bg-soft);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px;text-align:center">
+          <div style="font-weight:700;margin-bottom:16px">Traveler Information</div>
+          <div style="width:56px;height:56px;border-radius:50%;background:var(--gradient);display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:700;margin:0 auto 12px">${traveler.name[0]}</div>
+          <div style="font-weight:700;font-size:16px">${traveler.name}</div>
+          <div style="font-size:12px;color:var(--primary);margin-bottom:12px">Customer ID: TC00${traveler.traveler_id}</div>
+          <div style="font-size:14px;color:var(--text-muted);margin-bottom:4px">📧 ${traveler.email}</div>
+          <div style="font-size:14px;color:var(--text-muted)">📞 ${traveler.phone || 'N/A'}</div>
+          <button class="btn btn-secondary btn-sm" style="margin-top:12px;width:100%" onclick="location.href='messages.html?travelerId=${traveler.traveler_id}'">Contact Traveler</button>
+        </div>` : ''}
+        <div style="font-weight:700;margin-bottom:12px">Quick Actions</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button onclick="location.href='refunds.html'" class="btn btn-secondary" style="justify-content:flex-start;gap:10px">💰 Initiate Refund</button>
+          <button onclick="resolveTicket(${id});closeModal('ticket-detail-modal')" class="btn btn-success" style="justify-content:flex-start;gap:10px;background:#ecfdf5;color:#059669;border:1px solid #a7f3d0">✅ Resolve Ticket</button>
+        </div>
+      </div>
+    </div>`;
+  openModal('ticket-detail-modal');
+}
+
+function addNote(id) {
+  const note = document.getElementById(`resolution-note-${id}`).value.trim();
+  if (!note) { showToast('Please enter a note', 'error'); return; }
+  showToast('Note added to ticket!');
+  document.getElementById(`resolution-note-${id}`).value = '';
+}
+
+async function resolveTicket(id) {
+  try {
+    await apiPatch(`/support-tickets/${id}/status`, { status: 'Resolved' });
+    showToast(`Ticket #${id} resolved! ✓`);
+    await loadData();
+  } catch (e) { console.error('Failed to resolve ticket:', e); }
+}
+
+async function createTicket(e) {
+  e.preventDefault();
+  if (!validateForm('ticket-form')) return;
+  try {
+    await apiPost('/support-tickets', {
+      travelerId: parseInt(document.getElementById('t-traveler').value),
+      issueType: document.getElementById('t-issue').value,
+      description: document.getElementById('t-desc').value,
+      priority: document.getElementById('t-priority').value,
+      status: document.getElementById('t-status').value,
+      careId: user.care_id
+    });
+    closeModal('create-ticket-modal');
+    document.getElementById('ticket-form').reset();
+    showToast('Ticket created!');
+    await loadData();
+  } catch (e) { console.error('Failed to create ticket:', e); }
+}
+
+function populateTravelers() {
+  const sel = document.getElementById('t-traveler');
+  sel.innerHTML = '<option value="">Select traveler</option>' + _travelers.map(t => `<option value="${t.traveler_id}">${t.name}</option>`).join('');
+}
+
+function toggleStatus() {
+  const el = document.getElementById('agent-status');
+  const txt = document.getElementById('status-text');
+  if (el.classList.contains('online')) {
+    el.classList.remove('online'); txt.textContent = 'Agent Offline'; showToast('You are now offline.');
+  } else {
+    el.classList.add('online'); txt.textContent = 'Agent Online'; showToast('You are now online and ready for tickets! ✓');
+  }
+}
+
+setupLiveValidation('ticket-form');
+loadData();
+showToast('Access granted to support dashboard! ✓');
+injectNotifBell('support');
+</script>
+</body>
+</html>
+
+
+

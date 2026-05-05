@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP — Super User Profile</title>
+<link rel="stylesheet" href="../static/shared.css">
+<link rel="stylesheet" href="../static/notifications.css">
+<style>
+:root{--primary:#6366f1;--primary-dark:#4338ca;--gradient:linear-gradient(135deg,#6366f1 0%,#E8467C 100%);--gradient-soft:linear-gradient(135deg,#f5f3ff 0%,#ffeef5 100%)}
+.profile-wrapper { display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: start; }
+.identity-card { background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); overflow: hidden; border: 1px solid var(--border-light); text-align: center; }
+.identity-cover { height: 120px; background: var(--gradient); }
+.identity-avatar { width: 90px; height: 90px; border-radius: 50%; background: #fff; border: 4px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 800; color: var(--primary); margin: -45px auto 16px; box-shadow: var(--shadow-sm); position: relative; z-index: 2; }
+.identity-info { padding: 0 24px 24px; }
+.identity-name { font-size: 20px; font-weight: 800; color: var(--text-primary); margin-bottom: 2px; }
+.identity-email { font-size: 14px; color: var(--text-muted); }
+.identity-role { font-size: 13px; color: var(--primary); font-weight: 600; background: var(--gradient-soft); padding: 4px 12px; border-radius: 20px; display: inline-block; margin-top: 12px; }
+.settings-section { background: white; border-radius: var(--radius-md); padding: 32px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-light); margin-bottom: 24px; }
+.section-title { font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; gap: 10px; }
+.form-group { margin-bottom: 20px; }
+.form-label { display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.premium-input { width: 100%; padding: 14px 16px; background: #f9fafb; border: 1px solid var(--border); border-radius: 12px; font-size: 15px; color: var(--text-primary); transition: all 0.3s ease; }
+.premium-input:focus { background: #fff; border-color: var(--primary); box-shadow: 0 0 0 4px var(--gradient-soft); outline: none; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);color:#fff;font-size:18px">🌐</div><div><div class="logo-text" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">GlobeSync</div><div class="logo-sub">Super User</div></div></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="super-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="users.html"><span class="nav-icon">👥</span>Users</a>
+      <a class="nav-item" href="api-management.html"><span class="nav-icon">🔌</span>API Management</a>
+      <a class="nav-item" href="rules-config.html"><span class="nav-icon">⚙</span>Rules Config</a>
+      <a class="nav-item" href="reports.html"><span class="nav-icon">📈</span>Reports</a>
+      <a class="nav-item active" data-page="profile" href="profile.html"><span class="nav-icon">👤</span>My Profile</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="padding:10px 12px;font-size:12px;color:var(--text-muted);margin-bottom:4px">Logged in as Super User</div>
+      <button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="page-title">Profile Settings</div><div class="page-subtitle">Manage your identity and security preferences</div></div>
+      <div class="topbar-actions">
+        <div id="notif-bell-slot"></div>
+      </div>
+    </div>
+
+    <div class="profile-wrapper">
+      <!-- LEFT IDENTITY CARD -->
+      <div class="identity-card">
+        <div class="identity-cover"></div>
+        <div class="identity-avatar" id="p-avatar">S</div>
+        <div class="identity-info">
+          <div class="identity-name" id="p-name">Loading...</div>
+          <div class="identity-email" id="p-email">loading@ticp.com</div>
+          <div class="identity-role">🔱 Super User</div>
+        </div>
+      </div>
+
+      <!-- RIGHT SETTINGS CONTENT -->
+      <div>
+        <form id="profile-form" onsubmit="saveProfile(event)">
+          
+          <div class="settings-section">
+            <div class="section-title"><span>👤</span> Personal Information</div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" id="input-name" class="premium-input" data-required="Name is required" required>
+                <div class="form-error" id="input-name-error"></div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" id="input-email" class="premium-input" data-required="Email is required" required>
+                <div class="form-error" id="input-email-error"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="section-title"><span>🔒</span> Security Settings</div>
+            <div class="form-group" style="max-width: 500px;">
+              <label class="form-label">New Password</label>
+              <input type="password" id="input-password" class="premium-input" placeholder="Leave blank to keep current password">
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;">
+            <button type="submit" class="btn btn-primary" style="background:var(--gradient); padding: 12px 24px; font-size: 15px; border-radius: 12px;">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/notifications.js"></script>
+<script src="../JS/api.js"></script>
+<script>
+let user = null;
+
+function loadProfile() {
+  document.getElementById('p-avatar').textContent = (user.name || 'S')[0];
+  document.getElementById('p-name').textContent = user.name || 'Super User';
+  document.getElementById('p-email').textContent = user.email || '';
+  document.getElementById('input-name').value = user.name || '';
+  document.getElementById('input-email').value = user.email || '';
+}
+
+function saveProfile(e) {
+  e.preventDefault();
+  if (!validateForm('profile-form')) return;
+
+  const formName = document.getElementById('input-name').value.trim();
+  const formEmail = document.getElementById('input-email').value.trim();
+  const formPass = document.getElementById('input-password').value.trim();
+
+  user.name = formName;
+  user.email = formEmail;
+  if (formPass) user.password = formPass;
+  Auth.login('superuser', user);
+
+  showToast('Profile updated successfully! ✅');
+  loadProfile();
+  document.getElementById('input-password').value = '';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (!Auth.isLoggedIn() || Auth.getRole() !== 'superuser') {
+      window.location.href = '../super-login.html';
+      return;
+    }
+    user = Auth.getUser();
+
+    loadProfile();
+    setupLiveValidation('profile-form');
+    injectNotifBell('superuser');
+});
+</script>
+</body>
+</html>

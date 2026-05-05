@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP — Advanced Reports</title>
+<link rel="stylesheet" href="../static/shared.css">
+<link rel="stylesheet" href="../static/notifications.css">
+<style>
+:root{--primary:#6366f1;--primary-dark:#4338ca;--gradient:linear-gradient(135deg,#6366f1 0%,#E8467C 100%);--gradient-soft:linear-gradient(135deg,#f5f3ff 0%,#ffeef5 100%)}
+.analytics-grid{display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:24px}
+.bar-chart{display:flex;align-items:flex-end;gap:12px;height:180px;padding:20px;background:var(--gradient-soft);border-radius:var(--radius-md);margin-top:16px}
+.bar-item{flex:1;background:var(--primary);border-radius:4px 4px 0 0;position:relative;transition:all 0.3s}
+.bar-item:hover{opacity:0.8;transform:scaleX(1.05)}
+.bar-label{position:absolute;bottom:-24px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--text-muted);white-space:nowrap}
+.insight-card{background:#fff;border-radius:var(--radius-md);border-left:4px solid var(--primary);padding:16px;margin-bottom:12px;box-shadow:var(--shadow-sm)}
+.insight-title{font-weight:700;font-size:14px;color:var(--text-primary);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.insight-desc{font-size:13px;color:var(--text-secondary);line-height:1.5}
+.help-section{background:linear-gradient(135deg,#6366f10a 0%,#e8467c0a 100%);border-radius:var(--radius-lg);padding:32px;margin-top:32px;border:1px dashed var(--primary)}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);color:#fff;font-size:18px">🌐</div><div><div class="logo-text" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">GlobeSync</div><div class="logo-sub">Super User</div></div></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="super-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="users.html"><span class="nav-icon">👥</span>Users</a>
+      <a class="nav-item" href="api-management.html"><span class="nav-icon">🔌</span>API Management</a>
+      <a class="nav-item" href="rules-config.html"><span class="nav-icon">⚙</span>Rules Config</a>
+      <a class="nav-item active" href="reports.html"><span class="nav-icon">📈</span>Reports</a>
+      <a class="nav-item" data-page="profile" href="profile.html"><span class="nav-icon">🔴</span>My Profile</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="padding:10px 12px;font-size:12px;color:var(--text-muted);margin-bottom:4px">Logged in as Super User</div>
+      <button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="page-title">Advanced Reports</div><div class="page-subtitle">Real-time system analytics and platform performance</div></div>
+      <div class="topbar-actions">
+        <button class="btn btn-secondary" onclick="window.print()">Print Report</button>
+        <button class="btn btn-primary" onclick="showToast('Exporting CSV...')">⬇ Download CSV</button>
+      </div>
+    </div>
+
+    <!-- PERFORMANCE STATS -->
+    <div class="stats-grid stats-grid-4 mb-4">
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Total Revenue</div><div class="stat-value" id="total-revenue">₹0</div></div><div class="stat-icon green">💰</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Conversion Rate</div><div class="stat-value">3.2%</div><div class="stat-change">↑ 0.4% from last month</div></div><div class="stat-icon blue">🎯</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Active Users (MAU)</div><div class="stat-value" id="mau-count">0</div></div><div class="stat-icon pink">👤</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">System Performance</div><div class="stat-value">99.8%</div></div><div class="stat-icon orange">⚡</div></div>
+    </div>
+
+    <div class="analytics-grid">
+      <!-- REVENUE TRENDS -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Booking Trends (Last 6 Months)</span>
+          <select class="form-control" style="width:auto;padding:4px 8px;font-size:12px">
+            <option>All Services</option><option>Flights</option><option>Hotels</option>
+          </select>
+        </div>
+        <div class="card-body">
+          <div class="bar-chart" id="booking-chart"></div>
+          <div style="padding:20px 0 0;display:flex;gap:40px">
+            <div><div style="font-size:13px;color:var(--text-muted)">Top Service</div><div style="font-weight:700;font-size:18px;color:var(--primary)">Flights (42%)</div></div>
+            <div><div style="font-size:13px;color:var(--text-muted)">Avg Order Value</div><div style="font-weight:700;font-size:18px;color:var(--primary)">₹12,450</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SERVICE DISTRIBUTION -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">Service Share</span></div>
+        <div class="card-body" id="service-share">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </div>
+
+    <!-- RELATED ANSWER / FAQ SECTION -->
+    <div class="help-section">
+      <h2 style="font-size:20px;margin-bottom:16px;color:var(--primary)">💡 Related Answer: Data Insights</h2>
+      <div class="grid-2" style="gap:24px">
+        <div>
+          <div class="insight-card">
+            <div class="insight-title">📍 Why is revenue calculated in INR?</div>
+            <div class="insight-desc">The platform base currency is now Indian Rupee (₹) to support localized settlement for travel guides and domestic bookings. Exchange rates for USD/EUR are updated every 6 hours via the Currency API.</div>
+          </div>
+          <div class="insight-card">
+            <div class="insight-title">⚖️ How is 'Conversion Rate' derived?</div>
+            <div class="insight-desc">It is the ratio of completed payments to the number of unique "Create Itinerary" sessions started within a 30-day period. Currently, we are seeing a 15% increase in mobile-initiated bookings.</div>
+          </div>
+        </div>
+        <div>
+          <div class="insight-card" style="border-color:#E8467C">
+            <div class="insight-title">👤 User Growth Insights</div>
+            <div class="insight-desc">Most new users are signing up for domestic trips (Goa, Kerala, Rajasthan). We recommend increasing the travel guide pool in these regions by 10% next quarter.</div>
+          </div>
+          <div class="insight-card" style="border-color:#10b981">
+            <div class="insight-title">🚀 System Reliability</div>
+            <div class="insight-desc">API latency has decreased by 40ms following the implementation of the new caching layer for Flight searches. External error rates are below 0.1%.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/notifications.js"></script>
+<script src="../JS/api.js"></script>
+<script>
+if (!Auth.isLoggedIn() || Auth.getRole() !== 'superuser') window.location.href = '../super-login.html';
+const user = Auth.getUser();
+
+async function loadAnalytics() {
+  try {
+    const [payments, travelers, guides, bookings] = await Promise.all([
+      apiGetSnake('/payments'),
+      apiGetSnake('/travelers'),
+      apiGetSnake('/guides'),
+      apiGetSnake('/bookings')
+    ]);
+
+    const totalRev = payments.reduce((s, p) => s + (p.amount || 0), 0);
+    document.getElementById('total-revenue').textContent = formatCurrency(totalRev);
+    document.getElementById('mau-count').textContent = travelers.length + guides.length + 42;
+
+    // Booking Chart
+    const data = [12, 19, 15, 25, 22, bookings.length];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun'];
+    const max = Math.max(...data);
+    document.getElementById('booking-chart').innerHTML = data.map((v, i) => `
+      <div class="bar-item" style="height:${Math.round(v/max*100)}%" title="${v} bookings">
+        <div class="bar-label">${months[i]}</div>
+      </div>`).join('');
+
+    // Service Distribution
+    const counts = { Flight: 0, Hotel: 0, Transport: 0 };
+    bookings.forEach(b => { if (counts[b.type] !== undefined) counts[b.type]++; });
+    const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
+    document.getElementById('service-share').innerHTML = Object.entries(counts).map(([type, val]) => {
+      const pct = Math.round(val/total*100);
+      const color = type === 'Flight' ? '#6366f1' : type === 'Hotel' ? '#E8467C' : '#10b981';
+      return `
+        <div style="margin-bottom:20px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+            <span style="font-weight:600">${type}</span><span>${pct}%</span>
+          </div>
+          <div style="height:8px;background:var(--border-light);border-radius:4px;overflow:hidden">
+            <div style="height:100%;background:${color};width:${pct}%"></div>
+          </div>
+        </div>`;
+    }).join('');
+  } catch (e) { console.error('Failed to load analytics:', e); }
+}
+
+loadAnalytics();
+injectNotifBell('superuser');
+</script>
+</body>
+</html>
+
+
+

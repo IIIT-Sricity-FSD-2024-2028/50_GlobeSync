@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP — Completed Trips</title>
+<link rel="stylesheet" href="../static/shared.css">
+<style>
+:root { --primary: #F5A623; --primary-dark: #e09520; --gradient: linear-gradient(135deg,#F5A623 0%,#E8467C 100%); --gradient-soft: linear-gradient(135deg,#fff8ee 0%,#ffeef5 100%); }
+.completed-trip-card{background:#fff;border-radius:var(--radius-md);border:1px solid var(--border-light);padding:24px;display:flex;gap:20px;align-items:center;margin-bottom:16px;box-shadow:var(--shadow-sm);transition:transform 0.2s}
+.completed-trip-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.trip-dest-img{width:120px;height:120px;border-radius:12px;background-size:cover;background-position:center;flex-shrink:0}
+.trip-info{flex:1}
+.trip-title{font-size:18px;font-weight:700;margin-bottom:8px;font-family:var(--font-main)}
+.trip-dates{font-size:14px;color:var(--text-muted);display:flex;align-items:center;gap:6px;margin-bottom:12px}
+.traveler-info{display:flex;align-items:center;gap:12px;margin-top:16px;padding-top:16px;border-top:1px dashed var(--border-light)}
+.traveler-avatar{width:32px;height:32px;border-radius:50%;background:var(--gradient);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px}
+.traveler-name{font-size:14px;font-weight:600}
+.action-box{text-align:right}
+.review-stars{color:#fbbf24;font-size:18px;letter-spacing:2px;margin-bottom:8px}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);color:#fff;font-size:18px">🌐</div><div><div class="logo-text" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">GlobeSync</div><div class="logo-sub">Guide Portal</div></div></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="guide-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="travelers.html"><span class="nav-icon">👥</span>Travelers</a>
+      <a class="nav-item" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+      <a class="nav-item" href="requests.html"><span class="nav-icon">📩</span>Trip Requests</a>
+      <a class="nav-item active" href="completed-trips.html"><span class="nav-icon">✅</span>Completed Trips</a>
+      <a class="nav-item" data-page="profile" href="profile.html"><span class="nav-icon">🔴</span>My Profile</a>
+    </nav>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="page-title">Completed Trips</div><div class="page-subtitle">View your past successful guided tours</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">Completed Tour History</span></div>
+      <div class="card-body" id="completed-list">
+        <div class="empty-state">
+          <div class="empty-icon">✅</div>
+          <p>Loading completed trips...</p>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/notifications.js"></script>
+<script src="../JS/api.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!Auth.isLoggedIn() || Auth.getRole() !== 'guide') {
+    window.location.href = '../login.html?role=guide';
+    return;
+  }
+  const user = Auth.getUser();
+  const guideId = getUserId();
+  console.log('[completed-trips] guideId:', guideId);
+
+  const container = document.getElementById('completed-list');
+
+  try {
+    const [myTrips, travelers, reviews] = await Promise.all([
+      apiGetSnake(`/trips/guide/${guideId}`),
+      apiGetSnake('/travelers'),
+      apiGetSnake('/reviews').then(res => Array.isArray(res) ? res : (res.value || []))
+    ]);
+    console.log('[completed-trips] trips:', myTrips.length, 'reviews:', reviews.length);
+
+    const myCompleted = myTrips.filter(t => t.status === 'Completed');
+
+    if (myCompleted.length === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><p>No completed trips yet</p></div>';
+      return;
+    }
+
+    container.innerHTML = myCompleted.map(t => {
+      const traveler = travelers.find(tr => tr.traveler_id === t.traveler_id);
+      const review = reviews.find(r => r.trip_id === t.trip_id && r.guide_id == guideId);
+      const tripImg = getDestImg(t.destination);
+      const stars = review ? ('★'.repeat(review.guide_rating) + '☆'.repeat(5 - review.guide_rating)) : null;
+
+      return `
+        <div class="completed-trip-card">
+          <div class="trip-dest-img" style="background-image:url('${tripImg}')"></div>
+          <div class="trip-info">
+            <div class="trip-title">${t.destination}</div>
+            <div class="trip-dates">📅 ${formatDate(t.start_date)} — ${formatDate(t.end_date)}</div>
+            <span class="badge badge-success">Completed</span>
+            <div class="traveler-info">
+              <div class="traveler-avatar">${traveler ? traveler.name[0] : '?'}</div>
+              <div class="traveler-name">${traveler ? traveler.name : 'Unknown Traveler'}</div>
+            </div>
+          </div>
+          <div class="action-box">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Client Review</div>
+            ${stars
+              ? `<div class="review-stars">${stars}</div><div style="font-size:13px;font-style:italic">"${review.comment}"</div>`
+              : `<div style="font-size:13px;color:var(--text-muted)">Pending review</div>`}
+          </div>
+        </div>`;
+    }).join('');
+
+  } catch (e) {
+    console.error('[completed-trips] Error:', e);
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Failed to load trips. Check console.</p></div>';
+  }
+
+  if (typeof injectNotifBell === 'function') injectNotifBell('guide');
+});
+</script>
+</body>
+</html>
+

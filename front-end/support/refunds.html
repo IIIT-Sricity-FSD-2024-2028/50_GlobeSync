@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP — Refunds</title>
+<link rel="stylesheet" href="../static/shared.css">
+<style>:root{--primary:#10b981;--gradient:linear-gradient(135deg,#10b981 0%,#3b82f6 100%);--gradient-soft:linear-gradient(135deg,#ecfdf5 0%,#eff6ff 100%)}</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);color:#fff;font-size:18px">🌐</div><div><div class="logo-text" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">GlobeSync</div><div class="logo-sub">Support Portal</div></div></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="support-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="tickets.html"><span class="nav-icon">🎫</span>Tickets</a>
+      <a class="nav-item active" href="refunds.html"><span class="nav-icon">💰</span>Refunds</a>
+      <a class="nav-item" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+      <a class="nav-item" data-page="profile" href="profile.html"><span class="nav-icon">🔴</span>My Profile</a>
+    </nav>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button></div>
+  </aside>
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="page-title">Process Refund</div><div class="page-subtitle">Manage and process traveler refunds</div></div>
+    </div>
+    <div class="grid-2" style="align-items:start">
+      <!-- REFUND FORM -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">Refund Information</span></div>
+        <div class="card-body">
+          <form id="refund-form" onsubmit="processRefund(event)">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Traveler ID *</label>
+                <select class="form-control" id="r-traveler" data-required="Select traveler" onchange="loadBookings()">
+                  <option value="">Select traveler</option>
+                </select>
+                <div class="form-error" id="r-traveler-error"></div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Booking ID *</label>
+                <select class="form-control" id="r-booking" data-required="Select booking" onchange="loadBookingPreview()">
+                  <option value="">Select booking</option>
+                </select>
+                <div class="form-error" id="r-booking-error"></div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Refund Type *</label>
+              <select class="form-control" id="r-type" data-required="Select type">
+                <option value="">Select type</option>
+                <option value="Full Refund">Full Refund</option>
+                <option value="Partial Refund">Partial Refund</option>
+              </select>
+              <div class="form-error" id="r-type-error"></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Refund Amount ($) *</label>
+              <input class="form-control" type="number" id="r-amount" placeholder="0.00" data-required="Amount is required" data-min="0.01" step="0.01">
+              <div class="form-error" id="r-amount-error"></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Reason for Refund *</label>
+              <select class="form-control" id="r-reason" data-required="Select reason">
+                <option value="">Select reason</option>
+                <option>Service Issue</option><option>Cancellation</option>
+                <option>Overbooking</option><option>Flight Delay</option><option>Other</option>
+              </select>
+              <div class="form-error" id="r-reason-error"></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Additional Notes</label>
+              <textarea class="form-control" id="r-notes" rows="3" placeholder="Provide any additional details..."></textarea>
+            </div>
+            <div style="display:flex;gap:10px">
+              <button type="submit" class="btn btn-primary" style="flex:1;background:linear-gradient(135deg,#10b981,#059669)">Process Refund</button>
+              <button type="button" class="btn btn-secondary" onclick="saveAsDraft()">Save as Draft</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <!-- BOOKING PREVIEW + REFUND HISTORY -->
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card" id="booking-preview" style="display:none">
+          <div class="card-header"><span class="card-title">Booking Preview</span></div>
+          <div class="card-body" id="booking-preview-content"></div>
+        </div>
+        <div style="background:var(--bg-soft);border-radius:var(--radius-sm);padding:14px;border:1px solid var(--border-light);font-size:13px;color:var(--text-secondary)">
+          ℹ️ Refunds typically take 5-7 business days to process and appear in the customer's account.
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Recent Refunds</span></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Refund ID</th><th>Payment</th><th>Date</th><th>Status</th></tr></thead>
+              <tbody id="refunds-tbody"></tbody>
+            </table>
+          </div>
+          <div id="empty-refunds" class="empty-state" style="display:none"><div class="empty-icon">💰</div><p>No refunds yet</p></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/api.js"></script>
+<script>
+if (!Auth.isLoggedIn() || Auth.getRole() !== 'support') window.location.href = '../login.html?role=support';
+const user = Auth.getUser();
+let _travelers = [], _bookings = [], _payments = [], _refunds = [];
+
+async function loadData() {
+  try {
+    [_travelers, _bookings, _payments, _refunds] = await Promise.all([
+      apiGetSnake('/travelers'),
+      apiGetSnake('/bookings'),
+      apiGetSnake('/payments'),
+      apiGetSnake('/refunds')
+    ]);
+    populateTravelers();
+    renderRefunds();
+  } catch (e) { console.error('Failed to load refunds data:', e); }
+}
+
+function populateTravelers() {
+  const sel = document.getElementById('r-traveler');
+  sel.innerHTML = '<option value="">Select traveler</option>' + _travelers.map(t => `<option value="${t.traveler_id}">${t.name} (TC00${t.traveler_id})</option>`).join('');
+}
+
+function loadBookings() {
+  const tId = parseInt(document.getElementById('r-traveler').value);
+  const sel = document.getElementById('r-booking');
+  if (!tId) { sel.innerHTML = '<option value="">Select booking</option>'; return; }
+  const bookings = _bookings.filter(b => b.traveler_id === tId);
+  sel.innerHTML = '<option value="">Select booking</option>' + bookings.map(b => `<option value="${b.booking_id}">BK00${b.booking_id} — ${b.service} (${formatCurrency(b.amount)})</option>`).join('');
+  document.getElementById('booking-preview').style.display = 'none';
+}
+
+function loadBookingPreview() {
+  const bId = parseInt(document.getElementById('r-booking').value);
+  if (!bId) { document.getElementById('booking-preview').style.display = 'none'; return; }
+  const booking = _bookings.find(b => b.booking_id === bId);
+  if (!booking) return;
+  const traveler = _travelers.find(t => t.traveler_id === booking.traveler_id);
+  document.getElementById('r-amount').value = booking.amount;
+  document.getElementById('booking-preview').style.display = 'block';
+  document.getElementById('booking-preview-content').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:14px">
+      <div class="flex-between"><span style="color:var(--text-muted)">Booking ID</span><span style="font-weight:700">BK00${booking.booking_id}</span></div>
+      <div class="flex-between"><span style="color:var(--text-muted)">Service</span><span style="font-weight:600">${booking.service}</span></div>
+      <div class="flex-between"><span style="color:var(--text-muted)">Traveler</span><span>${traveler ? traveler.name : 'N/A'}</span></div>
+      <div class="flex-between"><span style="color:var(--text-muted)">Original Amount</span><span style="font-weight:700;color:var(--primary)">${formatCurrency(booking.amount)}</span></div>
+      <div class="flex-between"><span style="color:var(--text-muted)">Booking Date</span><span>${formatDate(booking.booking_date)}</span></div>
+      <div class="flex-between"><span style="color:var(--text-muted)">Status</span><span>${statusBadge(booking.status)}</span></div>
+    </div>`;
+}
+
+async function processRefund(e) {
+  e.preventDefault();
+  if (!validateForm('refund-form')) return;
+  const amount = parseFloat(document.getElementById('r-amount').value);
+  const bId = parseInt(document.getElementById('r-booking').value);
+  const payment = _payments.find(p => p.booking_id === bId);
+  try {
+    await apiPost('/refunds', {
+      paymentId: payment ? payment.payment_id : null,
+      refundDate: new Date().toISOString().split('T')[0],
+      refundTime: new Date().toTimeString().split(' ')[0],
+      refundStatus: 'Processing',
+      amount,
+      bookingId: bId
+    });
+    showToast('Refund processed successfully! ✓');
+    document.getElementById('refund-form').reset();
+    document.getElementById('booking-preview').style.display = 'none';
+    await loadData();
+  } catch (e) { console.error('Failed to process refund:', e); }
+}
+
+function saveAsDraft() { showToast('Saved as draft'); }
+
+function renderRefunds() {
+  const tbody = document.getElementById('refunds-tbody');
+  const empty = document.getElementById('empty-refunds');
+  if (_refunds.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = _refunds.map(r => `
+    <tr>
+      <td><span style="font-weight:700;color:var(--primary)">REF00${r.refund_id}</span></td>
+      <td>PMT00${r.payment_id || 'N/A'}</td>
+      <td>${formatDate(r.refund_date)}</td>
+      <td>${statusBadge(r.refund_status)}</td>
+    </tr>`).join('');
+}
+
+setupLiveValidation('refund-form');
+loadData();
+</script>
+</body>
+</html>
+
+
+

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlobeSync — Traveler Login</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--primary:#E8467C;--secondary:#F5A623;--gradient:linear-gradient(135deg,#E8467C 0%,#F5A623 100%);--btn-gradient:linear-gradient(90deg,#ffd359 0%,#f5a623 100%);--text:#1a1a2e;--muted:#6b7280;--border:#f0e6e6;--danger:#ef4444;--input-bg:#FFFCF5;--box-bg:#FCF8EE}
+body{font-family:'Inter', sans-serif;min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
+.left-panel{background:url('static/waterfall-scenery.png') center/cover no-repeat;display:flex;flex-direction:column;justify-content:flex-end;padding:60px;position:relative;overflow:hidden}
+.left-panel::before{content:'';position:absolute;inset:0;background:linear-gradient(to bottom, rgba(232,70,124,0.4) 0%, rgba(245,166,35,0.6) 100%);z-index:0}
+.brand-logo { position: absolute; top: 40px; left: 60px; display: flex; align-items: center; gap: 12px; z-index: 1; text-decoration: none; color: white; }
+.brand-icon { width: 44px; height: 44px; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 24px; }
+.brand-text { font-family: 'Inter', sans-serif; font-size: 26px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.left-panel h1{font-family:'Inter',sans-serif;font-size:44px;font-weight:800;color:#fff;line-height:1.2;margin-bottom:20px;position:relative;z-index:1}
+.left-panel p{color:rgba(255,255,255,0.85);font-size:16px;line-height:1.7;margin-bottom:40px;position:relative;z-index:1}
+.avatars-row{display:flex;align-items:center;gap:12px;position:relative;z-index:1}
+.avatars{display:flex}.avatar{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.3);border:2px solid #fff;margin-left:-8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.avatars-row span{color:rgba(255,255,255,0.9);font-size:14px}
+.right-panel{background:#fff;display:flex;flex-direction:column;justify-content:center;padding:60px 0;overflow-y:auto}
+.top-link{text-align:center;font-size:14px;color:var(--muted);margin-bottom:36px}
+.top-link a{color:var(--secondary);font-weight:600;text-decoration:none}
+.form-container{max-width:380px;margin:0 auto;width:100%}
+.social-btns{display:flex;justify-content:center;gap:16px;margin-bottom:24px}
+.social-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;background:#fff;transition:all 0.2s;color:var(--text)}
+.social-btn:hover{border-color:var(--secondary);background:var(--input-bg)}
+.divider-wrap{display:flex;justify-content:center;margin-bottom:24px}
+.divider{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12px;width:100%}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+h2{font-family:'Inter',sans-serif;font-size:36px;font-weight:800;text-align:center;margin-bottom:8px;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.2}
+.subtitle{color:var(--muted);font-size:16px;margin-bottom:28px;text-align:center;line-height:1.5;max-width:280px;margin-left:auto;margin-right:auto}
+.form-group{margin-bottom:18px}
+.form-label{display:block;font-size:14px;font-weight:500;color:var(--text);margin-bottom:8px}
+.input-wrap{position:relative}
+.input-wrap span{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--secondary)}
+input[type=email],input[type=password]{width:100%;padding:14px 14px 14px 44px;border:1px solid var(--border);border-radius:10px;font-size:14px;outline:none;transition:border-color 0.2s;font-family:'Inter',sans-serif;background:var(--input-bg)}
+input[type=email]:focus,input[type=password]:focus{border-color:var(--secondary);box-shadow:0 0 0 3px rgba(245,166,35,0.1)}
+input.error{border-color:var(--danger);background:#fff8f8}
+.error-msg{font-size:12px;color:var(--danger);margin-top:4px;display:none}
+.error-msg.show{display:block}
+.form-check{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.check-label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer;font-weight:500}
+.check-label input{accent-color:var(--secondary);width:16px;height:16px}
+.forgot{color:var(--secondary);font-size:13px;font-weight:500;text-decoration:none}
+.btn-signin{width:100%;padding:14px;background:var(--btn-gradient);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:'Inter',sans-serif;box-shadow: 0 4px 12px rgba(245,166,35,0.25)}
+.btn-signin:hover{opacity:0.9;transform:translateY(-1px);box-shadow: 0 6px 16px rgba(245,166,35,0.35)}
+.secure-note{text-align:center;font-size:12px;color:var(--muted);margin-top:20px;display:flex;align-items:center;justify-content:center;gap:6px}
+.secure-note::before{content:'•';color:var(--secondary);font-size:24px;line-height:0}
+.back-role{text-align:center;font-size:13px;color:var(--muted);text-decoration:none;display:block;margin-top:8px;font-weight:500;transition:color 0.2s}
+.back-role:hover{color:var(--secondary)}
+.perks-box{max-width:380px;margin:32px auto 0;background:var(--box-bg);border-radius:16px;padding:20px;display:flex;flex-direction:column;align-items:center}
+.perks-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:16px}
+.perks{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%}
+.perk{text-align:center;font-size:11px;color:var(--muted);font-weight:500;display:flex;flex-direction:column;align-items:center;gap:6px}
+.perk .perk-icon{font-size:24px}
+.global-error{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:14px;color:var(--danger);margin-bottom:16px;display:none}
+.global-error.show{display:block}
+</style>
+</head>
+<body>
+<div class="left-panel">
+  <div class="brand-logo">
+    <div class="brand-icon">✈</div>
+    <div class="brand-text">GlobeSync</div>
+  </div>
+  <h1>Travel Around<br>the World with<br>confidence</h1>
+  <p>Join a community of global explorers and expert local guides. Your next adventure starts with a single click.</p>
+  <div class="avatars-row">
+    <div class="avatars"><div class="avatar">👤</div><div class="avatar">👨</div><div class="avatar">👩</div><div class="avatar">👱</div></div>
+    <span>12,500+ travelers</span>
+  </div>
+</div>
+<div class="right-panel">
+  <p class="top-link">Don't have an account? <a href="traveler/signup.html">Sign up</a></p>
+  <div class="form-container">
+    <div class="social-btns">
+      <button type="button" class="social-btn" onclick="alert('Google login not available in demo mode')">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="G" style="width:16px"> Google
+      </button>
+      <button type="button" class="social-btn" onclick="alert('Apple login not available in demo mode')">
+        <svg fill="#000" viewBox="0 0 24 24" width="18" height="18"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.04 2.33-.85 3.65-.72 1.54.12 2.76.82 3.5 1.9-2.9 1.76-2.4 5.48.5 6.64-.66 1.64-1.5 3.32-2.73 4.35zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg> Apple
+      </button>
+    </div>
+    <div class="divider-wrap"><div class="divider">Else continue with</div></div>
+    <h2>Welcome<br>Back Explorer</h2>
+    <p class="subtitle">Enter your credentials to<br>access to account.</p>
+    <div class="global-error" id="global-error">
+      Invalid email or password. Please try again.
+      <div style="margin-top:10px; font-size:12px; border-top:1px solid #fecaca; padding-top:8px;">
+        <a href="javascript:void(0)" onclick="resetSystemData()" style="color:var(--danger); text-decoration:underline; font-weight:700;">Reset System Data & Sync</a> 
+        <span style="color:var(--muted); font-weight:400; display:block; margin-top:4px;">(Click this if the credentials don't work)</span>
+      </div>
+    </div>
+    <form id="login-form" onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <div class="input-wrap"><span>✉️</span><input type="email" id="email" placeholder="Enter your email"></div>
+        <div class="error-msg" id="email-error">Please enter a valid email address</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="input-wrap"><span>🔒</span><input type="password" id="password" placeholder="Enter your password"></div>
+        <div class="error-msg" id="password-error">Password is required</div>
+      </div>
+      <div class="form-check">
+        <label class="check-label"><input type="checkbox" id="remember"> Keep me signed in</label>
+        <a href="#" class="forgot">Forgot password?</a>
+      </div>
+      <button type="submit" class="btn-signin">Sign In &rarr;</button>
+    </form>
+    <div class="secure-note">Secure login with end-to-end encryption</div>
+    <a href="role-select.html" class="back-role">&larr; Back to role selection</a>
+    <div class="perks-box">
+      <div class="perks-title">What you get with GlobeSync:</div>
+      <div class="perks">
+        <div class="perk"><div class="perk-icon">✈️</div>Smart Planning</div>
+        <div class="perk"><div class="perk-icon">💰</div>Best Prices</div>
+        <div class="perk"><div class="perk-icon">🌍</div>850+ Cities</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="JS/mockData.js"></script>
+<script src="JS/helpers.js"></script>
+<script src="JS/api.js"></script>
+<script src="JS/traveler-login.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test Setup</title></head>
+<body>
+<script src="./front-end/JS/mockData.js"></script>
+<script>
+  // Initialize from session or mockData
+  let dbStr = sessionStorage.getItem('gs_database');
+  if (dbStr) {
+    window.DB = JSON.parse(dbStr);
+  }
+
+  // Add a new trip assigned to Guide 1 (Raju)
+  const newTrip = {
+    trip_id: 999,
+    destination: "Santorini, Greece",
+    start_date: "2026-04-10",
+    end_date: "2026-04-15",
+    budget: 120000,
+    traveler_id: 1, // Jyotish Rakoti
+    guide_id: 1, // Assign to Guide 1 (Raju)
+    status: "Pending"
+  };
+  
+  // Remove existing trip 999 if test ran before
+  DB.trips = DB.trips.filter(t => t.trip_id !== 999);
+  DB.trips.push(newTrip);
+  sessionStorage.setItem('gs_database', JSON.stringify(DB));
+
+  // Log in as Guide 1
+  sessionStorage.setItem('gs_auth', JSON.stringify({
+    role: 'guide',
+    user: DB.travelGuides[0]
+  }));
+
+  // Redirect to guide messages
+  window.location.href = './front-end/guide/messages.html';
+</script>
+</body>
+</html>

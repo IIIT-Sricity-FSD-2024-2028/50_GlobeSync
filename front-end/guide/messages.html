@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP — Guide Messages</title>
+<link rel="stylesheet" href="../static/shared.css">
+<style>
+:root { --primary: #F5A623; --primary-dark: #e09520; --gradient: linear-gradient(135deg,#F5A623 0%,#E8467C 100%); --gradient-soft: linear-gradient(135deg,#fff8ee 0%,#ffeef5 100%); }
+.main-content { overflow: hidden !important; height: 100vh; display: flex; flex-direction: column; }
+
+.msg-layout{display:flex;gap:0;flex:1;min-height:0;background:#fff;overflow:hidden}
+.msg-sidebar{width:320px;border-right:1px solid var(--border-light);overflow-y:auto;background:#fff;flex-shrink:0}
+.msg-sidebar-header{padding:16px 20px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between;background:#fafafa}
+.msg-sidebar-header h3{font-family:var(--font-main);font-size:16px;font-weight:700}
+.msg-sidebar-header .unread-count{background:var(--gradient);color:#fff;font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px}
+
+.msg-item{display:flex;gap:12px;padding:14px 20px;cursor:pointer;transition:background 0.15s;border-bottom:1px solid var(--border-light);position:relative}
+.msg-item:hover{background:var(--gradient-soft)}
+.msg-item.active{background:var(--gradient-soft);border-left:3px solid var(--primary)}
+.msg-item.unread::after{content:'';position:absolute;right:16px;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:50%;background:#E8467C}
+.msg-avatar{width:40px;height:40px;border-radius:50%;background:var(--gradient);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;flex-shrink:0}
+.msg-preview{flex:1;min-width:0}
+.msg-sender{font-weight:700;font-size:14px;margin-bottom:2px}
+.msg-snippet{font-size:13px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg-time{font-size:11px;color:var(--text-muted);margin-top:2px}
+
+.msg-detail{display:flex;flex-direction:column;background:#fafafa;flex:1;min-width:0;height:100%;overflow:hidden}
+.msg-detail-header{padding:16px 24px;background:#fff;border-bottom:1px solid var(--border-light);display:flex;align-items:center;gap:16px;flex-shrink:0}
+.msg-detail-header .msg-avatar{width:44px;height:44px;font-size:18px}
+.msg-meta{flex:1}
+.msg-meta h3{font-family:var(--font-main);font-size:16px;font-weight:700}
+.msg-meta p{font-size:13px;color:var(--text-muted)}
+
+.msg-body{flex:1;padding:24px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+.msg-bubble{max-width:75%;padding:14px 18px;border-radius:14px;font-size:14px;line-height:1.6;position:relative}
+.msg-bubble.incoming{background:#fff;border:1px solid var(--border-light);border-bottom-left-radius:4px;align-self:flex-start}
+.msg-bubble.outgoing{background:var(--gradient);color:#fff;border-bottom-right-radius:4px;align-self:flex-end}
+.msg-bubble .bubble-time{font-size:11px;margin-top:6px;opacity:0.7}
+.msg-bubble.incoming .bubble-time{color:var(--text-muted)}
+
+.trip-request-card{background:#fff;border:1.5px solid #fde68a;border-radius:12px;padding:16px;margin:4px 0}
+.trip-request-card .req-badge{display:inline-flex;align-items:center;gap:4px;background:#fffbeb;color:#d97706;font-size:12px;font-weight:700;padding:3px 10px;border-radius:6px;margin-bottom:10px}
+.trip-request-card .req-title{font-weight:700;font-size:15px;margin-bottom:8px}
+.trip-request-card .req-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:var(--text-secondary)}
+.trip-request-card .req-row strong{color:var(--text-primary)}
+.trip-request-card .req-actions{display:flex;gap:8px;margin-top:12px}
+.btn-accept{padding:8px 16px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s}
+.btn-accept:hover{opacity:0.9;transform:translateY(-1px)}
+.btn-decline{padding:8px 16px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s}
+.btn-decline:hover{background:#fee2e2}
+
+.msg-input-bar{padding:16px 24px;background:#fff;border-top:1px solid var(--border-light);display:flex;gap:10px}
+.msg-input-bar input{flex:1;padding:12px 16px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;outline:none;font-family:var(--font-body)}
+.msg-input-bar input:focus{border-color:var(--primary)}
+.msg-input-bar button{padding:12px 20px;background:var(--gradient);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer}
+
+.empty-chat{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:var(--text-muted)}
+.empty-chat .empty-icon{font-size:48px}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);color:#fff;font-size:18px">🌐</div><div><div class="logo-text" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">GlobeSync</div><div class="logo-sub">Guide Portal</div></div></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="guide-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="requests.html"><span class="nav-icon">📩</span>Trip Requests</a>
+      <a class="nav-item" href="travelers.html"><span class="nav-icon">👥</span>Travelers</a>
+      <a class="nav-item active" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+      <a class="nav-item" href="completed-trips.html"><span class="nav-icon">✅</span>Completed Trips</a>
+      <a class="nav-item" data-page="profile" href="profile.html"><span class="nav-icon">🔴</span>My Profile</a>
+    </nav>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content" style="padding:0;overflow:hidden">
+    <div class="msg-layout">
+      <!-- LEFT: CONVERSATION LIST -->
+      <div class="msg-sidebar">
+        <div class="msg-sidebar-header">
+          <h3>💬 Messages</h3>
+          <span class="unread-count" id="unread-badge">0</span>
+        </div>
+        <div id="msg-list"></div>
+      </div>
+
+      <!-- RIGHT: CHAT DETAIL -->
+      <div class="msg-detail" id="msg-detail">
+        <div class="empty-chat" id="empty-chat">
+          <div class="empty-icon">💬</div>
+          <h3 style="font-size:18px;color:var(--text-secondary)">Select a conversation</h3>
+          <p style="font-size:14px">Choose a traveler from the left to view their message</p>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/notifications.js"></script>
+<script src="../JS/api.js"></script>
+<script src="../JS/guide-messages.js"></script>
+</body>
+</html>
+
+
+

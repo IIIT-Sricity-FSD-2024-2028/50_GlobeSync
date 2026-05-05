@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TICP — Trip Requests</title>
+  <link rel="stylesheet" href="../static/shared.css">
+  <link rel="stylesheet" href="../static/notifications.css">
+  <style>
+    .request-card {
+      background: #fff;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-light);
+      padding: 24px;
+      margin-bottom: 20px;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02)
+    }
+
+    .request-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+      border-color: var(--primary)
+    }
+
+    .req-traveler-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 24px;
+      font-weight: 700;
+      flex-shrink: 0
+    }
+
+    .req-info {
+      flex: 1
+    }
+
+    .req-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px
+    }
+
+    .req-destination {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .req-traveler-name {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 2px
+    }
+
+    .req-details-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px
+    }
+
+    .req-detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px
+    }
+
+    .req-detail-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600
+    }
+
+    .req-detail-val {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary)
+    }
+
+    .req-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 140px
+    }
+  </style>
+</head>
+
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon"
+          style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);color:#fff;font-size:18px">🌐</div>
+        <div>
+          <div class="logo-text"
+            style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+            GlobeSync</div>
+          <div class="logo-sub">Guide Portal</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item" href="guide-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+        <a class="nav-item active" href="requests.html"><span class="nav-icon">📩</span>Trip Requests</a>
+        <a class="nav-item" href="travelers.html"><span class="nav-icon">👥</span>Travelers</a>
+        <a class="nav-item" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+        <a class="nav-item" href="completed-trips.html"><span class="nav-icon">✅</span>Completed Trips</a>
+        <a class="nav-item" data-page="profile" href="profile.html"><span class="nav-icon">🔴</span>My Profile</a>
+      </nav>
+      <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button></div>
+    </aside>
+
+    <main class="main-content">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Trip Requests</div>
+          <div class="page-subtitle">Manage incoming requests from eager travelers</div>
+        </div>
+        <div class="topbar-actions">
+          <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="req-search"
+              placeholder="Search destination or traveler..." oninput="renderRequests()"></div>
+          <select id="sort-filter" class="form-control" style="width:auto" onchange="renderRequests()">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="budget-high">Highest Budget</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="stats-grid" style="margin-bottom:32px">
+        <div class="stat-card">
+          <div class="stat-header">
+            <div class="stat-icon" style="background:#fff7ed;color:#ea580c">⏳</div>
+            <div class="stat-label">Pending Requests</div>
+          </div>
+          <div class="stat-value" id="count-pending">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header">
+            <div class="stat-icon" style="background:#ecfdf5;color:#059669">✅</div>
+            <div class="stat-label">Accepted</div>
+          </div>
+          <div class="stat-value" id="count-accepted">0</div>
+        </div>
+      </div>
+
+      <div id="requests-list">
+        <!-- Requests will be rendered here -->
+      </div>
+    </main>
+  </div>
+
+  <div class="toast-container"></div>
+  <script src="../JS/mockData.js"></script>
+  <script src="../JS/helpers.js"></script>
+  <script src="../JS/notifications.js"></script>
+  <script src="../JS/api.js"></script>
+  <script src="../JS/guide-requests.js"></script>
+  <script>injectNotifBell('guide');</script>
+</body>
+
+</html>

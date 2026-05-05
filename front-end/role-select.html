@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlobeSync — Select Role</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --primary:#E8467C;
+  --secondary:#F5A623;
+  --gradient:linear-gradient(135deg,#E8467C 0%,#F5A623 100%);
+  --grad-guide:linear-gradient(135deg,#f28c5e 0%,#f5a623 100%);
+  --grad-support:linear-gradient(135deg,#f5a623 0%,#ffd359 100%);
+  --grad-super:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);
+  --text:#1a1a2e;
+  --muted:#6b7280;
+  --border:#f0e6e6;
+  --bg:#FDFBEA;
+}
+body{font-family:'Inter', sans-serif;background:var(--bg);min-height:100vh;display:flex;flex-direction:column}
+nav{display:flex;align-items:center;justify-content:space-between;padding:16px 40px;background:#fff;border-bottom:1px solid var(--border)}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-icon{width:36px;height:36px;background:var(--gradient);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px}
+.logo-name{font-family:'Inter',sans-serif;font-weight:700;font-size:22px;color:#E8467C}
+.back-btn{padding:8px 18px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;color:var(--secondary);transition:all 0.2s}
+.back-btn:hover{border-color:var(--secondary);background:#fffcf5}
+
+main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:64px 24px}
+h1{font-family:'Inter',sans-serif;font-size:38px;font-weight:800;text-align:center;margin-bottom:12px;display:inline-block;background:var(--gradient);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1.2}
+.subtitle{color:var(--muted);font-size:16px;text-align:center;margin-bottom:56px;font-weight:500}
+
+.roles-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:860px;width:100%}
+
+.role-card{background:#fff;border-radius:20px;padding:40px 32px;box-shadow:0 8px 32px rgba(0,0,0,0.04);transition:all 0.3s;display:flex;flex-direction:column;align-items:center;text-align:center;text-decoration:none;cursor:pointer;border:1px solid rgba(0,0,0,0.02)}
+.role-card:hover{transform:translateY(-4px);box-shadow:0 12px 48px rgba(0,0,0,0.08)}
+
+.role-icon-wrap{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:20px;font-size:28px;}
+.traveler .role-icon-wrap{background:#fff0f5;color:#E8467C}
+.guide .role-icon-wrap{background:#fff5ef;color:#f28c5e}
+.support .role-icon-wrap{background:#fffaf0;color:#f5a623}
+.admin .role-icon-wrap{background:#fdf2f8;color:#d946ef}
+.super .role-icon-wrap{background:#f0f0ff;color:#6366f1;box-shadow:0 4px 16px rgba(99,102,241,0.2)}
+
+.role-title{font-family:'Inter',sans-serif;font-size:22px;font-weight:600;margin-bottom:10px;color:var(--text)}
+.role-desc{color:var(--muted);font-size:13px;margin-bottom:20px;line-height:1.6}
+
+.role-features{list-style:none;margin-bottom:32px;flex:1;text-align:center;width:100%}
+.role-features li{font-size:12px;color:var(--muted);padding:5px 0;display:flex;align-items:center;justify-content:center;gap:6px}
+.role-features li::before{content:'•';color:var(--text);font-size:18px;line-height:0;}
+
+.btn-role{display:block;text-align:center;padding:12px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;cursor:pointer;border:none;width:100%;transition:all 0.2s;font-family:'Inter',sans-serif}
+.btn-traveler{background:var(--gradient);color:#fff;box-shadow:0 4px 12px rgba(232,70,124,0.2)}
+.btn-guide{background:#f28c5e;color:#fff;box-shadow:0 4px 12px rgba(242,140,94,0.2)}
+.btn-support{background:var(--grad-support);color:#fff;box-shadow:0 4px 12px rgba(245,166,35,0.2);color:#854d0e}
+.btn-admin{background:transparent;color:#d946ef;border:1px solid #fbcfe8;max-width:200px;margin: 0 auto}
+.btn-admin:hover{background:#fdf2f8}
+.btn-super{background:var(--grad-super);color:#fff;box-shadow:0 4px 14px rgba(99,102,241,0.3);max-width:200px;margin:0 auto}
+.btn-super:hover{opacity:0.9;transform:translateY(-1px)}
+.super-tier{display:inline-flex;align-items:center;gap:5px;background:#f0f0ff;border:1px solid rgba(99,102,241,0.25);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;color:#6366f1;margin-bottom:8px;letter-spacing:0.5px}
+
+.signup-link{margin-top:48px;font-size:14px;color:var(--muted)}
+.signup-link a{color:var(--secondary);font-weight:600;text-decoration:none}
+.roles-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:860px;width:100%}
+</style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="logo"><div class="logo-icon">✈</div><span class="logo-name">GlobeSync</span></a>
+  <a href="index.html" class="back-btn">Back to Home</a>
+</nav>
+
+<main>
+  <h1>Welcome to GlobeSync</h1>
+  <p class="subtitle">Select your role to access your personalized dashboard</p>
+  
+  <div class="roles-grid">
+    <a href="traveler-login.html" class="role-card traveler">
+      <div class="role-icon-wrap">🧭</div>
+      <div class="role-title">Traveler</div>
+      <div class="role-desc">Explore destinations and manage your trips</div>
+      <ul class="role-features">
+        <li>Create custom itineraries</li>
+        <li>Book transport & accommodation</li>
+        <li>Connect with local guides</li>
+        <li>Track expenses & bookings</li>
+      </ul>
+      <button type="button" class="btn-role btn-traveler">Login as Traveler</button>
+    </a>
+    
+    <a href="login.html?role=guide" class="role-card guide">
+      <div class="role-icon-wrap">🗺️</div>
+      <div class="role-title">Guide</div>
+      <div class="role-desc">Manage itineraries and assist travelers</div>
+      <ul class="role-features">
+        <li>Manage assigned travelers</li>
+        <li>Real-time booking updates</li>
+        <li>Track trip progress</li>
+        <li>Automated payouts</li>
+      </ul>
+      <button type="button" class="btn-role btn-guide">Login as Guide</button>
+    </a>
+    
+    <a href="login.html?role=support" class="role-card support">
+      <div class="role-icon-wrap">🎧</div>
+      <div class="role-title">Support Staff</div>
+      <div class="role-desc">Assist customers and resolve issues</div>
+      <ul class="role-features">
+        <li>Manage support tickets</li>
+        <li>Process refund requests</li>
+        <li>Customer communication</li>
+        <li>Priority escalations</li>
+      </ul>
+      <button type="button" class="btn-role btn-support">Login as Support</button>
+    </a>
+    
+    <div class="role-card admin" onclick="location.href='login.html'">
+      <div class="role-icon-wrap">🛡️</div>
+      <div class="role-title">Administrator Access</div>
+      <div class="role-desc">Manage platform configuration and users</div>
+      <ul class="role-features" style="opacity:0;height:0px;margin:0;padding:0"></ul>
+      <div style="flex:1"></div>
+      <button type="button" class="btn-role btn-admin">Admin Login →</button>
+    </div>
+
+    <!-- Super User — separate portal -->
+    <a href="super-login.html" class="role-card super" style="border:1.5px solid rgba(99,102,241,0.15);background:linear-gradient(145deg,#faf9ff,#f5f3ff)">
+      <div class="role-icon-wrap">🔱</div>
+      <div class="super-tier">🛡️ Tier-1 · Restricted</div>
+      <div class="role-title" style="color:#6366f1">Super User</div>
+      <div class="role-desc">Full platform control — highest privilege level</div>
+      <ul class="role-features">
+        <li>Manage all users &amp; roles</li>
+        <li>API &amp; system configuration</li>
+        <li>Platform rules &amp; policies</li>
+        <li>Audit logs &amp; reports</li>
+      </ul>
+      <button type="button" class="btn-role btn-super">🔱 Super User Portal →</button>
+    </a>
+  </div>
+  
+  <p class="signup-link">Don't have an account? <a href="traveler/signup.html">Sign up now</a></p>
+</main>
+</body>
+</html>
+
