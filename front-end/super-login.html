@@ -330,15 +330,17 @@ input::placeholder{color:#b5b5b5;letter-spacing:normal;font-weight:400;text-tran
   </div>
 </div>
 
-<script src="JS/mockData.js"></script>
+<script src="JS/api.js"></script>
 <script>
 const SUPER_ACCESS_CODE = 'SUPER-TICP';
 
-function handleSuperLogin(e) {
+async function handleSuperLogin(e) {
   e.preventDefault();
   const accessCode = document.getElementById('access-code');
   const email      = document.getElementById('email');
   const password   = document.getElementById('password');
+  const globalError = document.getElementById('global-error');
+  const submitBtn = document.getElementById('submit-btn');
   let valid = true;
 
   // Clear errors
@@ -347,7 +349,7 @@ function handleSuperLogin(e) {
     const el = document.getElementById(id);
     if (el) el.classList.remove('show');
   });
-  document.getElementById('global-error').classList.remove('show');
+  globalError.classList.remove('show');
 
   // Validate access code
   if ((accessCode.value || '').trim().toUpperCase() !== SUPER_ACCESS_CODE) {
@@ -371,26 +373,36 @@ function handleSuperLogin(e) {
   }
   if (!valid) return;
 
-  // Match credentials against DB (case-insensitive email)
-  const emailVal = email.value.trim().toLowerCase();
-  let matchedUser = null;
-  if (typeof DB !== 'undefined' && DB.administrators) {
-    matchedUser = DB.administrators.find(a =>
-      a.role === 'superuser' &&
-      a.email.toLowerCase() === emailVal &&
-      a.password === password.value
-    );
-  }
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Authenticating...';
 
-  if (!matchedUser) {
-    document.getElementById('global-error').classList.add('show');
-    return;
-  }
+  try {
+    const result = await apiPost('/auth/staff-login', {
+      email: email.value.trim(),
+      password: password.value,
+    });
 
-  // Store session & redirect
-  localStorage.setItem('role', 'superuser');
-  localStorage.setItem('user', JSON.stringify(matchedUser));
-  window.location.href = 'super/super-dashboard.html';
+    if (result.role !== 'superuser') {
+      globalError.innerHTML = '❌ This portal is for super users only.';
+      globalError.classList.add('show');
+      return;
+    }
+
+    const { role, user } = result;
+    localStorage.setItem('role', role);
+    localStorage.setItem('user', JSON.stringify(user));
+    window.location.href = 'super/super-dashboard.html';
+  } catch (err) {
+    const message =
+      err && err.status === 401
+        ? '❌ Invalid email or password.'
+        : '❌ Unable to sign in. Please check that the backend is running.';
+    globalError.innerHTML = message;
+    globalError.classList.add('show');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = 'Access Super Portal &rarr;';
+  }
 }
 
 function resetSystemData() {

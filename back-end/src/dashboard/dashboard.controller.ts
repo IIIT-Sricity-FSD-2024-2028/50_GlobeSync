@@ -32,7 +32,7 @@ export class DashboardController {
   }
 
   @Get('traveler/:travelerId')
-  @Roles(Role.SUPERUSER, Role.TRAVELER)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Traveler dashboard', description: 'Personal metrics: my trips, bookings, expenses, tickets, upcoming trips.' })
   @ApiParam({ name: 'travelerId', type: Number })
@@ -43,7 +43,7 @@ export class DashboardController {
   }
 
   @Get('guide/:guideId')
-  @Roles(Role.SUPERUSER, Role.GUIDE)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.GUIDE)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Guide dashboard', description: 'Assignment metrics: assigned trips, completed, pending, messages.' })
   @ApiParam({ name: 'guideId', type: Number })

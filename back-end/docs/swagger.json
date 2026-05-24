@@ -1129,7 +1129,7 @@
     },
     "/trips/{id}/status": {
       "patch": {
-        "description": "Updates only the status of a trip. Guides can update status of assigned trips.",
+        "description": "Updates only the status of a trip. Guides can update status of assigned trips. Travelers can update status after payment.",
         "operationId": "TripsController_updateStatus",
         "parameters": [
           {

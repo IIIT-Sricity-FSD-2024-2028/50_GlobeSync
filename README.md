@@ -1,8 +1,8 @@
 # GlobeSync – Travel Itinerary Planning and Coordination Platform
 
-GlobeSync is a travel itinerary planning and coordination platform developed for Review–4 evaluation. The system supports multiple user roles such as Traveler, Guide, Customer Support, Admin, and Superuser.
+GlobeSync is a Travel and Hospitality domain project developed for Review–4. It is a role-based travel itinerary planning and coordination platform that helps travelers, guides, support staff, admins, and superusers manage travel-related workflows.
 
-The project includes a frontend interface and a NestJS backend. The backend uses in-memory data structures, REST APIs, role-based access control, DTO validation, proper error handling, and Swagger API documentation.
+The system includes a frontend interface and a NestJS backend. The backend follows modular architecture and supports REST APIs, in-memory data management, DTO validation, role-based access control, error handling, and Swagger API documentation.
 
 ---
 
@@ -34,7 +34,7 @@ root/
 - NestJS
 - TypeScript
 - In-memory arrays and objects
-- DTO validation using `class-validator`
+- DTO validation using class-validator
 - Swagger API documentation
 - Role-Based Access Control using Guards
 
@@ -295,7 +295,7 @@ If the role is missing or unauthorized, the backend returns:
 
 DTOs are used to validate request bodies before data reaches the service layer.
 
-Validation is implemented using `class-validator` decorators such as:
+Validation is implemented using class-validator decorators such as:
 
 ```text
 @IsString()
