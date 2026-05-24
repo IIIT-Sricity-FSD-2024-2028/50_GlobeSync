@@ -23,4 +23,5 @@ Structure
 - CustomerCare → Ticket Handling → Refunds
 - Admin → User Management → Reports → Rules Config
 
-FIGMA DESIGNS WORKFLOW LINK : https://www.figma.com/design/hNFYWgBiLcevaRpmm6QEtA/GlobeSync?node-id=0-1&t=dizlnwe8LehOzn7J-1
+[FIGMA DESIGNS WORKFLOW LINK](https://www.figma.com/proto/hNFYWgBiLcevaRpmm6QEtA/GlobeSync?node-id=0-1&p=f&t=URKvPplopZidWQ8M-0&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=309%3A30)
+
