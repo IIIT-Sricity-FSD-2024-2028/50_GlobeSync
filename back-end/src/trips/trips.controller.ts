@@ -69,9 +69,9 @@ export class TripsController {
   }
 
   @Patch(':id/status')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.GUIDE)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.GUIDE, Role.TRAVELER)
   @ApiUserHeaders()
-  @ApiOperation({ summary: 'Update trip status', description: 'Updates only the status of a trip. Guides can update status of assigned trips.' })
+  @ApiOperation({ summary: 'Update trip status', description: 'Updates only the status of a trip. Guides can update status of assigned trips. Travelers can update status after payment.' })
   @ApiParam({ name: 'id', type: Number })
   @ApiResponse({ status: 200, description: 'Trip status updated' })
   @ApiResponse({ status: 404, description: 'Trip not found' })
