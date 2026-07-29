@@ -1,6 +1,6 @@
 # GlobeSync – Travel Itinerary Planning and Coordination Platform
 
-GlobeSync is a Travel and Hospitality domain project developed for Review–4. It is a role-based travel itinerary planning and coordination platform that helps travelers, guides, support staff, admins, and superusers manage travel-related workflows.
+GlobeSync is a Travel and Hospitality domain project. It is a role-based travel itinerary planning and coordination platform that helps travelers, guides, support staff, admins, and superusers manage travel-related workflows.
 
 The system includes a frontend interface and a NestJS backend. The backend follows modular architecture and supports REST APIs, in-memory data management, DTO validation, role-based access control, error handling, and Swagger API documentation.
 
