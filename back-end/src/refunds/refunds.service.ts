@@ -12,6 +12,10 @@ export class RefundsService {
     return r;
   }
 
+  findByAgency(agencyId: number): Refund[] {
+    return refunds.filter((r) => r.agencyId === agencyId);
+  }
+
   create(dto: CreateRefundDto): Refund {
     const maxId = refunds.length > 0 ? Math.max(...refunds.map((r) => r.refundId)) : 0;
     const item: Refund = {
@@ -20,6 +24,7 @@ export class RefundsService {
       refundDate: dto.refundDate,
       refundTime: dto.refundTime || new Date().toTimeString().slice(0, 8),
       refundStatus: (dto.refundStatus as Refund['refundStatus']) || 'Processing',
+      ...(dto.agencyId !== undefined && { agencyId: dto.agencyId }),
     };
     refunds.push(item);
     return item;

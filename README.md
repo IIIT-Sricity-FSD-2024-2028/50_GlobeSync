@@ -50,6 +50,7 @@ guide
 support
 admin
 superuser
+agency
 ```
 
 Each role has different access permissions.
@@ -110,6 +111,17 @@ Each role has different access permissions.
 - Manage bookings
 - View system-level reports
 
+### Agency
+
+- Agency login
+- Register as a reseller and await admin approval
+- Browse available travel packages
+- Add and manage passengers (offline clients — no platform accounts required)
+- Book trips on behalf of passengers at retail price
+- View own agency bookings
+- View own commission ledger (commission earned per completed booking)
+- Raise support tickets on behalf of passengers
+
 ---
 
 ## Backend Architecture
@@ -143,6 +155,9 @@ support-tickets
 messages
 dashboard
 health
+agencies
+agency-bookings
+passengers
 ```
 
 ---
@@ -550,6 +565,34 @@ GET /dashboard/superuser
 GET /dashboard/traveler/:travelerId
 GET /dashboard/guide/:guideId
 GET /dashboard/support
+GET /dashboard/agency/:agencyId
+```
+
+---
+
+### Agency APIs
+
+```http
+POST /auth/agency-login
+POST /agencies/register
+GET  /agencies
+GET  /agencies/:id
+PATCH /agencies/:id/status
+PATCH /agencies/:id
+```
+
+---
+
+### Passenger APIs
+
+```http
+GET  /passengers
+GET  /passengers/:id
+GET  /passengers/traveler/:travelerId
+GET  /passengers/agency/:agencyId
+POST /passengers
+PATCH /passengers/:id
+DELETE /passengers/:id
 ```
 
 ---
@@ -586,6 +629,13 @@ x-user-role: admin
 
 ```text
 x-user-role: superuser
+```
+
+### Agency
+
+```text
+x-user-role: agency
+x-user-id: 1
 ```
 
 ---

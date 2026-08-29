@@ -28,6 +28,16 @@ export class RefundsController {
   @ApiResponse({ status: 404, description: 'Refund not found' })
   findOne(@Param('id', ParseIntPipe) id: number) { return this.refundsService.findOne(id); }
 
+  @Get('agency/:agencyId')
+  @Roles(Role.AGENCY, Role.ADMIN, Role.SUPERUSER)
+  @ApiUserHeaders()
+  @ApiOperation({ summary: 'Get refunds by agency ID' })
+  @ApiParam({ name: 'agencyId', type: Number })
+  @ApiResponse({ status: 200, description: 'Refunds for agency' })
+  findByAgency(@Param('agencyId', ParseIntPipe) agencyId: number) {
+    return this.refundsService.findByAgency(agencyId);
+  }
+
   @Post()
   @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.SUPPORT)
   @ApiUserHeaders()

@@ -29,9 +29,10 @@
 <div class="layout">
   <aside class="sidebar">
     <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);color:#fff;font-size:18px">🌐</div><div><div class="logo-text" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">GlobeSync</div><div class="logo-sub">Super User</div></div></div>
-    <nav class="sidebar-nav">
+        <nav class="sidebar-nav">
       <a class="nav-item active" href="super-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
       <a class="nav-item" href="users.html"><span class="nav-icon">👥</span>Users</a>
+      <a class="nav-item" href="agencies.html"><span class="nav-icon">🏢</span>Agencies</a>
       <a class="nav-item" href="api-management.html"><span class="nav-icon">🔌</span>API Management</a>
       <a class="nav-item" href="rules-config.html"><span class="nav-icon">⚙</span>Rules Config</a>
       <a class="nav-item" href="reports.html"><span class="nav-icon">📈</span>Reports</a>
@@ -59,6 +60,20 @@
       <div class="stat-card"><div class="stat-info"><div class="stat-label">Pending Bookings</div><div class="stat-value" id="stat-bookings">0</div></div><div class="stat-icon orange">🎫</div></div>
       <div class="stat-card"><div class="stat-info"><div class="stat-label">System Health</div><div class="stat-value">98%</div><div class="stat-change">↑ All systems normal</div></div><div class="stat-icon green">🖥</div></div>
       <div class="stat-card"><div class="stat-info"><div class="stat-label">Total Revenue</div><div class="stat-value" id="stat-revenue">₹0</div></div><div class="stat-icon blue">💰</div></div>
+    </div>
+
+    <!-- AGENCY & REVENUE SUMMARY -->
+    <div class="card mb-4" style="background:var(--gradient-soft);border:1px solid var(--border-light)">
+      <div class="card-header"><span class="card-title" style="color:var(--primary-dark)">🏢 Agency & Revenue Summary</span><a href="agencies.html" class="btn btn-secondary btn-sm">Manage Agencies</a></div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px">
+          <div><div style="font-size:12px;color:var(--text-muted);font-weight:600">Total Agencies</div><div id="am-total" style="font-size:22px;font-weight:700;color:var(--primary-dark)">0</div></div>
+          <div><div style="font-size:12px;color:var(--text-muted);font-weight:600">Pending Apps</div><div id="am-pending" style="font-size:22px;font-weight:700;color:#d97706">0</div></div>
+          <div><div style="font-size:12px;color:var(--text-muted);font-weight:600">Pending Comm.</div><div id="am-comm-pen" style="font-size:22px;font-weight:700;color:#d97706">₹0</div></div>
+          <div><div style="font-size:12px;color:var(--text-muted);font-weight:600">Settled Comm.</div><div id="am-comm-set" style="font-size:22px;font-weight:700;color:#059669">₹0</div></div>
+          <div><div style="font-size:12px;color:var(--text-muted);font-weight:600">Agency Channel Rev.</div><div id="am-rev" style="font-size:22px;font-weight:700;color:var(--primary)">₹0</div></div>
+        </div>
+      </div>
     </div>
 
     <!-- QUICK ACTIONS -->
@@ -147,6 +162,15 @@ async function loadStats() {
     const totalRevenue = payments.reduce((s, p) => s + (p.amount || 0), 0);
     document.getElementById('stat-revenue').textContent = formatCurrency(totalRevenue);
 
+    // Agency metrics
+    if (dash.agency_metrics) {
+      document.getElementById('am-total').textContent = dash.agency_metrics.total_agencies || 0;
+      document.getElementById('am-pending').textContent = dash.agency_metrics.pending_agencies || 0;
+      document.getElementById('am-comm-pen').textContent = formatCurrency(dash.agency_metrics.total_commission_pending || 0);
+      document.getElementById('am-comm-set').textContent = formatCurrency(dash.agency_metrics.total_commission_settled || 0);
+      document.getElementById('am-rev').textContent = formatCurrency(dash.agency_metrics.agency_channel_revenue || 0);
+    }
+
     // Recent users from travelers
     document.getElementById('recent-users').innerHTML = travelers.slice(0, 3).map(u => `
       <div class="user-row-admin">
@@ -176,14 +200,30 @@ function loadSystemStatus() {
     </div>`).join('');
 }
 
-function loadAlerts() {
-  document.getElementById('system-alerts').innerHTML = `
+async function loadAlerts() {
+  let pending = 0;
+  try {
+    const dash = await apiGetSnake('/dashboard/superuser');
+    if (dash.agency_metrics && dash.agency_metrics.pending_agencies) {
+      pending = dash.agency_metrics.pending_agencies;
+    }
+  } catch (e) {}
+
+  let agencyAlert = '';
+  if (pending > 0) {
+    agencyAlert = `<div class="alert-item warning">⚠ <div><div style="font-weight:700;font-size:14px">Pending Agency Verifications</div><div style="font-size:12px;color:#92400e">${pending} agencies require approval</div></div></div>`;
+  }
+
+  document.getElementById('system-alerts').innerHTML = agencyAlert + `
     <div class="alert-item warning">⚠ <div><div style="font-weight:700;font-size:14px">Email service experiencing delays</div><div style="font-size:12px;color:#92400e">2 hours ago</div></div></div>
     <div class="alert-item success">✅ <div><div style="font-weight:700;font-size:14px">Database backup completed successfully</div><div style="font-size:12px;color:#065f46">5 hours ago</div></div></div>`;
 }
 
 loadStats(); loadChart(); loadSystemStatus(); loadAlerts();
-showToast('Welcome back, Administrator! ✓');
+if (!sessionStorage.getItem('welcomeShownSuper')) {
+  showToast('Welcome back, Administrator! ✓');
+  sessionStorage.setItem('welcomeShownSuper', 'true');
+}
 injectNotifBell('superuser');
 </script>
 </body>

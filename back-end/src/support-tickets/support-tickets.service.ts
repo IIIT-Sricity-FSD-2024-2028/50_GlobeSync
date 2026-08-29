@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { supportTickets, SupportTicket } from '../data';
 import { CreateTicketDto } from './dto';
 
@@ -16,7 +16,15 @@ export class SupportTicketsService {
     return supportTickets.filter((t) => t.travelerId === travelerId);
   }
 
+  findByAgency(agencyId: number): SupportTicket[] {
+    return supportTickets.filter((t) => t.agencyId === agencyId);
+  }
+
   create(dto: CreateTicketDto): SupportTicket {
+    if (!!dto.travelerId === !!dto.agencyId) {
+      throw new BadRequestException('Exactly one of travelerId or agencyId must be provided.');
+    }
+
     const maxTicketId = supportTickets.length > 0
       ? Math.max(...supportTickets.map((t) => t.ticketId))
       : 100;
@@ -27,6 +35,7 @@ export class SupportTicketsService {
       ticketId: maxTicketId + 1,
       caseId: maxCaseId + 1,
       travelerId: dto.travelerId,
+      agencyId: dto.agencyId,
       description: dto.description,
       issueType: dto.issueType,
       careId: dto.careId || 1,

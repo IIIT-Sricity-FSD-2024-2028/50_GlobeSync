@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlobeSync — Agency Expenses</title>
+<link rel="stylesheet" href="../static/shared.css">
+<style>
+  :root {
+    --teal: #19b6a6;
+    --teal-dark: #128b7d;
+    --teal-soft: #f0fdfc;
+    --gradient-agency: linear-gradient(135deg, #19b6a6 0%, #0ea5e9 100%);
+  }
+
+  .sidebar-logo .logo-icon { background: var(--gradient-agency) !important; }
+  .sidebar-logo .logo-text { background: var(--gradient-agency); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .nav-item.active, .nav-item:hover { background: var(--teal-soft); color: var(--teal); }
+  .nav-item.active .nav-icon, .nav-item:hover .nav-icon { color: var(--teal); }
+
+  .category-bar{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .category-label{width:80px;font-size:13px;color:var(--text-secondary);font-weight:500}
+  .category-track{flex:1;height:8px;background:var(--border-light);border-radius:4px;overflow:hidden}
+  .category-fill{height:8px;background:var(--gradient-agency);border-radius:4px;transition:width 0.4s}
+  .category-amount{width:80px;text-align:right;font-size:13px;font-weight:700}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon" style="font-size:18px">🏢</div>
+      <div>
+        <div class="logo-text">GlobeSync</div>
+        <div class="logo-sub">Agency Portal</div>
+      </div>
+    </div>
+        <nav class="sidebar-nav">
+      <a class="nav-item" href="agency-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="browse-packages.html"><span class="nav-icon">📦</span>Browse Packages</a>
+      <a class="nav-item" href="create-itinerary.html"><span class="nav-icon">📅</span>Create Itinerary</a>
+      <a class="nav-item" href="bookings.html"><span class="nav-icon">📋</span>My Bookings</a>
+      <a class="nav-item" href="passengers.html"><span class="nav-icon">👥</span>Passengers</a>
+      <a class="nav-item" href="commission.html"><span class="nav-icon">💰</span>Commission Ledger</a>
+      <a class="nav-item" href="payments.html"><span class="nav-icon">💳</span>Payments</a>
+      <a class="nav-item" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+      <a class="nav-item" href="profile.html"><span class="nav-icon">🏢</span>Agency Profile</a>
+      <a class="nav-item" data-page="support" href="support.html"><span class="nav-icon">🎧</span>Support</a>
+    </nav>
+    <div style="padding:12px;margin-top:auto">
+      <div style="background:var(--teal-soft);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--teal-dark);border:1px solid #99f6e4">
+        💼 <strong>Agency Role</strong><br>Reseller access only.
+      </div>
+    </div>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="agencyLogout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="page-title">Client Trip Expenses</div>
+        <div class="page-subtitle" id="trip-subtitle">Read-only expense breakdown for this booking</div>
+      </div>
+      <div class="topbar-actions">
+        <a href="bookings.html" class="btn btn-secondary">← Back to Bookings</a>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid mb-4">
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Total Recorded Spend</div><div class="stat-value" id="total-spent">₹0</div></div><div class="stat-icon pink">💰</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Trip Budget</div><div class="stat-value" id="trip-budget">₹0</div></div><div class="stat-icon green">🎯</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Expenses Logged</div><div class="stat-value" id="expense-count">0</div></div><div class="stat-icon blue">📋</div></div>
+    </div>
+
+    <div class="grid-2">
+      <!-- BY CATEGORY -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">By Category</span></div>
+        <div class="card-body" id="category-breakdown"></div>
+      </div>
+
+      <!-- RECENT EXPENSES -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">Latest Logs</span></div>
+        <div class="card-body" id="recent-expenses" style="padding:0"></div>
+      </div>
+    </div>
+
+    <!-- ALL EXPENSES TABLE -->
+    <div class="card mt-6">
+      <div class="card-header">
+        <span class="card-title">All Expenses Logged</span>
+        <div class="search-bar" style="max-width:240px"><span class="search-icon">🔍</span><input type="text" id="exp-search" placeholder="Search logs..."></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Description</th><th>Type</th><th>Amount</th><th>Date</th></tr></thead>
+          <tbody id="expenses-tbody"></tbody>
+        </table>
+      </div>
+      <div id="empty-expenses" class="empty-state" style="display:none"><div class="empty-icon">💰</div><h3>No expenses yet</h3><p>The traveler has not logged any expenses for this trip.</p></div>
+    </div>
+  </main>
+</div>
+
+<script src="../JS/mockData.js"></script>
+<script src="../JS/api.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/agency.js"></script>
+<script>
+requireAgency();
+const agency = getAgency();
+const urlParams = new URLSearchParams(window.location.search);
+const tripId = urlParams.get('tripId');
+
+if (!tripId) {
+  window.location.href = 'bookings.html';
+}
+
+const typeIcons = { Flight:'✈', Hotel:'🏨', Food:'🍽', Transport:'🚌', Activity:'🎯', Shopping:'🛍', Other:'📦' };
+const typeColors = { Flight:'#E8467C', Hotel:'#F5A623', Food:'#10b981', Transport:'#3b82f6', Activity:'#8b5cf6', Shopping:'#ec4899', Other:'#6b7280' };
+
+let _trip = null;
+let _expenses = [];
+
+async function loadData() {
+  try {
+    const bookings = await getMyBookings(agency.agency_id || agency.agencyId);
+    _trip = bookings.find(b => b.trip_id == tripId);
+    if (!_trip) throw new Error("Trip not found or unauthorized");
+    
+    document.getElementById('trip-subtitle').textContent = `Expenses for Trip #${_trip.trip_id} - ${_trip.destination}`;
+    document.getElementById('trip-budget').textContent = formatCurrency(_trip.budget);
+
+    _expenses = await apiGetSnake(`/expenses/trip/${tripId}`);
+    
+    refresh();
+  } catch (e) { 
+    console.error('Failed to load data:', e); 
+    document.getElementById('empty-expenses').style.display = 'block';
+  }
+}
+
+function loadStats() {
+  const total = _expenses.reduce((s, e) => s + e.amount, 0);
+  document.getElementById('total-spent').textContent = formatCurrency(total);
+  document.getElementById('expense-count').textContent = _expenses.length;
+}
+
+function loadCategories() {
+  const total = _expenses.reduce((s, e) => s + e.amount, 0);
+  const byType = {};
+  _expenses.forEach(e => { byType[e.type] = (byType[e.type] || 0) + e.amount; });
+  const sorted = Object.entries(byType).sort((a, b) => b[1] - a[1]);
+  document.getElementById('category-breakdown').innerHTML = sorted.length === 0
+    ? '<div class="empty-state"><div class="empty-icon">📊</div><p>No expense data yet</p></div>'
+    : sorted.map(([type, amt]) => `
+      <div class="category-bar">
+        <div class="category-label">${typeIcons[type] || '📦'} ${type}</div>
+        <div class="category-track"><div class="category-fill" style="width:${Math.round(amt/total*100)}%;background:${typeColors[type]||'var(--teal)'}"></div></div>
+        <div class="category-amount">${formatCurrency(amt)}</div>
+      </div>`).join('');
+}
+
+function loadRecent() {
+  const exps = [..._expenses].slice(-5).reverse();
+  document.getElementById('recent-expenses').innerHTML = exps.length === 0
+    ? '<div class="empty-state"><p>No recent expenses</p></div>'
+    : exps.map(e => {
+        return `<div style="padding:14px 20px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center">
+          <div><div style="font-weight:600;font-size:14px">${e.description}</div><div style="font-size:12px;color:var(--text-muted)">${new Date(e.created_at).toLocaleDateString()}</div></div>
+          <span style="font-weight:700;color:var(--teal)">${formatCurrency(e.amount)}</span>
+        </div>`;
+      }).join('');
+}
+
+function renderTable() {
+  const search = document.getElementById('exp-search').value.toLowerCase();
+  let exps = [..._expenses];
+  if (search) exps = exps.filter(e => e.description.toLowerCase().includes(search) || e.type.toLowerCase().includes(search));
+  const tbody = document.getElementById('expenses-tbody');
+  const empty = document.getElementById('empty-expenses');
+  if (exps.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = exps.map(e => {
+    return `<tr>
+      <td><span style="font-weight:600">${e.description}</span></td>
+      <td><span class="badge badge-info">${typeIcons[e.type]||'📦'} ${e.type}</span></td>
+      <td style="font-weight:700;color:var(--teal)">${formatCurrency(e.amount)}</td>
+      <td style="font-size:13px">${new Date(e.created_at).toLocaleDateString()}</td>
+    </tr>`;
+  }).join('');
+}
+
+function refresh() { loadStats(); loadCategories(); loadRecent(); renderTable(); }
+document.getElementById('exp-search').addEventListener('input', renderTable);
+
+(async () => { await loadData(); })();
+</script>
+</body>
+</html>

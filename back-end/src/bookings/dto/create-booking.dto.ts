@@ -4,7 +4,8 @@ import { IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-val
 export class CreateBookingDto {
   @ApiProperty({ example: '2026-08-01' }) @IsNotEmpty() @IsString() bookingDate: string;
   @ApiProperty({ example: 1 }) @IsNotEmpty() @IsNumber() tripId: number;
-  @ApiProperty({ example: 1 }) @IsNotEmpty() @IsNumber() travelerId: number;
+  @ApiPropertyOptional({ example: 1 }) @IsOptional() @IsNumber() travelerId?: number;
+  @ApiPropertyOptional({ example: 1 }) @IsOptional() @IsNumber() agencyId?: number;
   @ApiProperty({ example: 'Emirates EK-101' }) @IsNotEmpty() @IsString() service: string;
   @ApiProperty({ example: 'Flight', enum: ['Flight', 'Hotel', 'Transport', 'Activity'] })
   @IsNotEmpty() @IsString() @IsIn(['Flight', 'Hotel', 'Transport', 'Activity']) type: string;

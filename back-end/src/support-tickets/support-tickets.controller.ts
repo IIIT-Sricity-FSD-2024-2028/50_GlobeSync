@@ -38,8 +38,18 @@ export class SupportTicketsController {
     return this.ticketsService.findByTraveler(travelerId);
   }
 
+  @Get('agency/:agencyId')
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.AGENCY, Role.SUPPORT)
+  @ApiUserHeaders()
+  @ApiOperation({ summary: 'Get tickets by agency ID' })
+  @ApiParam({ name: 'agencyId', type: Number })
+  @ApiResponse({ status: 200, description: 'Tickets for agency' })
+  findByAgency(@Param('agencyId', ParseIntPipe) agencyId: number) {
+    return this.ticketsService.findByAgency(agencyId);
+  }
+
   @Post()
-  @Roles(Role.SUPERUSER, Role.TRAVELER, Role.SUPPORT)
+  @Roles(Role.SUPERUSER, Role.TRAVELER, Role.AGENCY, Role.SUPPORT)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Create a support ticket' })
   @ApiResponse({ status: 201, description: 'Ticket created' })

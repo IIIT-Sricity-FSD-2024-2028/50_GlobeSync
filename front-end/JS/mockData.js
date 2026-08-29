@@ -193,12 +193,16 @@ const DB = {
   ],
 
   packageBookings: [
-    { packagebooking_id: 1, booking_date: "2026-03-01", status: "Confirmed", traveler_id: 1, package_id: 2 },
-    { packagebooking_id: 2, booking_date: "2026-03-05", status: "Pending", traveler_id: 2, package_id: 3 },
-    { packagebooking_id: 3, booking_date: "2026-02-01", status: "Confirmed", traveler_id: 4, package_id: 7 },
-    { packagebooking_id: 4, booking_date: "2026-03-10", status: "Confirmed", traveler_id: 4, package_id: 6 },
-    { packagebooking_id: 5, booking_date: "2026-03-22", status: "Pending", traveler_id: 4, package_id: 4 },
-    { packagebooking_id: 6, booking_date: "2026-03-28", status: "Planning", traveler_id: 4, package_id: 8 }
+    { packagebooking_id: 1, booking_date: "2026-03-01", status: "Confirmed", traveler_id: 1,    agency_id: null, package_id: 2, passenger_id: null },
+    { packagebooking_id: 2, booking_date: "2026-03-05", status: "Pending",   traveler_id: 2,    agency_id: null, package_id: 3, passenger_id: null },
+    { packagebooking_id: 3, booking_date: "2026-02-01", status: "Confirmed", traveler_id: 4,    agency_id: null, package_id: 7, passenger_id: null },
+    { packagebooking_id: 4, booking_date: "2026-03-10", status: "Confirmed", traveler_id: 4,    agency_id: null, package_id: 6, passenger_id: null },
+    { packagebooking_id: 5, booking_date: "2026-03-22", status: "Pending",   traveler_id: 4,    agency_id: null, package_id: 4, passenger_id: null },
+    { packagebooking_id: 6, booking_date: "2026-03-28", status: "Planning",  traveler_id: 4,    agency_id: null, package_id: 8, passenger_id: null },
+    // Agency-owned bookings
+    { packagebooking_id: 7, booking_date: "2026-02-01", status: "Completed", traveler_id: null, agency_id: 1,    package_id: 1, passenger_id: 3 },
+    { packagebooking_id: 8, booking_date: "2026-03-05", status: "Confirmed", traveler_id: null, agency_id: 1,    package_id: 6, passenger_id: 4 },
+    { packagebooking_id: 9, booking_date: "2026-03-12", status: "Confirmed", traveler_id: null, agency_id: 2,    package_id: 4, passenger_id: 6 }
   ],
 
   messages: [
@@ -236,8 +240,43 @@ const DB = {
   savedPassengers: [
     { pass_id: 1, traveler_id: 1, name: "Sita Mehta", age: 25, gender: "Female" },
     { pass_id: 2, traveler_id: 1, name: "Rohan Mehta", age: 5, gender: "Male" }
-  ]
+  ],
+
+  // ── AGENCY EXTENSION ──────────────────────────────────────────────────────
+  // status: 'pending' | 'approved' | 'rejected'
+  agencies: [
+    { agency_id: 1, business_name: "Wanderlust Travels Pvt Ltd", contact_email: "wanderlust@agency.com", contact_phone: "9811223344", password: "agency123", status: "approved", commission_rate: 10, created_at: "2026-01-15" },
+    { agency_id: 2, business_name: "Horizon Holiday Experts",    contact_email: "horizon@agency.com",    contact_phone: "9900112233", password: "agency123", status: "approved", commission_rate: 8,  created_at: "2026-02-10" },
+    { agency_id: 3, business_name: "Sunrise Tours & Treks",      contact_email: "sunrise@agency.com",    contact_phone: "9876001234", password: "agency123", status: "pending",  commission_rate: null, created_at: "2026-03-28" },
+    { agency_id: 4, business_name: "BlueSky Getaways",           contact_email: "bluesky@agency.com",    contact_phone: "9550088776", password: "agency123", status: "rejected", commission_rate: null, created_at: "2026-03-20" }
+  ],
+
+  // passengers: generalises savedPassengers — exactly one of (traveler_id, agency_id) is non-null
+  passengers: [
+    // B2C: traveler-owned (mirrors savedPassengers but with richer contact field)
+    { passenger_id: 1, name: "Sita Mehta",   age: 25, gender: "Female", contact: "9876500001", traveler_id: 1, agency_id: null },
+    { passenger_id: 2, name: "Rohan Mehta",  age: 5,  gender: "Male",   contact: "",           traveler_id: 1, agency_id: null },
+    // B2B: agency-owned (offline clients, no platform accounts)
+    { passenger_id: 3, name: "Priya Sharma",   age: 34, gender: "Female", contact: "9812340001", traveler_id: null, agency_id: 1 },
+    { passenger_id: 4, name: "Ankit Verma",    age: 29, gender: "Male",   contact: "9812340002", traveler_id: null, agency_id: 1 },
+    { passenger_id: 5, name: "Nisha Kapoor",   age: 42, gender: "Female", contact: "9812340003", traveler_id: null, agency_id: 1 },
+    { passenger_id: 6, name: "David Fernandez",age: 38, gender: "Male",   contact: "9812340004", traveler_id: null, agency_id: 2 },
+    { passenger_id: 7, name: "Sunita Rao",     age: 55, gender: "Female", contact: "9812340005", traveler_id: null, agency_id: 2 }
+  ],
+
+  // commissionLedger: one row per agency packageBooking
+  // status: 'pending' | 'settled'
+  commissionLedger: [
+    { commission_id: 1, agency_id: 1, packagebooking_id: 7,  gross_amount: 145000, commission_rate: 10, commission_amount: 14500,  status: "settled", created_at: "2026-02-01" },
+    { commission_id: 2, agency_id: 1, packagebooking_id: 8,  gross_amount: 215000, commission_rate: 10, commission_amount: 21500,  status: "pending", created_at: "2026-03-05" },
+    { commission_id: 3, agency_id: 2, packagebooking_id: 9,  gross_amount: 75000,  commission_rate: 8,  commission_amount: 6000,   status: "pending", created_at: "2026-03-12" }
+  ],
+
+
 };
+
+
+
 
 // Persistence Logic for Prototype
 const DB_STORAGE_KEY = 'gs_database';

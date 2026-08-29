@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP Superuser — Agencies Management</title>
+<link rel="stylesheet" href="../static/shared.css">
+<style>
+:root{--super-color:#6366f1;--super-dark:#4338ca;--super-light:#e0e7ff;--gradient:linear-gradient(135deg,#6366f1 0%,#ec4899 100%);--gradient-soft:linear-gradient(135deg,#f5f3ff 0%,#fce7f3 100%)}
+.sidebar-logo .logo-icon{background:var(--gradient)!important}
+.sidebar-logo .logo-text{background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-item.active,.nav-item:hover{background:var(--super-light);color:var(--super-dark)}
+.summary-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.sum-card{background:#fff;border-radius:14px;padding:20px;border:1px solid rgba(0,0,0,0.04);box-shadow:0 4px 12px rgba(0,0,0,0.02)}
+.sum-label{font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:6px}
+.sum-value{font-size:26px;font-weight:800;font-family:var(--font-main);color:var(--super-dark)}
+.table-card{background:#fff;border-radius:16px;border:1px solid rgba(0,0,0,0.04);box-shadow:0 4px 16px rgba(0,0,0,0.02);overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;padding:14px 16px;border-bottom:1px solid var(--border-light);background:#fafafa}
+td{padding:14px 16px;border-bottom:1px solid var(--border-light);color:var(--text-primary)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+.btn-sm{padding:5px 12px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-main);border:none;transition:all 0.15s}
+.btn-primary{background:var(--super-color);color:#fff}.btn-primary:hover{background:var(--super-dark)}
+.btn-approve{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}.btn-approve:hover{background:#bbf7d0}
+.btn-reject{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}.btn-reject:hover{background:#fecaca}
+.rate-input{width:60px;padding:4px 8px;border:1px solid var(--border-light);border-radius:6px;font-size:13px;outline:none}
+.rate-input:focus{border-color:var(--super-color)}
+.empty-state{text-align:center;padding:60px;color:var(--text-muted)}
+.tab-bar{display:flex;gap:4px;margin-bottom:20px;background:#f3f4f6;padding:4px;border-radius:10px;width:fit-content}
+.tab{padding:7px 18px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;color:var(--text-muted);transition:all 0.2s}
+.tab.active{background:#fff;color:var(--super-dark);box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:all 0.2s}
+.modal-overlay.active{opacity:1;pointer-events:all}
+.modal{background:#fff;border-radius:16px;width:400px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,0.1);transform:translateY(20px);transition:all 0.2s}
+.modal-overlay.active .modal{transform:translateY(0)}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:16px}
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:6px}
+.form-control{width:100%;padding:10px 12px;border:1px solid var(--border-light);border-radius:8px;font-size:14px;outline:none}
+.form-control:focus{border-color:var(--super-color)}
+.modal-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:24px}
+.btn-cancel{background:#f1f5f9;color:var(--text-primary);border:none;padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:600}
+.btn-save{background:var(--super-color);color:#fff;border:none;padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:600}
+.top-actions{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);color:#fff;font-size:18px">🌐</div><div><div class="logo-text" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">GlobeSync</div><div class="logo-sub">Super User</div></div></div>
+        <nav class="sidebar-nav">
+      <a class="nav-item" href="super-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="users.html"><span class="nav-icon">👥</span>Users</a>
+      <a class="nav-item active" href="agencies.html"><span class="nav-icon">🏢</span>Agencies</a>
+      <a class="nav-item" href="api-management.html"><span class="nav-icon">🔌</span>API Management</a>
+      <a class="nav-item" href="rules-config.html"><span class="nav-icon">⚙</span>Rules Config</a>
+      <a class="nav-item" href="reports.html"><span class="nav-icon">📈</span>Reports</a>
+      <a class="nav-item" data-page="profile" href="profile.html"><span class="nav-icon">🔴</span>My Profile</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="padding:10px 12px;font-size:12px;color:var(--text-muted);margin-bottom:4px">Logged in as Super User</div>
+      <button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="page-title">Agency Management (CRUD)</div>
+        <div class="page-subtitle">Full control over resellers and agency revenue channels</div>
+      </div>
+    </div>
+
+    <!-- Agency Metrics Summary -->
+    <div class="summary-strip" id="agency-metrics-strip">
+      <div class="sum-card"><div class="sum-label">Total Agencies</div><div class="sum-value" id="val-total">0</div></div>
+      <div class="sum-card"><div class="sum-label">Pending Apps</div><div class="sum-value" id="val-pending" style="color:#d97706">0</div></div>
+      <div class="sum-card"><div class="sum-label">Pending Commission</div><div class="sum-value" id="val-comm-pen" style="color:#d97706">₹0</div></div>
+      <div class="sum-card"><div class="sum-label">Agency Channel Rev</div><div class="sum-value" id="val-rev">₹0</div></div>
+    </div>
+
+    <div class="top-actions">
+      <div class="tab-bar">
+        <div class="tab active" onclick="filterAgencies('pending',this)">Pending Approvals</div>
+        <div class="tab" onclick="filterAgencies('approved',this)">Approved Partners</div>
+        <div class="tab" onclick="filterAgencies('rejected',this)">Rejected</div>
+      </div>
+      <button class="btn-save" onclick="openAddModal()">+ Add Agency Directly</button>
+    </div>
+
+    <div class="table-card" id="agency-table-wrap"></div>
+  </main>
+</div>
+
+<!-- Add/Edit Agency Modal -->
+<div class="modal-overlay" id="agency-modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Add New Agency</div>
+    <input type="hidden" id="edit-id">
+    <div class="form-group">
+      <label class="form-label">Business Name</label>
+      <input type="text" class="form-control" id="form-name" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Contact Email</label>
+      <input type="email" class="form-control" id="form-email" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Contact Phone</label>
+      <input type="text" class="form-control" id="form-phone" required>
+    </div>
+    <div class="form-group" id="group-password">
+      <label class="form-label">Password</label>
+      <input type="password" class="form-control" id="form-password">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <select class="form-control" id="form-status">
+        <option value="approved">Approved</option>
+        <option value="pending">Pending</option>
+        <option value="rejected">Rejected</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Commission Rate (%)</label>
+      <input type="number" class="form-control" id="form-rate" value="10" min="0" max="100">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveAgency()">Save Agency</button>
+    </div>
+  </div>
+</div>
+
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/api.js"></script>
+<script src="../JS/agency.js"></script>
+<script>
+if(Auth.getRole() !== 'superuser') window.location.href = '../login.html';
+
+let _allAgencies = [];
+
+async function init() {
+  await loadMetrics();
+  await refreshAgencies();
+}
+
+async function loadMetrics() {
+  try {
+    const dash = await apiGetSnake('/dashboard/superuser');
+    const am = dash.agency_metrics;
+    if(am) {
+      document.getElementById('val-total').textContent = am.total_agencies || 0;
+      document.getElementById('val-pending').textContent = am.pending_agencies || 0;
+      document.getElementById('val-comm-pen').textContent = formatCurrency(am.total_commission_pending || 0);
+      document.getElementById('val-rev').textContent = formatCurrency(am.agency_channel_revenue || 0);
+    }
+  } catch(e) {
+    console.error("Failed to load superuser dashboard metrics:", e);
+  }
+}
+
+async function refreshAgencies() {
+  try {
+    const [agenciesRes, bookingsRes] = await Promise.all([
+      apiGetSnake('/agencies'),
+      apiGetSnake('/bookings')
+    ]);
+    _allAgencies = agenciesRes;
+    _allBookings = bookingsRes;
+    const activeTab = document.querySelector('.tab.active');
+    let status = 'pending';
+    if(activeTab && activeTab.textContent.toLowerCase().includes('approved')) status = 'approved';
+    if(activeTab && activeTab.textContent.toLowerCase().includes('rejected')) status = 'rejected';
+    filterAgencies(status, activeTab);
+  } catch(e) {
+    console.error("Failed to load agencies:", e);
+  }
+}
+
+function filterAgencies(status, el) {
+  if (el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  }
+  const list = _allAgencies.filter(a => a.status === status);
+  render(list, status);
+}
+
+function render(list, status) {
+  const wrap = document.getElementById('agency-table-wrap');
+  if (!list.length) {
+    wrap.innerHTML = `<div class="empty-state"><div style="font-size:40px;margin-bottom:12px">🏢</div><div style="font-size:16px;color:var(--text-primary)">No ${status} agencies</div></div>`;
+    return;
+  }
+  
+  if (status === 'pending') {
+    const rows = list.map(a => `<tr>
+      <td><strong>${a.business_name}</strong><br><span style="font-size:12px;color:var(--text-muted)">${a.contact_email} · ${a.contact_phone}</span></td>
+      <td>${formatDate(a.created_at)}</td>
+      <td>${_allBookings ? _allBookings.filter(b => b.agency_id === a.agency_id).length : 0}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input type="number" class="rate-input" id="rate-${a.agency_id}" value="10" min="0" max="100"> %
+        </div>
+      </td>
+      <td>
+        <div style="display:flex;gap:8px">
+          <button class="btn-sm btn-approve" onclick="doApprove(${a.agency_id})">Approve</button>
+          <button class="btn-sm btn-reject" onclick="doReject(${a.agency_id})">Reject</button>
+          <button class="btn-sm" style="background:#f1f5f9;color:var(--text-primary)" onclick="openEditModal(${a.agency_id})">Edit</button>
+          <button class="btn-sm btn-reject" onclick="doDelete(${a.agency_id})">Del</button>
+        </div>
+      </td>
+    </tr>`).join('');
+    wrap.innerHTML = `<table>
+      <thead><tr><th>Business Details</th><th>Applied</th><th>Packages Booked</th><th>Set Commission</th><th>Actions</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  } else {
+    const rows = list.map(a => `<tr>
+      <td><strong>${a.business_name}</strong><br><span style="font-size:12px;color:var(--text-muted)">${a.contact_email} · ${a.contact_phone}</span></td>
+      <td>${formatDate(a.created_at)}</td>
+      <td>${_allBookings ? _allBookings.filter(b => b.agency_id === a.agency_id).length : 0}</td>
+      <td>${a.commission_rate != null ? a.commission_rate + '%' : '—'}</td>
+      <td>${agencyStatusPill(a.status)}</td>
+      <td>
+        <div style="display:flex;gap:8px">
+          <button class="btn-sm" style="background:#f1f5f9;color:var(--text-primary)" onclick="openEditModal(${a.agency_id})">Edit</button>
+          <button class="btn-sm btn-reject" onclick="doDelete(${a.agency_id})">Delete</button>
+        </div>
+      </td>
+    </tr>`).join('');
+    wrap.innerHTML = `<table>
+      <thead><tr><th>Business Details</th><th>Applied</th><th>Packages Booked</th><th>Commission Rate</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+}
+
+async function doApprove(id) {
+  const rateInput = document.getElementById('rate-' + id);
+  const rate = rateInput ? rateInput.value : 10;
+  const res = await approveAgency(id, rate);
+  if (res.ok) {
+    showToast('Agency approved with ' + rate + '% commission', 'success');
+    await init(); // reload metrics and list
+  } else {
+    showToast(res.error, 'error');
+  }
+}
+
+async function doReject(id) {
+  if (!confirm('Reject this agency application?')) return;
+  const res = await rejectAgency(id);
+  if (res.ok) {
+    showToast('Agency application rejected', 'success');
+    await init();
+  } else {
+    showToast(res.error, 'error');
+  }
+}
+
+async function doDelete(id) {
+  if (!confirm('Delete this agency? This will not cascade to existing trips or commission records.')) return;
+  try {
+    await apiDeleteSnake('/agencies/' + id);
+    showToast('Agency deleted successfully', 'success');
+    await init();
+  } catch(e) {
+    showToast('Failed to delete agency: ' + e.message, 'error');
+  }
+}
+
+function openAddModal() {
+  document.getElementById('modal-title').textContent = 'Add New Agency';
+  document.getElementById('edit-id').value = '';
+  document.getElementById('form-name').value = '';
+  document.getElementById('form-email').value = '';
+  document.getElementById('form-phone').value = '';
+  document.getElementById('form-password').value = '';
+  document.getElementById('form-status').value = 'approved';
+  document.getElementById('form-rate').value = '10';
+  document.getElementById('group-password').style.display = 'block';
+  document.getElementById('agency-modal').classList.add('active');
+}
+
+function openEditModal(id) {
+  const a = _allAgencies.find(x => x.agency_id === id);
+  if (!a) return;
+  document.getElementById('modal-title').textContent = 'Edit Agency';
+  document.getElementById('edit-id').value = id;
+  document.getElementById('form-name').value = a.business_name;
+  document.getElementById('form-email').value = a.contact_email;
+  document.getElementById('form-phone').value = a.contact_phone;
+  document.getElementById('form-password').value = ''; // leave blank if no change
+  document.getElementById('form-status').value = a.status;
+  document.getElementById('form-rate').value = a.commission_rate || 0;
+  // Let superuser also update status/rate from edit form via separate calls if they changed
+  document.getElementById('group-password').style.display = 'none'; // simplified edit for now
+  document.getElementById('agency-modal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('agency-modal').classList.remove('active');
+}
+
+async function saveAgency() {
+  const id = document.getElementById('edit-id').value;
+  const payload = {
+    businessName: document.getElementById('form-name').value,
+    contactEmail: document.getElementById('form-email').value,
+    contactPhone: document.getElementById('form-phone').value,
+  };
+  
+  try {
+    if (!id) {
+      // Add
+      payload.password = document.getElementById('form-password').value || 'agency123';
+      payload.status = document.getElementById('form-status').value;
+      payload.commissionRate = parseInt(document.getElementById('form-rate').value, 10);
+      await apiPostSnake('/agencies', payload);
+      showToast('Agency created', 'success');
+    } else {
+      // Update
+      // First update base profile
+      await apiPatchSnake('/agencies/' + id, payload);
+      
+      // Then check if status/rate changed and update that if needed
+      const old = _allAgencies.find(x => x.agency_id == id);
+      const newStatus = document.getElementById('form-status').value;
+      const newRate = parseInt(document.getElementById('form-rate').value, 10);
+      if (old.status !== newStatus || old.commission_rate !== newRate) {
+        await apiPatchSnake('/agencies/' + id + '/status', {
+          status: newStatus,
+          commissionRate: newRate
+        });
+      }
+      showToast('Agency updated', 'success');
+    }
+    closeModal();
+    await init();
+  } catch(e) {
+    showToast('Failed to save agency: ' + e.message, 'error');
+  }
+}
+
+init();
+</script>
+</body>
+</html>

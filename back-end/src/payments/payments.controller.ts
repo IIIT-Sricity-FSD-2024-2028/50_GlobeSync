@@ -38,6 +38,16 @@ export class PaymentsController {
     return this.paymentsService.findByBooking(bookingId);
   }
 
+  @Get('agency/:agencyId')
+  @Roles(Role.AGENCY, Role.ADMIN, Role.SUPERUSER)
+  @ApiUserHeaders()
+  @ApiOperation({ summary: 'Get payments by agency ID' })
+  @ApiParam({ name: 'agencyId', type: Number })
+  @ApiResponse({ status: 200, description: 'Payments for agency' })
+  findByAgency(@Param('agencyId', ParseIntPipe) agencyId: number) {
+    return this.paymentsService.findByAgency(agencyId);
+  }
+
   @Post()
   @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER)
   @ApiUserHeaders()

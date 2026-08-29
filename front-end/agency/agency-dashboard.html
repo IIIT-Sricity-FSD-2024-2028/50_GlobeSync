@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlobeSync — Agency Dashboard</title>
+<link rel="stylesheet" href="../static/shared.css">
+<link rel="stylesheet" href="../static/notifications.css">
+<style>
+:root{--teal:#19b6a6;--teal-dark:#128b7d;--teal-soft:#f0fdfc;--gradient-agency:linear-gradient(135deg,#19b6a6 0%,#0ea5e9 100%)}
+.sidebar-logo .logo-icon{background:var(--gradient-agency)!important}
+.sidebar-logo .logo-text{background:var(--gradient-agency);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-item.active,.nav-item:hover{background:var(--teal-soft);color:var(--teal)}
+.nav-item.active .nav-icon,.nav-item:hover .nav-icon{color:var(--teal)}
+.btn-agency{background:var(--gradient-agency);color:#fff;border:none;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-main);box-shadow:0 4px 12px rgba(25,182,166,0.25);transition:all 0.2s}
+.btn-agency:hover{opacity:0.9;transform:translateY(-1px)}
+.stat-icon-teal{background:#f0fdfc;color:var(--teal)}
+.stat-icon-blue{background:#eff6ff;color:#3b82f6}
+.stat-icon-orange{background:#fff7ed;color:#f97316}
+.dash-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.stat-card{background:#fff;border-radius:16px;padding:22px;border:1px solid rgba(0,0,0,0.04);box-shadow:0 4px 16px rgba(0,0,0,0.02)}
+.stat-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.stat-label{font-size:13px;color:var(--text-muted);font-weight:500}
+.stat-value{font-size:30px;font-weight:800;font-family:var(--font-main);color:var(--text-primary);line-height:1}
+.stat-sub{font-size:12px;color:var(--text-muted);margin-top:4px}
+.stat-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.dash-card{background:#fff;border-radius:16px;padding:24px;border:1px solid rgba(0,0,0,0.04);box-shadow:0 4px 16px rgba(0,0,0,0.02);margin-bottom:20px}
+.dash-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.dash-card-title{font-size:16px;font-weight:700;color:var(--text-primary)}
+.view-all{font-size:13px;color:var(--teal);text-decoration:none;font-weight:600}
+.view-all:hover{text-decoration:underline}
+.pkg-mini-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.pkg-mini{border:1px solid var(--border-light);border-radius:12px;overflow:hidden;cursor:pointer;transition:all 0.2s}
+.pkg-mini:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.pkg-mini-img{height:90px;background:#f1f5f9;overflow:hidden}
+.pkg-mini-img img{width:100%;height:100%;object-fit:cover}
+.pkg-mini-body{padding:10px 12px}
+.pkg-mini-name{font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:2px}
+.pkg-mini-dest{font-size:11px;color:var(--text-muted)}
+.pkg-mini-price{font-size:13px;font-weight:700;color:var(--teal);margin-top:4px}
+.quick-actions{display:flex;gap:12px;margin-bottom:20px}
+.empty-state{text-align:center;padding:32px;color:var(--text-muted)}
+.empty-state .empty-icon{font-size:40px;margin-bottom:10px}
+.empty-state p{font-size:14px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;padding:8px 12px;border-bottom:1px solid var(--border-light)}
+td{padding:12px;border-bottom:1px solid var(--border-light);color:var(--text-primary)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon" style="font-size:18px">🏢</div>
+      <div>
+        <div class="logo-text">GlobeSync</div>
+        <div class="logo-sub">Agency Portal</div>
+      </div>
+    </div>
+        <nav class="sidebar-nav">
+      <a class="nav-item active" href="agency-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="browse-packages.html"><span class="nav-icon">📦</span>Browse Packages</a>
+      <a class="nav-item" href="create-itinerary.html"><span class="nav-icon">📅</span>Create Itinerary</a>
+      <a class="nav-item" href="bookings.html"><span class="nav-icon">📋</span>My Bookings</a>
+      <a class="nav-item" href="passengers.html"><span class="nav-icon">👥</span>Passengers</a>
+      <a class="nav-item" href="commission.html"><span class="nav-icon">💰</span>Commission Ledger</a>
+      <a class="nav-item" href="payments.html"><span class="nav-icon">💳</span>Payments</a>
+      <a class="nav-item" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+      <a class="nav-item" href="profile.html"><span class="nav-icon">🏢</span>Agency Profile</a>
+      <a class="nav-item" data-page="support" href="support.html"><span class="nav-icon">🎧</span>Support</a>
+    </nav>
+    <div style="padding:12px;margin-top:auto">
+      <div style="background:var(--teal-soft);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--teal-dark);border:1px solid #99f6e4">
+        💼 <strong>Agency Role</strong><br>Reseller access only.
+      </div>
+    </div>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="agencyLogout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="page-title" id="welcome-title">Agency Dashboard</div>
+        <div class="page-subtitle">Your bookings, passengers and commission at a glance</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button class="btn-agency" onclick="window.location.href='book-package.html'">+ Book for Client</button>
+      </div>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="dash-grid">
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-label">Active Client Bookings</div>
+          <div class="stat-icon stat-icon-blue">🎫</div>
+        </div>
+        <div class="stat-value" id="stat-bookings">0</div>
+        <div class="stat-sub">Confirmed or in-progress</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-label">Total Commission Earned</div>
+          <div class="stat-icon stat-icon-teal">💰</div>
+        </div>
+        <div class="stat-value" id="stat-commission">₹0</div>
+        <div class="stat-sub" id="stat-commission-sub">Pending + settled</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-label">Passengers Managed</div>
+          <div class="stat-icon stat-icon-orange">👥</div>
+        </div>
+        <div class="stat-value" id="stat-passengers">0</div>
+        <div class="stat-sub">Offline clients registered</div>
+      </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="quick-actions">
+      <button class="btn-agency" onclick="window.location.href='book-package.html'">🎫 Book Package for Client</button>
+      <button onclick="window.location.href='commission.html'" style="background:#fff;border:1.5px solid #99f6e4;color:var(--teal);padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-main)">💰 View Commission Ledger</button>
+      <button onclick="window.location.href='passengers.html'" style="background:#fff;border:1.5px solid var(--border-light);color:var(--text-secondary);padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-main)">👥 Manage Passengers</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <!-- Recent bookings -->
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <div class="dash-card-title">Recent Bookings</div>
+          <a href="bookings.html" class="view-all">View all →</a>
+        </div>
+        <div id="recent-bookings-wrap">
+          <div class="empty-state"><div class="empty-icon">📋</div><p>No bookings yet.<br>Browse packages to get started.</p></div>
+        </div>
+      </div>
+
+      <!-- Featured packages -->
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <div class="dash-card-title">Featured Packages</div>
+          <a href="browse-packages.html" class="view-all">Browse all →</a>
+        </div>
+        <div class="pkg-mini-grid" id="pkg-mini-grid"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="../JS/mockData.js"></script>
+<script src="../JS/api.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/agency.js"></script>
+<script>
+requireAgency();
+const agency = getAgency();
+const agencyId = agency.agency_id || agency.agencyId;
+document.getElementById('welcome-title').textContent = `Welcome, ${agency.business_name || agency.businessName}`;
+
+async function loadDashboard() {
+  const [myBookings, myPassengers, summary, packages, guides] = await Promise.all([
+    getMyBookings(agencyId),
+    getMyPassengers(agencyId),
+    commissionSummary(agencyId),
+    apiGetSnake('/packages').catch(() => []),
+    apiGetSnake('/guides').catch(() => [])
+  ]);
+
+  const activeCount = myBookings.filter(b => b.status === 'Confirmed' || b.status === 'Pending').length;
+  document.getElementById('stat-bookings').textContent   = activeCount;
+  document.getElementById('stat-commission').textContent = formatCurrency(summary.total);
+  document.getElementById('stat-passengers').textContent = myPassengers.length;
+  document.getElementById('stat-commission-sub').textContent =
+    summary.settled > 0 ? `${formatCurrency(summary.settled)} settled · ${formatCurrency(summary.pending)} pending` : 'Pending + settled';
+
+  const recentWrap = document.getElementById('recent-bookings-wrap');
+  if (myBookings.length) {
+    const rows = myBookings.slice(0,5).map(b => {
+      const guide = guides.find(g => g.guide_id === b.guide_id);
+      return `<tr>
+        <td>${b.destination || '—'}</td>
+        <td>${formatDate(b.booking_date)}</td>
+        <td>${guide ? guide.name : '<span class="badge badge-gray">Unassigned</span>'}</td>
+        <td>${statusBadge(b.status)}</td>
+      </tr>`;
+    }).join('');
+    recentWrap.innerHTML = `<table>
+      <thead><tr><th>Destination</th><th>Date</th><th>Guide</th><th>Status</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+
+  // Featured packages (first 4)
+  const pkgGrid = document.getElementById('pkg-mini-grid');
+  pkgGrid.innerHTML = packages.slice(0,4).map(p => `
+    <div class="pkg-mini" onclick="window.location.href='browse-packages.html'">
+      <div class="pkg-mini-img"><img src="${p.image}" alt="${p.name}" onerror="this.style.display='none'"></div>
+      <div class="pkg-mini-body">
+        <div class="pkg-mini-name">${p.name}</div>
+        <div class="pkg-mini-dest">📍 ${p.destinations}</div>
+        <div class="pkg-mini-price">${formatCurrency(p.budget)}</div>
+      </div>
+    </div>`).join('');
+}
+loadDashboard();
+</script>
+</body>
+</html>

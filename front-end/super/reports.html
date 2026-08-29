@@ -23,9 +23,10 @@
 <div class="layout">
   <aside class="sidebar">
     <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);color:#fff;font-size:18px">🌐</div><div><div class="logo-text" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">GlobeSync</div><div class="logo-sub">Super User</div></div></div>
-    <nav class="sidebar-nav">
+        <nav class="sidebar-nav">
       <a class="nav-item" href="super-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
       <a class="nav-item" href="users.html"><span class="nav-icon">👥</span>Users</a>
+      <a class="nav-item" href="agencies.html"><span class="nav-icon">🏢</span>Agencies</a>
       <a class="nav-item" href="api-management.html"><span class="nav-icon">🔌</span>API Management</a>
       <a class="nav-item" href="rules-config.html"><span class="nav-icon">⚙</span>Rules Config</a>
       <a class="nav-item active" href="reports.html"><span class="nav-icon">📈</span>Reports</a>
@@ -49,7 +50,7 @@
     <!-- PERFORMANCE STATS -->
     <div class="stats-grid stats-grid-4 mb-4">
       <div class="stat-card"><div class="stat-info"><div class="stat-label">Total Revenue</div><div class="stat-value" id="total-revenue">₹0</div></div><div class="stat-icon green">💰</div></div>
-      <div class="stat-card"><div class="stat-info"><div class="stat-label">Conversion Rate</div><div class="stat-value">3.2%</div><div class="stat-change">↑ 0.4% from last month</div></div><div class="stat-icon blue">🎯</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Total Agencies</div><div class="stat-value" id="agency-count">0</div><div class="stat-change" id="agency-status"></div></div><div class="stat-icon blue">🏢</div></div>
       <div class="stat-card"><div class="stat-info"><div class="stat-label">Active Users (MAU)</div><div class="stat-value" id="mau-count">0</div></div><div class="stat-icon pink">👤</div></div>
       <div class="stat-card"><div class="stat-info"><div class="stat-label">System Performance</div><div class="stat-value">99.8%</div></div><div class="stat-icon orange">⚡</div></div>
     </div>
@@ -59,8 +60,8 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">Booking Trends (Last 6 Months)</span>
-          <select class="form-control" style="width:auto;padding:4px 8px;font-size:12px">
-            <option>All Services</option><option>Flights</option><option>Hotels</option>
+          <select class="form-control" style="width:auto;padding:4px 8px;font-size:12px" onchange="updateChart(this.value)">
+            <option value="All">All Services</option><option value="Flight">Flights</option><option value="Hotel">Hotels</option>
           </select>
         </div>
         <div class="card-body">
@@ -84,23 +85,23 @@
     <!-- RELATED ANSWER / FAQ SECTION -->
     <div class="help-section">
       <h2 style="font-size:20px;margin-bottom:16px;color:var(--primary)">💡 Related Answer: Data Insights</h2>
-      <div class="grid-2" style="gap:24px">
-        <div>
-          <div class="insight-card">
+      <div class="grid-2" style="gap:24px;align-items:stretch">
+        <div style="display:flex;flex-direction:column;gap:24px">
+          <div class="insight-card" style="flex:1">
             <div class="insight-title">📍 Why is revenue calculated in INR?</div>
             <div class="insight-desc">The platform base currency is now Indian Rupee (₹) to support localized settlement for travel guides and domestic bookings. Exchange rates for USD/EUR are updated every 6 hours via the Currency API.</div>
           </div>
-          <div class="insight-card">
+          <div class="insight-card" style="flex:1">
             <div class="insight-title">⚖️ How is 'Conversion Rate' derived?</div>
             <div class="insight-desc">It is the ratio of completed payments to the number of unique "Create Itinerary" sessions started within a 30-day period. Currently, we are seeing a 15% increase in mobile-initiated bookings.</div>
           </div>
         </div>
-        <div>
-          <div class="insight-card" style="border-color:#E8467C">
+        <div style="display:flex;flex-direction:column;gap:24px">
+          <div class="insight-card" style="border-color:#E8467C;flex:1">
             <div class="insight-title">👤 User Growth Insights</div>
             <div class="insight-desc">Most new users are signing up for domestic trips (Goa, Kerala, Rajasthan). We recommend increasing the travel guide pool in these regions by 10% next quarter.</div>
           </div>
-          <div class="insight-card" style="border-color:#10b981">
+          <div class="insight-card" style="border-color:#10b981;flex:1">
             <div class="insight-title">🚀 System Reliability</div>
             <div class="insight-desc">API latency has decreased by 40ms following the implementation of the new caching layer for Flight searches. External error rates are below 0.1%.</div>
           </div>
@@ -121,25 +122,24 @@ const user = Auth.getUser();
 
 async function loadAnalytics() {
   try {
-    const [payments, travelers, guides, bookings] = await Promise.all([
+    const [payments, travelers, guides, bookings, agencies] = await Promise.all([
       apiGetSnake('/payments'),
       apiGetSnake('/travelers'),
       apiGetSnake('/guides'),
-      apiGetSnake('/bookings')
+      apiGetSnake('/bookings'),
+      apiGetSnake('/agencies')
     ]);
 
     const totalRev = payments.reduce((s, p) => s + (p.amount || 0), 0);
     document.getElementById('total-revenue').textContent = formatCurrency(totalRev);
     document.getElementById('mau-count').textContent = travelers.length + guides.length + 42;
+    document.getElementById('agency-count').textContent = agencies.length;
+    const activeAgencies = agencies.filter(a => a.status === 'active' || a.status === 'verified').length;
+    document.getElementById('agency-status').textContent = `${activeAgencies} Active Agencies`;
 
     // Booking Chart
-    const data = [12, 19, 15, 25, 22, bookings.length];
-    const months = ['Jan','Feb','Mar','Apr','May','Jun'];
-    const max = Math.max(...data);
-    document.getElementById('booking-chart').innerHTML = data.map((v, i) => `
-      <div class="bar-item" style="height:${Math.round(v/max*100)}%" title="${v} bookings">
-        <div class="bar-label">${months[i]}</div>
-      </div>`).join('');
+    window._allBookings = bookings;
+    updateChart('All');
 
     // Service Distribution
     const counts = { Flight: 0, Hotel: 0, Transport: 0 };
@@ -158,7 +158,27 @@ async function loadAnalytics() {
           </div>
         </div>`;
     }).join('');
-  } catch (e) { console.error('Failed to load analytics:', e); }
+  } catch (e) {
+    console.error('Error loading analytics:', e);
+  }
+}
+
+function updateChart(filterType) {
+  let filtered = window._allBookings || [];
+  if (filterType !== 'All') {
+    filtered = filtered.filter(b => b.type === filterType);
+  }
+  
+  // Create some mock historical data based on current filtered length
+  const base = filtered.length;
+  const data = [Math.floor(base*0.5), Math.floor(base*0.8), Math.floor(base*0.6), Math.floor(base*1.1), Math.floor(base*0.9), base];
+  
+  const months = ['Jan','Feb','Mar','Apr','May','Jun'];
+  const max = Math.max(...data, 1);
+  document.getElementById('booking-chart').innerHTML = data.map((v, i) => `
+    <div class="bar-item" style="height:${Math.round(v/max*100)}%" title="${v} bookings">
+      <div class="bar-label">${months[i]}</div>
+    </div>`).join('');
 }
 
 loadAnalytics();

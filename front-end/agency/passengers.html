@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlobeSync — Manage Passengers</title>
+<link rel="stylesheet" href="../static/shared.css">
+<style>
+:root{--teal:#19b6a6;--teal-dark:#128b7d;--teal-soft:#f0fdfc;--gradient-agency:linear-gradient(135deg,#19b6a6 0%,#0ea5e9 100%)}
+.sidebar-logo .logo-icon{background:var(--gradient-agency)!important}
+.sidebar-logo .logo-text{background:var(--gradient-agency);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-item.active,.nav-item:hover{background:var(--teal-soft);color:var(--teal)}
+.btn-agency{background:var(--gradient-agency);color:#fff;border:none;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-main);box-shadow:0 4px 12px rgba(25,182,166,0.25);transition:all 0.2s}
+.btn-agency:hover{opacity:0.9;transform:translateY(-1px)}
+.table-card{background:#fff;border-radius:16px;border:1px solid rgba(0,0,0,0.04);box-shadow:0 4px 16px rgba(0,0,0,0.02);overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;padding:14px 16px;border-bottom:1px solid var(--border-light);background:#fafafa}
+td{padding:14px 16px;border-bottom:1px solid var(--border-light);color:var(--text-primary)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+.action-btns{display:flex;gap:8px}
+.btn-sm{padding:5px 12px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-main);border:none;transition:all 0.15s}
+.btn-edit{background:#eff6ff;color:#3b82f6}.btn-edit:hover{background:#dbeafe}
+.btn-del{background:#fef2f2;color:#ef4444}.btn-del:hover{background:#fee2e2}
+.empty-state{text-align:center;padding:60px;color:var(--text-muted)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.empty-title{font-size:17px;font-weight:600;margin-bottom:6px;color:var(--text-primary)}
+.empty-sub{font-size:14px;margin-bottom:20px}
+/* Drawer */
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:200;display:none;align-items:center;justify-content:center}
+.drawer-overlay.open{display:flex}
+.drawer{background:#fff;border-radius:20px;padding:32px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,0.15)}
+.drawer-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.drawer-title{font-size:20px;font-weight:800;color:var(--text-primary)}
+.drawer-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted);padding:4px}
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:6px}
+.form-control{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;outline:none;transition:border-color 0.2s;font-family:var(--font-main);background:#fafafa;color:var(--text-primary)}
+.form-control:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(25,182,166,0.1)}
+.form-control.error-field{border-color:var(--danger);background:#fff8f8}
+.error-msg{font-size:12px;color:var(--danger);margin-top:4px;display:none}
+.error-msg.show{display:block}
+.drawer-footer{display:flex;gap:10px;margin-top:4px}
+.btn-cancel{flex:1;padding:11px;background:#f3f4f6;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-main);color:var(--text-secondary)}
+.btn-save{flex:2;padding:11px;background:var(--gradient-agency);border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-main);color:#fff;box-shadow:0 4px 12px rgba(25,182,166,0.25)}
+.avatar-initials{width:34px;height:34px;border-radius:50%;background:var(--teal-soft);color:var(--teal);font-size:13px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon" style="font-size:18px">🏢</div>
+      <div><div class="logo-text">GlobeSync</div><div class="logo-sub">Agency Portal</div></div>
+    </div>
+        <nav class="sidebar-nav">
+      <a class="nav-item" href="agency-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="browse-packages.html"><span class="nav-icon">📦</span>Browse Packages</a>
+      <a class="nav-item" href="create-itinerary.html"><span class="nav-icon">📅</span>Create Itinerary</a>
+      <a class="nav-item" href="bookings.html"><span class="nav-icon">📋</span>My Bookings</a>
+      <a class="nav-item active" href="passengers.html"><span class="nav-icon">👥</span>Passengers</a>
+      <a class="nav-item" href="commission.html"><span class="nav-icon">💰</span>Commission Ledger</a>
+      <a class="nav-item" href="payments.html"><span class="nav-icon">💳</span>Payments</a>
+      <a class="nav-item" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+      <a class="nav-item" href="profile.html"><span class="nav-icon">🏢</span>Agency Profile</a>
+      <a class="nav-item" data-page="support" href="support.html"><span class="nav-icon">🎧</span>Support</a>
+    </nav>
+    <div style="padding:12px;margin-top:auto">
+      <div style="background:var(--teal-soft);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--teal-dark);border:1px solid #99f6e4">
+        💼 <strong>Agency Role</strong><br>Reseller access only.
+      </div>
+    </div>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="agencyLogout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="page-title">Passengers</div>
+        <div class="page-subtitle">Manage your offline client roster</div>
+      </div>
+      <button class="btn-agency" onclick="openDrawer()">+ Add Passenger</button>
+    </div>
+
+    <div class="table-card" id="table-wrap">
+      <!-- Rendered by JS -->
+    </div>
+  </main>
+</div>
+
+<!-- Add / Edit Drawer -->
+<div class="drawer-overlay" id="drawer">
+  <div class="drawer">
+    <div class="drawer-head">
+      <div class="drawer-title" id="drawer-title">Add Passenger</div>
+      <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <form id="passenger-form" onsubmit="savePassenger(event)" novalidate>
+      <input type="hidden" id="edit-id">
+      <div class="form-group">
+        <label class="form-label">Full Name *</label>
+        <input type="text" id="p-name" class="form-control" placeholder="e.g., Priya Sharma">
+        <div class="error-msg" id="p-name-error"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label class="form-label">Age *</label>
+          <input type="number" id="p-age" class="form-control" placeholder="e.g., 34" min="1" max="120">
+          <div class="error-msg" id="p-age-error"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Gender *</label>
+          <select id="p-gender" class="form-control">
+            <option value="">Select…</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+          <div class="error-msg" id="p-gender-error"></div>
+        </div>
+      </div>
+
+      <div class="drawer-footer">
+        <button type="button" class="btn-cancel" onclick="closeDrawer()">Cancel</button>
+        <button type="submit" class="btn-save">Save Passenger</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="../JS/mockData.js"></script>
+<script src="../JS/api.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/agency.js"></script>
+<script>
+requireAgency();
+const agency = getAgency();
+const agencyId = agency.agency_id || agency.agencyId;
+
+async function render() {
+  const passengers = await getMyPassengers(agencyId);
+  const wrap = document.getElementById('table-wrap');
+  if (!passengers.length) {
+    wrap.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">👥</div>
+      <div class="empty-title">No passengers added yet</div>
+      <div class="empty-sub">Add your offline clients to start booking trips on their behalf.</div>
+      <button class="btn-agency" onclick="openDrawer()">+ Add Your First Passenger</button>
+    </div>`;
+    return;
+  }
+  const rows = passengers.map(p => `
+    <tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="avatar-initials">${p.name.charAt(0)}</div>
+        <strong>${p.name}</strong>
+      </div></td>
+      <td>${p.age}</td>
+      <td>${p.gender}</td>
+      <td><div class="action-btns">
+        <button class="btn-sm btn-edit" onclick="openEdit(${p.pass_id})">Edit</button>
+        <button class="btn-sm btn-del"  onclick="doDelete(${p.pass_id})">Remove</button>
+      </div></td>
+    </tr>`).join('');
+  wrap.innerHTML = `<table>
+    <thead><tr><th>Name</th><th>Age</th><th>Gender</th><th>Actions</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+let editPassengers = [];
+async function openEdit(id) {
+  const passengers = await getMyPassengers(agencyId);
+  const p = passengers.find(x => x.pass_id === id);
+  if (!p) return;
+  document.getElementById('drawer-title').textContent = 'Edit Passenger';
+  document.getElementById('edit-id').value  = id;
+  document.getElementById('p-name').value   = p.name;
+  document.getElementById('p-age').value    = p.age;
+  document.getElementById('p-gender').value = p.gender;
+  clearFormErrors();
+  document.getElementById('drawer').classList.add('open');
+}
+
+function openDrawer() {
+  document.getElementById('drawer-title').textContent = 'Add Passenger';
+  document.getElementById('edit-id').value = '';
+  document.getElementById('passenger-form').reset();
+  clearFormErrors();
+  document.getElementById('drawer').classList.add('open');
+}
+
+function closeDrawer() { document.getElementById('drawer').classList.remove('open'); }
+
+function clearFormErrors() {
+  ['p-name','p-age','p-gender'].forEach(id => {
+    const input = document.getElementById(id);
+    const err   = document.getElementById(id + '-error');
+    if (input) input.classList.remove('error-field');
+    if (err)   { err.textContent = ''; err.classList.remove('show'); }
+  });
+}
+
+function showFErr(id, msg) {
+  const err = document.getElementById(id + '-error');
+  const inp = document.getElementById(id);
+  if (err) { err.textContent = msg; err.classList.add('show'); }
+  if (inp) inp.classList.add('error-field');
+}
+
+async function savePassenger(e) {
+  e.preventDefault();
+  clearFormErrors();
+  const editId  = document.getElementById('edit-id').value;
+  const name    = document.getElementById('p-name').value.trim();
+  const age     = parseInt(document.getElementById('p-age').value);
+  const gender  = document.getElementById('p-gender').value;
+
+  let valid = true;
+  if (!name) { showFErr('p-name', 'Name is required'); valid = false; }
+  if (!age || age < 1 || age > 120) { showFErr('p-age', 'Age must be 1–120'); valid = false; }
+  if (!gender) { showFErr('p-gender', 'Gender is required'); valid = false; }
+  if (!valid) return;
+
+  if (editId) {
+    const res = await updatePassenger(parseInt(editId), agencyId, { name, age, gender });
+    if (!res.ok) { Object.entries(res.errors || {}).forEach(([k,v]) => showFErr('p-'+k, v)); return; }
+    showToast('Passenger updated successfully', 'success');
+  } else {
+    const res = await addPassenger(agencyId, { name, age, gender });
+    if (!res.ok) { Object.entries(res.errors || {}).forEach(([k,v]) => showFErr('p-'+k, v)); return; }
+    showToast('Passenger added successfully', 'success');
+  }
+
+  closeDrawer();
+  await render();
+}
+
+async function doDelete(id) {
+  if (!confirm('Remove this passenger? This cannot be undone.')) return;
+  await deletePassenger(id, agencyId);
+  showToast('Passenger removed', 'info');
+  await render();
+}
+
+// Live clear
+document.querySelectorAll('.form-control').forEach(el => {
+  el.addEventListener('input', () => {
+    el.classList.remove('error-field');
+    const err = document.getElementById(el.id + '-error');
+    if (err) err.classList.remove('show');
+  });
+});
+
+// Close overlay on backdrop click
+document.getElementById('drawer').addEventListener('click', e => {
+  if (e.target === document.getElementById('drawer')) closeDrawer();
+});
+
+render();
+</script>
+</body>
+</html>

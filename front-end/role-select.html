@@ -10,10 +10,12 @@
 :root{
   --primary:#E8467C;
   --secondary:#F5A623;
+  --teal:#19b6a6;
   --gradient:linear-gradient(135deg,#E8467C 0%,#F5A623 100%);
   --grad-guide:linear-gradient(135deg,#f28c5e 0%,#f5a623 100%);
   --grad-support:linear-gradient(135deg,#f5a623 0%,#ffd359 100%);
   --grad-super:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);
+  --grad-agency:linear-gradient(135deg,#19b6a6 0%,#0ea5e9 100%);
   --text:#1a1a2e;
   --muted:#6b7280;
   --border:#f0e6e6;
@@ -31,7 +33,7 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;justify-conten
 h1{font-family:'Inter',sans-serif;font-size:38px;font-weight:800;text-align:center;margin-bottom:12px;display:inline-block;background:var(--gradient);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1.2}
 .subtitle{color:var(--muted);font-size:16px;text-align:center;margin-bottom:56px;font-weight:500}
 
-.roles-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:860px;width:100%}
+.roles-grid{display:grid;grid-template-columns:repeat(3, 1fr);gap:24px;max-width:1000px;width:100%}
 
 .role-card{background:#fff;border-radius:20px;padding:40px 32px;box-shadow:0 8px 32px rgba(0,0,0,0.04);transition:all 0.3s;display:flex;flex-direction:column;align-items:center;text-align:center;text-decoration:none;cursor:pointer;border:1px solid rgba(0,0,0,0.02)}
 .role-card:hover{transform:translateY(-4px);box-shadow:0 12px 48px rgba(0,0,0,0.08)}
@@ -40,6 +42,7 @@ h1{font-family:'Inter',sans-serif;font-size:38px;font-weight:800;text-align:cent
 .traveler .role-icon-wrap{background:#fff0f5;color:#E8467C}
 .guide .role-icon-wrap{background:#fff5ef;color:#f28c5e}
 .support .role-icon-wrap{background:#fffaf0;color:#f5a623}
+.agency .role-icon-wrap{background:#f0fdfc;color:#19b6a6}
 .admin .role-icon-wrap{background:#fdf2f8;color:#d946ef}
 .super .role-icon-wrap{background:#f0f0ff;color:#6366f1;box-shadow:0 4px 16px rgba(99,102,241,0.2)}
 
@@ -54,6 +57,7 @@ h1{font-family:'Inter',sans-serif;font-size:38px;font-weight:800;text-align:cent
 .btn-traveler{background:var(--gradient);color:#fff;box-shadow:0 4px 12px rgba(232,70,124,0.2)}
 .btn-guide{background:#f28c5e;color:#fff;box-shadow:0 4px 12px rgba(242,140,94,0.2)}
 .btn-support{background:var(--grad-support);color:#fff;box-shadow:0 4px 12px rgba(245,166,35,0.2);color:#854d0e}
+.btn-agency{background:var(--grad-agency);color:#fff;box-shadow:0 4px 12px rgba(25,182,166,0.2)}
 .btn-admin{background:transparent;color:#d946ef;border:1px solid #fbcfe8;max-width:200px;margin: 0 auto}
 .btn-admin:hover{background:#fdf2f8}
 .btn-super{background:var(--grad-super);color:#fff;box-shadow:0 4px 14px rgba(99,102,241,0.3);max-width:200px;margin:0 auto}
@@ -62,7 +66,6 @@ h1{font-family:'Inter',sans-serif;font-size:38px;font-weight:800;text-align:cent
 
 .signup-link{margin-top:48px;font-size:14px;color:var(--muted)}
 .signup-link a{color:var(--secondary);font-weight:600;text-decoration:none}
-.roles-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:860px;width:100%}
 </style>
 </head>
 <body>
@@ -113,6 +116,19 @@ h1{font-family:'Inter',sans-serif;font-size:38px;font-weight:800;text-align:cent
         <li>Priority escalations</li>
       </ul>
       <button type="button" class="btn-role btn-support">Login as Support</button>
+    </a>
+
+    <a href="agency-login.html" class="role-card agency">
+      <div class="role-icon-wrap">🏢</div>
+      <div class="role-title">Agency Partner</div>
+      <div class="role-desc">Resell packages to offline clients</div>
+      <ul class="role-features">
+        <li>Manage offline passengers</li>
+        <li>Book at retail price</li>
+        <li>Track commission earned</li>
+        <li>B2B dashboard</li>
+      </ul>
+      <button type="button" class="btn-role btn-agency">Login as Agency</button>
     </a>
     
     <div class="role-card admin" onclick="location.href='login.html'">

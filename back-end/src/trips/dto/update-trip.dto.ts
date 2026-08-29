@@ -7,6 +7,7 @@ export class UpdateTripDto {
   @ApiPropertyOptional({ example: '2026-08-07' }) @IsOptional() @IsString() endDate?: string;
   @ApiPropertyOptional({ example: 150000 }) @IsOptional() @IsNumber() @Min(0) budget?: number;
   @ApiPropertyOptional({ example: 1 }) @IsOptional() @IsNumber() travelerId?: number;
+  @ApiPropertyOptional({ example: 1 }) @IsOptional() @IsNumber() agencyId?: number;
   @ApiPropertyOptional({ example: 1 }) @IsOptional() @IsNumber() guideId?: number;
   @ApiPropertyOptional({ example: 1 }) @IsOptional() @IsNumber() packageId?: number;
   @ApiPropertyOptional({ example: 'Confirmed', enum: ['Planning', 'Pending', 'Confirmed', 'Completed', 'Cancelled'] })

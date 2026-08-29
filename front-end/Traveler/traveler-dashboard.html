@@ -341,7 +341,7 @@
           <div class="dash-stat-top">
             <div>
               <div class="dash-stat-label">Active Trips</div>
-              <div class="dash-stat-value" id="active-trips">3</div>
+              <div class="dash-stat-value" id="active-trips">—</div>
             </div>
             <div class="dash-stat-icon" style="background:#fdf2f8;color:var(--primary)">📍</div>
           </div>
@@ -350,7 +350,7 @@
           <div class="dash-stat-top">
             <div>
               <div class="dash-stat-label">Upcoming</div>
-              <div class="dash-stat-value" id="upcoming-bookings">1</div>
+              <div class="dash-stat-value" id="upcoming-bookings">—</div>
             </div>
             <div class="dash-stat-icon" style="background:#fff7ed;color:var(--warning)">🗓️</div>
           </div>
@@ -359,7 +359,7 @@
           <div class="dash-stat-top">
             <div>
               <div class="dash-stat-label">Total Spent</div>
-              <div class="dash-stat-value" id="total-spent">₹2,450</div>
+              <div class="dash-stat-value" id="total-spent">—</div>
             </div>
 
           </div>
@@ -397,38 +397,24 @@
       <div class="dash-card">
         <div class="dash-card-title">Expense Summary</div>
         <div class="exp-row">
-          <div style="font-size:13px;color:var(--text-muted)">This Month</div>
-          <div class="exp-spent" id="month-spent">₹1,240</div>
+          <div style="font-size:13px;color:var(--text-muted)">Total Spent</div>
+          <div class="exp-spent" id="month-spent">—</div>
         </div>
         <div class="prog-bar-container">
-          <div class="prog-bar-fill" id="expense-progress" style="width:65%"></div>
+          <div class="prog-bar-fill" id="expense-progress" style="width:0%"></div>
         </div>
         <div class="exp-budget-text">
-          <span>65% of trip cost</span>
-          <span id="total-budget">₹1,900 total</span>
+          <span id="expense-pct-label">No expenses yet</span>
+          <span id="total-budget"></span>
         </div>
-        <button class="btn-outline" style="width:100%" onclick="location.href='expenses.html'">View Details</button>
+        <button class="btn-outline" style="width:100%;margin-top:12px" onclick="location.href='expenses.html'">View Details</button>
       </div>
 
       <!-- NOTIFICATIONS -->
       <div class="dash-card">
         <div class="dash-card-title">🔔 Notifications</div>
         <div id="activity-list">
-          <div class="notif-item">
-            <div class="notif-title">Booking Confirmed</div>
-            <div class="notif-desc">Your hotel in Paris has been confirmed</div>
-            <div class="notif-time">2h ago</div>
-          </div>
-          <div class="notif-item">
-            <div class="notif-title">Guide Assigned</div>
-            <div class="notif-desc">Marie has been assigned to your Paris trip</div>
-            <div class="notif-time">5h ago</div>
-          </div>
-          <div class="notif-item">
-            <div class="notif-title">Payment Received</div>
-            <div class="notif-desc">Payment for Tokyo booking received</div>
-            <div class="notif-time">1d ago</div>
-          </div>
+          <!-- Populated by renderNotifs() -->
         </div>
       </div>
     </main>

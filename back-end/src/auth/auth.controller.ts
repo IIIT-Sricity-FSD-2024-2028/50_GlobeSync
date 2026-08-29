@@ -6,7 +6,7 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { TravelerLoginDto, StaffLoginDto, LoginResponseDto } from './dto';
+import { TravelerLoginDto, StaffLoginDto, AgencyLoginDto, LoginResponseDto } from './dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -57,5 +57,28 @@ export class AuthController {
   })
   staffLogin(@Body() dto: StaffLoginDto) {
     return this.authService.staffLogin(dto.email, dto.password);
+  }
+
+  @Post('agency-login')
+  @ApiOperation({
+    summary: 'Agency login',
+    description: 'Authenticate an agency using email and password. Fails if agency is not approved.',
+  })
+  @ApiBody({ type: AgencyLoginDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Login successful',
+    type: LoginResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid email, password, or agency not approved',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error — email or password missing/invalid',
+  })
+  agencyLogin(@Body() dto: AgencyLoginDto) {
+    return this.authService.agencyLogin(dto.email, dto.password);
   }
 }

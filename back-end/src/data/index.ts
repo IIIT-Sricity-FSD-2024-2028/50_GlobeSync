@@ -20,5 +20,7 @@ export { expenses, Expense } from './expenses.data';
 export { reviews, Review } from './reviews.data';
 export { supportTickets, SupportTicket } from './support-tickets.data';
 export { messages, Message } from './messages.data';
-export { savedPassengers, SavedPassenger } from './saved-passengers.data';
+export { passengers, Passenger } from './passengers.data';
 export { packageBookings, PackageBooking } from './package-bookings.data';
+export { agencies, Agency } from './agencies.data';
+export { commissionLedger, CommissionEntry } from './commission-ledger.data';

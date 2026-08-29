@@ -11,7 +11,9 @@ export interface Payment {
   paymentDate: string;
   method: 'Card' | 'UPI' | 'Cash';
   status: 'Paid' | 'Pending';
-  bookingId: number;
+  bookingId?: number;
+  tripId?: number;
+  agencyId?: number;
 }
 
 export const payments: Payment[] = [

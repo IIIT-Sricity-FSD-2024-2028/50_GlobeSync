@@ -13,7 +13,7 @@ export class ExpensesController {
   constructor(private readonly expensesService: ExpensesService) {}
 
   @Get('trip/:tripId')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Get expenses by trip ID', description: 'Returns all expenses for a trip.' })
   @ApiParam({ name: 'tripId', type: Number })
@@ -23,7 +23,7 @@ export class ExpensesController {
   }
 
   @Post()
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Create an expense' })
   @ApiResponse({ status: 201, description: 'Expense created' })
@@ -31,7 +31,7 @@ export class ExpensesController {
   create(@Body() dto: CreateExpenseDto) { return this.expensesService.create(dto); }
 
   @Put(':id')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Update an expense' })
   @ApiParam({ name: 'id', type: Number })

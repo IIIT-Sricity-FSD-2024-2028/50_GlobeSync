@@ -18,9 +18,13 @@ export class CreateTripDto {
   @IsNotEmpty() @IsNumber() @Min(0)
   budget: number;
 
-  @ApiProperty({ example: 1, description: 'Traveler ID' })
-  @IsNotEmpty() @IsNumber()
-  travelerId: number;
+  @ApiPropertyOptional({ example: 1, description: 'Traveler ID' })
+  @IsOptional() @IsNumber()
+  travelerId?: number;
+
+  @ApiPropertyOptional({ example: 1, description: 'Agency ID' })
+  @IsOptional() @IsNumber()
+  agencyId?: number;
 
   @ApiPropertyOptional({ example: 1, description: 'Guide ID (nullable)' })
   @IsOptional() @IsNumber()

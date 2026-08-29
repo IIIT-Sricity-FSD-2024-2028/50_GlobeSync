@@ -255,4 +255,70 @@ aliases :
   -Journey State
 
 
-  
+
+Domainterm19 : Travel Agency
+
+definition :
+   A registered business entity that acts as a reseller of platform travel products
+   to its own offline customer base. The agency is the platform's direct commercial
+   customer; the people actually travelling are the agency's customers and do not 
+   receive platform accounts or login credentials.
+examples :
+  - A travel agency browning packages and booking a Bali trip for a client group
+  - An agency raising a support ticket on behalf of a passenger who cannot contact
+    the platform directly
+aliases :
+  - Reseller Agency
+  - B2B Partner
+
+
+
+DomainTerm20 : Passenger
+
+definition :
+   A person who will physically undertake a trip, representd only as data (name, 
+   age, gender, contact) with no platform account of thier own. A passenger is 
+   owned either by a registered Traveler (the normal B2C self-booking case) or by 
+   an Agency (the B2B reseller case). This distinction is what allows B2C and B2B 
+   bookings to share the same trip and booking machinery.
+examples :
+  - A traveler saving their spouse as a passenger for a family trip
+  - An agency adding a client named Priya Sharma before booking a Dubai package on
+    her behalf
+aliases :
+  - Travel Participant
+  - End Client (when agency-owned)
+
+
+
+DomainTerm21 : Commission
+
+definition :
+   A percentage-based earning credited to an agency's running ledger for each 
+   booking they generate on the platform. The commission rate is assigned by an 
+   Admin at agency approval time and snapshotted on each ledger entry so the 
+   historical record is preserved even if the rate changes later.
+examples :
+  - Agency earns 10 percent on a 145,000 rupee package booking, logged as 14,500
+    pending until the trip completes
+  - Commission status changes to disbursed after the trip is marked Completed
+aliases :
+  - Reseller Commission
+  - Agency Earning
+
+
+
+DomainTerm22 : Agency Onboarding
+
+definition :
+   The process by which a business registers on the platform as a reseller, 
+   submitting basic business details, and then waits for an Admin to review and 
+   either approve or reject the application. Approval is the manual gate that 
+   prevents unverified businesses from self-signing-up as resellers. Once approved
+   the Admin also sets the agency's commission rate.
+examples :
+  - Agency submits registration form with business name and contact details
+  - Admin reviews the application and sets commission rate to 8 percent before approving
+aliases :
+  - Agency Registration
+  - Reseller Approval

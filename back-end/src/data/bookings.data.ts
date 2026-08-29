@@ -9,9 +9,10 @@
 export interface Booking {
   bookingId: number;
   bookingDate: string;
-  status: 'Confirmed' | 'Pending';
+  status: 'Pending' | 'Confirmed' | 'Cancelled';
   tripId: number;
-  travelerId: number;
+  travelerId?: number;
+  agencyId?: number;
   service: string;
   type: 'Flight' | 'Hotel' | 'Transport' | 'Activity';
   amount: number;

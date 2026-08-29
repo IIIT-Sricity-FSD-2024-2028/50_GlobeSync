@@ -95,6 +95,45 @@
         ]
       }
     },
+    "/auth/agency-login": {
+      "post": {
+        "description": "Authenticate an agency using email and password. Fails if agency is not approved.",
+        "operationId": "AuthController_agencyLogin",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgencyLoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error — email or password missing/invalid"
+          },
+          "401": {
+            "description": "Invalid email, password, or agency not approved"
+          }
+        },
+        "summary": "Agency login",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/travelers": {
       "get": {
         "description": "Returns list of all travelers. Accessible by superuser, admin, support, and guide.",
@@ -103,7 +142,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -112,7 +151,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -178,7 +218,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -187,7 +227,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -224,7 +265,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -233,7 +274,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -283,7 +325,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -292,7 +334,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -316,13 +359,13 @@
     },
     "/guides": {
       "get": {
-        "description": "Returns list of all guides. Accessible by superuser, admin, traveler, and guide.",
+        "description": "Returns list of all guides. Accessible by superuser, admin, traveler, guide, and agency.",
         "operationId": "GuidesController_findAll",
         "parameters": [
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -331,7 +374,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -356,7 +400,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -365,7 +409,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -399,7 +444,7 @@
     },
     "/guides/{id}": {
       "get": {
-        "description": "Returns a single guide. Accessible by superuser, admin, traveler, and guide.",
+        "description": "Returns a single guide. Accessible by superuser, admin, traveler, guide, and agency.",
         "operationId": "GuidesController_findOne",
         "parameters": [
           {
@@ -414,7 +459,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -423,7 +468,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -460,7 +506,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -469,7 +515,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -519,7 +566,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -528,7 +575,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -552,13 +600,13 @@
     },
     "/packages": {
       "get": {
-        "description": "Returns list of all travel packages. Accessible by superuser, admin, traveler, and guide.",
+        "description": "Returns list of all travel packages. Accessible by superuser, admin, traveler, guide, and agency.",
         "operationId": "PackagesController_findAll",
         "parameters": [
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -567,7 +615,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -592,7 +641,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -601,7 +650,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -635,7 +685,7 @@
     },
     "/packages/{id}": {
       "get": {
-        "description": "Returns a single package. Accessible by superuser, admin, traveler, and guide.",
+        "description": "Returns a single package. Accessible by superuser, admin, traveler, guide, and agency.",
         "operationId": "PackagesController_findOne",
         "parameters": [
           {
@@ -650,7 +700,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -659,7 +709,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -696,7 +747,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -705,7 +756,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -755,7 +807,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -764,7 +816,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -794,7 +847,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -803,7 +856,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -827,7 +881,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -836,7 +890,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -889,7 +944,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -898,7 +953,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -939,7 +995,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -948,7 +1004,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -999,7 +1056,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -1008,7 +1065,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -1043,7 +1101,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -1052,7 +1110,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -1093,7 +1152,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -1102,7 +1161,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -1127,6 +1187,57 @@
         ]
       }
     },
+    "/trips/agency/{agencyId}": {
+      "get": {
+        "description": "Returns all trips for an agency.",
+        "operationId": "TripsController_findByAgency",
+        "parameters": [
+          {
+            "name": "agencyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trips for agency"
+          }
+        },
+        "summary": "Get trips by agency ID",
+        "tags": [
+          "trips"
+        ]
+      }
+    },
     "/trips/{id}/status": {
       "patch": {
         "description": "Updates only the status of a trip. Guides can update status of assigned trips. Travelers can update status after payment.",
@@ -1143,7 +1254,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -1152,7 +1263,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -1198,7 +1310,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -1207,7 +1319,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -1228,7 +1341,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -1237,7 +1350,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -1290,7 +1404,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -1299,7 +1413,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -1340,7 +1455,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -1349,7 +1464,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -1400,7 +1516,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -1409,7 +1525,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -1443,7 +1560,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -1452,7 +1569,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -1477,6 +1595,56 @@
         ]
       }
     },
+    "/bookings/agency/{agencyId}": {
+      "get": {
+        "operationId": "BookingsController_findByAgency",
+        "parameters": [
+          {
+            "name": "agencyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bookings for agency"
+          }
+        },
+        "summary": "Get bookings by agency ID",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
     "/itineraries/trip/{tripId}": {
       "get": {
         "description": "Returns all itinerary items for a trip.",
@@ -1493,7 +1661,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -1502,7 +1670,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -1534,7 +1703,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -1543,7 +1712,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -1596,7 +1766,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -1605,7 +1775,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -1656,7 +1827,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -1665,7 +1836,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -1700,7 +1872,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -1709,7 +1881,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -1741,7 +1914,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -1750,7 +1923,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -1803,7 +1977,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -1812,7 +1986,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -1863,7 +2038,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -1872,7 +2047,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -1898,7 +2074,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -1907,7 +2083,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -1928,7 +2105,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -1937,7 +2114,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -1990,7 +2168,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -1999,7 +2177,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -2042,7 +2221,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -2051,7 +2230,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -2076,14 +2256,22 @@
         ]
       }
     },
-    "/refunds": {
+    "/payments/agency/{agencyId}": {
       "get": {
-        "operationId": "RefundsController_findAll",
+        "operationId": "PaymentsController_findByAgency",
         "parameters": [
+          {
+            "name": "agencyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -2092,7 +2280,50 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payments for agency"
+          }
+        },
+        "summary": "Get payments by agency ID",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/refunds": {
+      "get": {
+        "operationId": "RefundsController_findAll",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -2113,7 +2344,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -2122,7 +2353,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -2175,7 +2407,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -2184,7 +2416,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -2212,6 +2445,56 @@
         ]
       }
     },
+    "/refunds/agency/{agencyId}": {
+      "get": {
+        "operationId": "RefundsController_findByAgency",
+        "parameters": [
+          {
+            "name": "agencyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Refunds for agency"
+          }
+        },
+        "summary": "Get refunds by agency ID",
+        "tags": [
+          "refunds"
+        ]
+      }
+    },
     "/refunds/{id}/status": {
       "patch": {
         "operationId": "RefundsController_updateStatus",
@@ -2227,7 +2510,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -2236,7 +2519,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -2272,7 +2556,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -2281,7 +2565,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -2302,7 +2587,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -2311,7 +2596,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -2364,7 +2650,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -2373,7 +2659,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -2405,7 +2692,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -2414,7 +2701,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -2448,7 +2736,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -2457,7 +2745,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -2480,7 +2769,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -2489,7 +2778,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -2510,7 +2800,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -2519,7 +2809,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -2572,7 +2863,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -2581,7 +2872,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -2622,7 +2914,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -2631,7 +2923,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -2665,7 +2958,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -2674,7 +2967,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -2699,6 +2993,56 @@
         ]
       }
     },
+    "/support-tickets/agency/{agencyId}": {
+      "get": {
+        "operationId": "SupportTicketsController_findByAgency",
+        "parameters": [
+          {
+            "name": "agencyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tickets for agency"
+          }
+        },
+        "summary": "Get tickets by agency ID",
+        "tags": [
+          "support-tickets"
+        ]
+      }
+    },
     "/support-tickets/{id}/status": {
       "patch": {
         "operationId": "SupportTicketsController_updateStatus",
@@ -2714,7 +3058,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -2723,7 +3067,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -2760,7 +3105,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -2769,7 +3114,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -2790,7 +3136,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -2799,7 +3145,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -2850,7 +3197,8 @@
               "enum": [
                 "traveler",
                 "guide",
-                "support"
+                "support",
+                "agency"
               ],
               "type": "string"
             }
@@ -2866,7 +3214,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -2875,7 +3223,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -2913,7 +3262,8 @@
               "enum": [
                 "traveler",
                 "guide",
-                "support"
+                "support",
+                "agency"
               ],
               "type": "string"
             }
@@ -2935,7 +3285,8 @@
               "enum": [
                 "traveler",
                 "guide",
-                "support"
+                "support",
+                "agency"
               ],
               "type": "string"
             }
@@ -2952,7 +3303,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -2961,7 +3312,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -2994,7 +3346,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -3003,7 +3355,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -3030,7 +3383,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -3039,7 +3392,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -3074,7 +3428,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -3083,7 +3437,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -3127,7 +3482,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -3136,7 +3491,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           },
@@ -3172,7 +3528,7 @@
           {
             "name": "x-user-role",
             "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
             "required": false,
             "schema": {
               "type": "string",
@@ -3181,7 +3537,8 @@
                 "guide",
                 "support",
                 "admin",
-                "superuser"
+                "superuser",
+                "agency"
               ]
             }
           }
@@ -3197,6 +3554,980 @@
         "summary": "Support dashboard",
         "tags": [
           "dashboard"
+        ]
+      }
+    },
+    "/dashboard/agency/{agencyId}": {
+      "get": {
+        "description": "B2B metrics: total bookings, passengers, pending/settled commission, recent bookings.",
+        "operationId": "DashboardController_getAgencyDashboard",
+        "parameters": [
+          {
+            "name": "agencyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agency dashboard data"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "Agency dashboard",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/agencies/register": {
+      "post": {
+        "operationId": "AgenciesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAgencyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Agency registered successfully (pending status)"
+          },
+          "400": {
+            "description": "Validation error / Email in use",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Register a new agency (public)",
+        "tags": [
+          "agencies"
+        ]
+      }
+    },
+    "/agencies": {
+      "post": {
+        "operationId": "AgenciesController_createDirect",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDirectAgencyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Agency created"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new agency directly (Admin/Superuser only)",
+        "tags": [
+          "agencies"
+        ]
+      },
+      "get": {
+        "operationId": "AgenciesController_findAll",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return all agencies"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all agencies (Admin/Superuser only)",
+        "tags": [
+          "agencies"
+        ]
+      }
+    },
+    "/agencies/{id}": {
+      "get": {
+        "operationId": "AgenciesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return the agency"
+          },
+          "403": {
+            "description": "Forbidden (not owner)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a specific agency by ID",
+        "tags": [
+          "agencies"
+        ]
+      },
+      "patch": {
+        "operationId": "AgenciesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAgencyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Agency updated"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update agency profile (Agency only ownership checked, or Admin/Superuser)",
+        "tags": [
+          "agencies"
+        ]
+      },
+      "delete": {
+        "operationId": "AgenciesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agency deleted"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete an agency (Admin/Superuser only)",
+        "tags": [
+          "agencies"
+        ]
+      }
+    },
+    "/agencies/{id}/status": {
+      "patch": {
+        "operationId": "AgenciesController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAgencyStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status updated"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update agency status & commission (Admin/Superuser only)",
+        "tags": [
+          "agencies"
+        ]
+      }
+    },
+    "/passengers": {
+      "post": {
+        "operationId": "PassengersController_create",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePassengerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Passenger created successfully"
+          },
+          "400": {
+            "description": "Validation error (must have exactly one owner)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a passenger",
+        "tags": [
+          "passengers"
+        ]
+      },
+      "get": {
+        "operationId": "PassengersController_findAll",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return all passengers"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all passengers (Admin/Superuser only)",
+        "tags": [
+          "passengers"
+        ]
+      }
+    },
+    "/passengers/{id}": {
+      "get": {
+        "operationId": "PassengersController_findOne",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return the passenger"
+          },
+          "403": {
+            "description": "Forbidden (not owner)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a passenger by ID (ownership checked via Guard)",
+        "tags": [
+          "passengers"
+        ]
+      },
+      "patch": {
+        "operationId": "PassengersController_update",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePassengerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Passenger updated"
+          },
+          "403": {
+            "description": "Forbidden (not owner)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a passenger (ownership checked via Guard)",
+        "tags": [
+          "passengers"
+        ]
+      },
+      "delete": {
+        "operationId": "PassengersController_remove",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Passenger deleted"
+          },
+          "403": {
+            "description": "Forbidden (not owner)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a passenger (ownership checked via Guard)",
+        "tags": [
+          "passengers"
+        ]
+      }
+    },
+    "/passengers/traveler/{travelerId}": {
+      "get": {
+        "operationId": "PassengersController_findByTraveler",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "travelerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return traveler passengers"
+          },
+          "403": {
+            "description": "Forbidden (not owner)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get passengers by traveler ID (ownership checked via Guard)",
+        "tags": [
+          "passengers"
+        ]
+      }
+    },
+    "/passengers/agency/{agencyId}": {
+      "get": {
+        "operationId": "PassengersController_findByAgency",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "agencyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return agency passengers"
+          },
+          "403": {
+            "description": "Forbidden (not owner)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get passengers by agency ID (ownership checked via Guard)",
+        "tags": [
+          "passengers"
         ]
       }
     }
@@ -3340,6 +4671,23 @@
             "type": "string",
             "description": "Staff password",
             "example": "admin123"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "AgencyLoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "contact@elitetravel.com"
+          },
+          "password": {
+            "type": "string",
+            "example": "password"
           }
         },
         "required": [
@@ -3655,6 +5003,11 @@
             "example": 1,
             "description": "Traveler ID"
           },
+          "agencyId": {
+            "type": "number",
+            "example": 1,
+            "description": "Agency ID"
+          },
           "guideId": {
             "type": "number",
             "example": 1,
@@ -3681,8 +5034,7 @@
           "destination",
           "startDate",
           "endDate",
-          "budget",
-          "travelerId"
+          "budget"
         ]
       },
       "UpdateTripDto": {
@@ -3705,6 +5057,10 @@
             "example": 150000
           },
           "travelerId": {
+            "type": "number",
+            "example": 1
+          },
+          "agencyId": {
             "type": "number",
             "example": 1
           },
@@ -3763,6 +5119,10 @@
             "type": "number",
             "example": 1
           },
+          "agencyId": {
+            "type": "number",
+            "example": 1
+          },
           "service": {
             "type": "string",
             "example": "Emirates EK-101"
@@ -3794,7 +5154,6 @@
         "required": [
           "bookingDate",
           "tripId",
-          "travelerId",
           "service",
           "type",
           "amount"
@@ -3812,6 +5171,10 @@
             "example": 1
           },
           "travelerId": {
+            "type": "number",
+            "example": 1
+          },
+          "agencyId": {
             "type": "number",
             "example": 1
           },
@@ -4014,13 +5377,20 @@
           "bookingId": {
             "type": "number",
             "example": 1
+          },
+          "tripId": {
+            "type": "number",
+            "example": 1
+          },
+          "agencyId": {
+            "type": "number",
+            "example": 1
           }
         },
         "required": [
           "amount",
           "paymentDate",
-          "method",
-          "bookingId"
+          "method"
         ]
       },
       "CreateRefundDto": {
@@ -4046,6 +5416,10 @@
               "Completed",
               "Rejected"
             ]
+          },
+          "agencyId": {
+            "type": "number",
+            "example": 1
           }
         },
         "required": [
@@ -4122,6 +5496,10 @@
             "type": "number",
             "example": 1
           },
+          "agencyId": {
+            "type": "number",
+            "example": 1
+          },
           "issueType": {
             "type": "string",
             "example": "Booking issue"
@@ -4155,7 +5533,6 @@
           }
         },
         "required": [
-          "travelerId",
           "issueType",
           "description"
         ]
@@ -4187,7 +5564,8 @@
             "enum": [
               "traveler",
               "guide",
-              "support"
+              "support",
+              "agency"
             ]
           },
           "senderId": {
@@ -4200,7 +5578,8 @@
             "enum": [
               "traveler",
               "guide",
-              "support"
+              "support",
+              "agency"
             ]
           },
           "receiverId": {
@@ -4219,6 +5598,203 @@
           "receiverId",
           "content"
         ]
+      },
+      "CreateAgencyDto": {
+        "type": "object",
+        "properties": {
+          "businessName": {
+            "type": "string",
+            "example": "Elite Travel Partners"
+          },
+          "contactEmail": {
+            "type": "string",
+            "example": "contact@elitetravel.com"
+          },
+          "contactPhone": {
+            "type": "string",
+            "example": "9876543210"
+          },
+          "password": {
+            "type": "string",
+            "example": "securepassword123"
+          }
+        },
+        "required": [
+          "businessName",
+          "contactEmail",
+          "contactPhone",
+          "password"
+        ]
+      },
+      "ErrorResponseDto": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 404
+          },
+          "error": {
+            "type": "string",
+            "example": "Not Found"
+          },
+          "message": {
+            "type": "object",
+            "example": "Resource with the given ID was not found"
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2026-05-05T12:00:00.000Z"
+          },
+          "path": {
+            "type": "string",
+            "example": "/travelers/abc-123"
+          }
+        },
+        "required": [
+          "statusCode",
+          "error",
+          "message",
+          "timestamp",
+          "path"
+        ]
+      },
+      "CreateDirectAgencyDto": {
+        "type": "object",
+        "properties": {
+          "businessName": {
+            "type": "string",
+            "example": "Elite Travel Partners"
+          },
+          "contactEmail": {
+            "type": "string",
+            "example": "contact@elitetravel.com"
+          },
+          "contactPhone": {
+            "type": "string",
+            "example": "9876543210"
+          },
+          "password": {
+            "type": "string",
+            "example": "securepassword123"
+          },
+          "status": {
+            "type": "string",
+            "example": "approved",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected"
+            ]
+          },
+          "commissionRate": {
+            "type": "number",
+            "example": 10
+          }
+        },
+        "required": [
+          "businessName",
+          "contactEmail",
+          "contactPhone",
+          "password"
+        ]
+      },
+      "UpdateAgencyStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "approved",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected"
+            ]
+          },
+          "commissionRate": {
+            "type": "number",
+            "example": 15,
+            "description": "Commission rate percentage, typically required when approving"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "UpdateAgencyDto": {
+        "type": "object",
+        "properties": {
+          "businessName": {
+            "type": "string",
+            "example": "Elite Travel Partners"
+          },
+          "contactEmail": {
+            "type": "string",
+            "example": "contact@elitetravel.com"
+          },
+          "contactPhone": {
+            "type": "string",
+            "example": "9876543210"
+          },
+          "password": {
+            "type": "string",
+            "example": "securepassword123"
+          }
+        }
+      },
+      "CreatePassengerDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Jane Doe"
+          },
+          "age": {
+            "type": "number",
+            "example": 30
+          },
+          "gender": {
+            "type": "string",
+            "example": "Female"
+          },
+          "travelerId": {
+            "type": "number",
+            "example": 1
+          },
+          "agencyId": {
+            "type": "number",
+            "example": 1
+          }
+        },
+        "required": [
+          "name",
+          "age",
+          "gender"
+        ]
+      },
+      "UpdatePassengerDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Jane Doe"
+          },
+          "age": {
+            "type": "number",
+            "example": 30
+          },
+          "gender": {
+            "type": "string",
+            "example": "Female"
+          },
+          "travelerId": {
+            "type": "number",
+            "example": 1
+          },
+          "agencyId": {
+            "type": "number",
+            "example": 1
+          }
+        }
       }
     }
   }

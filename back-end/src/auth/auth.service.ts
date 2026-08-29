@@ -3,6 +3,7 @@ import { travelers } from '../data';
 import { admins } from '../data';
 import { guides } from '../data';
 import { supportUsers } from '../data';
+import { agencies } from '../data';
 
 @Injectable()
 export class AuthService {
@@ -81,5 +82,33 @@ export class AuthService {
     }
 
     throw new UnauthorizedException('Invalid email or password');
+  }
+
+  /**
+   * Agency login — match email + password and check if status is approved.
+   * Returns the agency object (without password) and role.
+   */
+  agencyLogin(email: string, password: string) {
+    const agency = agencies.find(
+      (a) =>
+        a.contactEmail.toLowerCase() === email.toLowerCase() &&
+        a.password === password,
+    );
+
+    if (!agency) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    if (agency.status !== 'approved') {
+      throw new UnauthorizedException(`Agency account is ${agency.status}. Only approved agencies can log in.`);
+    }
+
+    // Return user without password
+    const { password: _, ...userWithoutPassword } = agency;
+    return {
+      message: 'Login successful',
+      role: 'agency',
+      user: userWithoutPassword,
+    };
   }
 }

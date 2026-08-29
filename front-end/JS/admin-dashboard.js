@@ -48,4 +48,7 @@ const emojis={'Paris, France':'🗼','Tokyo, Japan':'🗾','Swiss Alps':'🏔','
   }
 })();
 
-showToast(`Welcome, ${user.name}! (Admin Access)`);
+if (!sessionStorage.getItem('admin_welcomed')) {
+  showToast(`Welcome, ${user.name}! (Admin Access)`);
+  sessionStorage.setItem('admin_welcomed', 'true');
+}

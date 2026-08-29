@@ -11,6 +11,7 @@ export interface Refund {
   refundDate: string;
   refundTime: string;
   refundStatus: 'Processing' | 'Completed' | 'Rejected';
+  agencyId?: number;
 }
 
 export const refunds: Refund[] = [

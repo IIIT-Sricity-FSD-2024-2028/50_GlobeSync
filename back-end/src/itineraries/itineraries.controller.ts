@@ -13,7 +13,7 @@ export class ItinerariesController {
   constructor(private readonly itinerariesService: ItinerariesService) {}
 
   @Get('trip/:tripId')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Get itinerary by trip ID', description: 'Returns all itinerary items for a trip.' })
   @ApiParam({ name: 'tripId', type: Number })
@@ -23,7 +23,7 @@ export class ItinerariesController {
   }
 
   @Post()
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Create itinerary item' })
   @ApiResponse({ status: 201, description: 'Itinerary created' })
@@ -31,7 +31,7 @@ export class ItinerariesController {
   create(@Body() dto: CreateItineraryDto) { return this.itinerariesService.create(dto); }
 
   @Put(':id')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Update itinerary item' })
   @ApiParam({ name: 'id', type: Number })

@@ -38,8 +38,18 @@ export class BookingsController {
     return this.bookingsService.findByTraveler(travelerId);
   }
 
+  @Get('agency/:agencyId')
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.AGENCY)
+  @ApiUserHeaders()
+  @ApiOperation({ summary: 'Get bookings by agency ID' })
+  @ApiParam({ name: 'agencyId', type: Number })
+  @ApiResponse({ status: 200, description: 'Bookings for agency' })
+  findByAgency(@Param('agencyId', ParseIntPipe) agencyId: number) {
+    return this.bookingsService.findByAgency(agencyId);
+  }
+
   @Post()
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Create a new booking' })
   @ApiResponse({ status: 201, description: 'Booking created' })
@@ -47,7 +57,7 @@ export class BookingsController {
   create(@Body() dto: CreateBookingDto) { return this.bookingsService.create(dto); }
 
   @Put(':id')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Update a booking' })
   @ApiParam({ name: 'id', type: Number })

@@ -49,8 +49,18 @@ export class TripsController {
     return this.tripsService.findByGuide(guideId);
   }
 
+  @Get('agency/:agencyId')
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.AGENCY)
+  @ApiUserHeaders()
+  @ApiOperation({ summary: 'Get trips by agency ID', description: 'Returns all trips for an agency.' })
+  @ApiParam({ name: 'agencyId', type: Number })
+  @ApiResponse({ status: 200, description: 'Trips for agency' })
+  findByAgency(@Param('agencyId', ParseIntPipe) agencyId: number) {
+    return this.tripsService.findByAgency(agencyId);
+  }
+
   @Post()
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Create a new trip' })
   @ApiResponse({ status: 201, description: 'Trip created' })
@@ -58,7 +68,7 @@ export class TripsController {
   create(@Body() dto: CreateTripDto) { return this.tripsService.create(dto); }
 
   @Put(':id')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.AGENCY, Role.GUIDE)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Update a trip' })
   @ApiParam({ name: 'id', type: Number })
@@ -69,7 +79,7 @@ export class TripsController {
   }
 
   @Patch(':id/status')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.GUIDE, Role.TRAVELER)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.GUIDE, Role.TRAVELER, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Update trip status', description: 'Updates only the status of a trip. Guides can update status of assigned trips. Travelers can update status after payment.' })
   @ApiParam({ name: 'id', type: Number })

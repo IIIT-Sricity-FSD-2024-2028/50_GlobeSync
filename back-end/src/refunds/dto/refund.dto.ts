@@ -7,6 +7,7 @@ export class CreateRefundDto {
   @ApiPropertyOptional({ example: '14:30:00' }) @IsOptional() @IsString() refundTime?: string;
   @ApiPropertyOptional({ example: 'Processing', enum: ['Processing', 'Completed', 'Rejected'] })
   @IsOptional() @IsString() @IsIn(['Processing', 'Completed', 'Rejected']) refundStatus?: string;
+  @ApiPropertyOptional({ example: 1 }) @IsOptional() @IsNumber() agencyId?: number;
 }
 
 export class UpdateRefundStatusDto {

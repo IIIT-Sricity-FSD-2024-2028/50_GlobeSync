@@ -14,6 +14,8 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { SupportTicketsModule } from './support-tickets/support-tickets.module';
 import { MessagesModule } from './messages/messages.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { AgenciesModule } from './agencies/agencies.module';
+import { PassengersModule } from './passengers/passengers.module';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
     SupportTicketsModule,
     MessagesModule,
     DashboardModule,
+    AgenciesModule,
+    PassengersModule,
   ],
 })
 export class AppModule {}

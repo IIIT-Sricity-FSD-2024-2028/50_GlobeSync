@@ -20,10 +20,10 @@ export class MessagesController {
   findAll() { return this.messagesService.findAll(); }
 
   @Get('user/:userType/:userId')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.SUPPORT)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.SUPPORT, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Get all messages for a user', description: 'Returns all messages where the user is sender or receiver.' })
-  @ApiParam({ name: 'userType', enum: ['traveler', 'guide', 'support'] })
+  @ApiParam({ name: 'userType', enum: ['traveler', 'guide', 'support', 'agency'] })
   @ApiParam({ name: 'userId', type: Number })
   @ApiResponse({ status: 200, description: 'User messages' })
   findByUser(
@@ -32,12 +32,12 @@ export class MessagesController {
   ) { return this.messagesService.findByUser(userType, userId); }
 
   @Get('conversation')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.SUPPORT)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.SUPPORT, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Get conversation between two users', description: 'Returns bidirectional messages between sender and receiver.' })
-  @ApiQuery({ name: 'senderType', enum: ['traveler', 'guide', 'support'], example: 'traveler' })
+  @ApiQuery({ name: 'senderType', enum: ['traveler', 'guide', 'support', 'agency'], example: 'traveler' })
   @ApiQuery({ name: 'senderId', type: Number, example: 1 })
-  @ApiQuery({ name: 'receiverType', enum: ['traveler', 'guide', 'support'], example: 'guide' })
+  @ApiQuery({ name: 'receiverType', enum: ['traveler', 'guide', 'support', 'agency'], example: 'guide' })
   @ApiQuery({ name: 'receiverId', type: Number, example: 1 })
   @ApiResponse({ status: 200, description: 'Conversation messages' })
   findConversation(
@@ -50,7 +50,7 @@ export class MessagesController {
   }
 
   @Post()
-  @Roles(Role.SUPERUSER, Role.TRAVELER, Role.GUIDE, Role.SUPPORT)
+  @Roles(Role.SUPERUSER, Role.TRAVELER, Role.GUIDE, Role.SUPPORT, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Send a message' })
   @ApiResponse({ status: 201, description: 'Message sent' })

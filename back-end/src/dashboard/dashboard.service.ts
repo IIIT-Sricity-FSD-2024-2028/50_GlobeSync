@@ -14,8 +14,10 @@ import {
   reviews,
   supportTickets,
   messages,
-  savedPassengers,
+  passengers,
   packageBookings,
+  agencies,
+  commissionLedger,
 } from '../data';
 
 @Injectable()
@@ -62,13 +64,34 @@ export class DashboardService {
         reviews: reviews.length,
         supportTickets: supportTickets.length,
         messages: messages.length,
-        savedPassengers: savedPassengers.length,
+        passengers: passengers.length,
         packageBookings: packageBookings.length,
+        agencies: agencies.length,
+        commissionLedger: commissionLedger.length,
       },
       totalTrips: trips.length,
       totalBookings: bookings.length,
       totalPayments: payments.length,
       totalTickets: supportTickets.length,
+      totalAgencies: agencies.length,
+      agencyMetrics: {
+        totalAgencies: agencies.length,
+        approvedAgencies: agencies.filter(a => a.status === 'approved').length,
+        pendingAgencies: agencies.filter(a => a.status === 'pending').length,
+        rejectedAgencies: agencies.filter(a => a.status === 'rejected').length,
+        totalCommissionPending: commissionLedger
+          .filter(c => c.status === 'pending')
+          .reduce((sum, c) => sum + c.amount, 0),
+        totalCommissionSettled: commissionLedger
+          .filter(c => c.status === 'settled')
+          .reduce((sum, c) => sum + c.amount, 0),
+        agencyChannelRevenue: trips
+          .filter(t => t.agencyId != null)
+          .reduce((sum, t) => sum + t.budget, 0),
+        travelerChannelRevenue: trips
+          .filter(t => t.travelerId != null)
+          .reduce((sum, t) => sum + t.budget, 0),
+      }
     };
   }
 
@@ -77,9 +100,15 @@ export class DashboardService {
     const myTrips = trips.filter((t) => t.travelerId === travelerId);
     const myBookings = bookings.filter((b) => b.travelerId === travelerId);
     const myTripIds = myTrips.map((t) => t.tripId);
-    const myExpensesTotal = expenses
+    const manualExpensesTotal = expenses
       .filter((e) => myTripIds.includes(e.tripId))
       .reduce((sum, e) => sum + e.amount, 0);
+    
+    const bookingsTotal = myBookings
+      .filter((b) => b.status === 'Confirmed')
+      .reduce((sum, b) => sum + b.amount, 0);
+
+    const myExpensesTotal = manualExpensesTotal + bookingsTotal;
     const myTickets = supportTickets.filter((t) => t.travelerId === travelerId);
 
     const today = new Date().toISOString().slice(0, 10);
@@ -127,6 +156,31 @@ export class DashboardService {
       ).length,
       refundRequests: refunds.length,
       pendingRefunds: refunds.filter((r) => r.refundStatus === 'Processing').length,
+    };
+  }
+
+  /** Agency dashboard — B2B metrics */
+  getAgencyDashboard(agencyId: number) {
+    const myTrips = trips.filter((t) => t.agencyId === agencyId);
+    const myPassengers = passengers.filter((p) => p.agencyId === agencyId);
+    const myCommission = commissionLedger.filter((c) => c.agencyId === agencyId);
+
+    const pendingCommission = myCommission
+      .filter((c) => c.status === 'pending')
+      .reduce((sum, c) => sum + c.amount, 0);
+    const settledCommission = myCommission
+      .filter((c) => c.status === 'settled')
+      .reduce((sum, c) => sum + c.amount, 0);
+
+    const recentBookings = [...myTrips].reverse().slice(0, 5);
+
+    return {
+      totalBookings: myTrips.length,
+      totalPassengers: myPassengers.length,
+      pendingCommission,
+      settledCommission,
+      recentBookings,
+      ledger: myCommission,
     };
   }
 }

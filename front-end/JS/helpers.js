@@ -96,11 +96,14 @@ function statusBadge(status) {
     'Active': 'badge-success', 'active': 'badge-success',
     'Completed': 'badge-success', 'completed': 'badge-success',
     'Resolved': 'badge-success',
+    'approved': 'badge-success', 'Approved': 'badge-success',
+    'settled': 'badge-success', 'Settled': 'badge-success',
     'Pending': 'badge-warning', 'pending': 'badge-warning',
     'Planning': 'badge-warning', 'In Progress': 'badge-info',
     'Processing': 'badge-info',
     'Open': 'badge-pink', 'open': 'badge-pink',
     'Draft': 'badge-gray', 'Inactive': 'badge-gray', 'inactive': 'badge-gray',
+    'rejected': 'badge-danger', 'Rejected': 'badge-danger',
     'Cancelled': 'badge-danger', 'cancelled': 'badge-danger',
     'Failed': 'badge-danger',
     'High': 'badge-danger', 'Medium': 'badge-warning', 'Low': 'badge-success'
@@ -129,7 +132,8 @@ function getDestImg(destName = '') {
                   path.includes('/admin/') || path.includes('\\admin\\') ||
                   path.includes('/support/') || path.includes('\\support\\') ||
                   path.includes('/super/') || path.includes('\\super\\') ||
-                  path.includes('/guide/') || path.includes('\\guide\\');
+                  path.includes('/guide/') || path.includes('\\guide\\') ||
+                  path.includes('/agency/') || path.includes('\\agency\\');
                   
   const prefix = isDepth ? '../static/destinations/' : 'static/destinations/';
   return prefix + img;

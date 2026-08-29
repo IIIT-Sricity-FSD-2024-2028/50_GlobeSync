@@ -4,16 +4,17 @@ const guideId = getUserId();
 console.log('[guide-requests] Logged-in guide:', user);
 console.log('[guide-requests] guideId:', guideId);
 
-let _myTrips = [], _allTravelers = [];
+let _myTrips = [], _allTravelers = [], _allAgencies = [];
 
 async function loadData() {
   try {
     console.log('[guide-requests] Fetching /trips/guide/' + guideId);
-    [_myTrips, _allTravelers] = await Promise.all([
+    [_myTrips, _allTravelers, _allAgencies] = await Promise.all([
       apiGetSnake(`/trips/guide/${guideId}`),
-      apiGetSnake('/travelers')
+      apiGetSnake('/travelers'),
+      apiGetSnake('/agencies').catch(()=>[])
     ]);
-    console.log('[guide-requests] trips:', _myTrips.length, 'travelers:', _allTravelers.length);
+    console.log('[guide-requests] trips:', _myTrips.length);
     renderRequests();
   } catch (e) { console.error('[guide-requests] Failed to load requests:', e); }
 }
@@ -28,8 +29,9 @@ function renderRequests() {
   if (search) {
     requests = requests.filter(r => {
       const traveler = _allTravelers.find(tr => tr.traveler_id === r.traveler_id);
-      return r.destination.toLowerCase().includes(search) || 
-             (traveler && traveler.name.toLowerCase().includes(search));
+      const agency = _allAgencies.find(a => a.agency_id === r.agency_id);
+      const reqName = traveler ? traveler.name : (agency ? agency.agency_name : '');
+      return r.destination.toLowerCase().includes(search) || reqName.toLowerCase().includes(search);
     });
   }
   
@@ -57,18 +59,23 @@ function renderRequests() {
 
   list.innerHTML = requests.map(t => {
     const traveler = _allTravelers.find(tr => tr.traveler_id === t.traveler_id);
+    const agency = _allAgencies.find(a => a.agency_id === t.agency_id);
+    const reqName = traveler ? traveler.name : (agency ? agency.agency_name : 'Unknown Requestor');
+    const badgeName = agency ? 'Agency Request' : 'New Request';
+    const tagLabel = agency ? 'Agency Code' : 'Traveler Code';
+    const tagVal = agency ? `#AGY-${(t.agency_id||0).toString().padStart(4, '0')}` : `#TRV-${(t.traveler_id||0).toString().padStart(4, '0')}`;
     
     return `
       <div class="request-card">
-        <div class="req-traveler-avatar">${traveler ? traveler.name[0] : '?'}</div>
+        <div class="req-traveler-avatar">${reqName[0] || '?'}</div>
         <div class="req-info">
           <div class="req-header">
             <div>
               <div class="req-destination">📍 ${t.destination}</div>
-              <div class="req-traveler-name">Requested by <strong>${traveler ? traveler.name : 'Unknown Traveler'}</strong></div>
+              <div class="req-traveler-name">Requested by <strong>${reqName}</strong></div>
             </div>
             <div style="text-align:right">
-              <span class="badge" style="background:#fffbeb; color:#92400e; border:1px solid #fef3c7">New Request</span>
+              <span class="badge" style="background:#fffbeb; color:#92400e; border:1px solid #fef3c7">${badgeName}</span>
             </div>
           </div>
           <div class="req-details-grid">
@@ -81,15 +88,14 @@ function renderRequests() {
               <div class="req-detail-val">💰 ${formatCurrency(t.budget)}</div>
             </div>
             <div class="req-detail-item">
-              <div class="req-detail-label">Traveler Code</div>
-              <div class="req-detail-val">#TRV-${(t.traveler_id || 0).toString().padStart(4, '0')}</div>
+              <div class="req-detail-label">${tagLabel}</div>
+              <div class="req-detail-val">${tagVal}</div>
             </div>
           </div>
         </div>
         <div class="req-actions">
           <button class="btn btn-primary" style="background:#10b981; border:none" onclick="acceptTrip(${t.trip_id})">✓ Accept Trip</button>
           <button class="btn btn-danger" style="background:#fff; color:#ef4444; border:1.5px solid #fee2e2" onclick="declineTrip(${t.trip_id})">✕ Decline</button>
-          <button class="btn btn-secondary" onclick="location.href='messages.html?traveler=${t.traveler_id}'">💬 Message</button>
         </div>
       </div>
     `;
@@ -104,7 +110,7 @@ async function acceptTrip(tripId) {
     if (trip) {
       await apiPost('/messages', {
         sender: 'guide', senderId: guideId,
-        receiver: 'traveler', receiverId: trip.traveler_id,
+        receiver: trip.agency_id ? 'agency' : 'traveler', receiverId: trip.agency_id || trip.traveler_id,
         content: `I've accepted your trip request for ${trip.destination}! Your trip is now confirmed. I'll start preparing your detailed itinerary. 🎉`
       });
     }
@@ -120,12 +126,13 @@ async function declineTrip(tripId) {
     const trip = _myTrips.find(t => t.trip_id === tripId);
     if (!trip) return;
 
-    // Use apiPutSnake to update the entire trip, setting guide_id to null and status back to Planning
-    await apiPutSnake(`/trips/${tripId}`, { ...trip, guide_id: null, status: 'Planning' });
+    // Use apiPutSnake to update the trip, stripping trip_id and setting guide_id to null and status back to Planning
+    const { trip_id: _removed, ...tripDataForUpdate } = trip;
+    await apiPutSnake(`/trips/${tripId}`, { ...tripDataForUpdate, guide_id: null, status: 'Planning' });
     
     await apiPost('/messages', {
       sender: 'guide', senderId: guideId,
-      receiver: 'traveler', receiverId: trip.traveler_id,
+      receiver: trip.agency_id ? 'agency' : 'traveler', receiverId: trip.agency_id || trip.traveler_id,
       content: `I'm sorry, but I won't be able to guide your trip to ${trip.destination} on those dates. Please feel free to select another guide. 🙏`
     });
 

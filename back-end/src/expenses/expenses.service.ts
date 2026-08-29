@@ -1,11 +1,24 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { expenses, Expense } from '../data';
+import { expenses, Expense, bookings } from '../data';
 import { CreateExpenseDto, UpdateExpenseDto } from './dto';
 
 @Injectable()
 export class ExpensesService {
   findByTrip(tripId: number): Expense[] {
-    return expenses.filter((e) => e.tripId === tripId);
+    const manualExpenses = expenses.filter((e) => e.tripId === tripId);
+    
+    // Auto-include confirmed bookings as expenses
+    const bookingExpenses: Expense[] = bookings
+      .filter((b) => b.tripId === tripId && b.status === 'Confirmed')
+      .map((b) => ({
+        expenseId: 100000 + b.bookingId, // Offset ID to avoid conflicts with manual expenses
+        amount: b.amount,
+        type: b.type as Expense['type'],
+        tripId: b.tripId,
+        description: b.service
+      }));
+      
+    return [...manualExpenses, ...bookingExpenses];
   }
 
   create(dto: CreateExpenseDto): Expense {

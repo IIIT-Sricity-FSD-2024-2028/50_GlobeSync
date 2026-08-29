@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlobeSync — Agency Login</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--primary:#E8467C;--teal:#19b6a6;--teal-dark:#128b7d;--secondary:#F5A623;--gradient:linear-gradient(135deg,#19b6a6 0%,#0ea5e9 100%);--btn-gradient:linear-gradient(90deg,#19b6a6 0%,#0ea5e9 100%);--text:#1a1a2e;--muted:#6b7280;--border:#e5f7f5;--danger:#ef4444;--input-bg:#f0fdfc;--box-bg:#f0fdfc}
+body{font-family:'Inter',sans-serif;min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
+.left-panel{background:linear-gradient(135deg,#19b6a6 0%,#0ea5e9 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:60px;position:relative;overflow:hidden}
+.left-panel::before{content:'';position:absolute;inset:0;background:url('static/waterfall-scenery.png') center/cover no-repeat;opacity:0.18;z-index:0}
+.brand-logo{position:absolute;top:40px;left:60px;display:flex;align-items:center;gap:12px;z-index:1;text-decoration:none;color:#fff}
+.brand-icon{width:44px;height:44px;background:rgba(255,255,255,0.2);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;border-radius:12px;font-size:24px}
+.brand-text{font-family:'Inter',sans-serif;font-size:26px;font-weight:700;text-shadow:0 2px 4px rgba(0,0,0,0.1)}
+.left-panel h1{font-size:44px;font-weight:800;color:#fff;line-height:1.2;margin-bottom:20px;position:relative;z-index:1}
+.left-panel p{color:rgba(255,255,255,0.9);font-size:16px;line-height:1.7;margin-bottom:32px;position:relative;z-index:1}
+.perks-row{display:flex;flex-direction:column;gap:12px;position:relative;z-index:1}
+.perk-item{display:flex;align-items:center;gap:12px;color:#fff;font-size:14px;font-weight:500}
+.perk-dot{width:32px;height:32px;background:rgba(255,255,255,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.right-panel{background:#fff;display:flex;flex-direction:column;justify-content:center;padding:60px 0;overflow-y:auto}
+.top-link{text-align:center;font-size:14px;color:var(--muted);margin-bottom:28px}
+.top-link a{color:var(--teal);font-weight:600;text-decoration:none}
+.form-container{max-width:380px;margin:0 auto;width:100%;padding:0 24px}
+.agency-pill{display:inline-flex;align-items:center;gap:6px;background:#f0fdfc;border:1px solid #99f6e4;border-radius:20px;padding:4px 14px;font-size:12px;font-weight:700;color:var(--teal);margin-bottom:20px;letter-spacing:0.3px}
+h2{font-size:34px;font-weight:800;text-align:center;margin-bottom:8px;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.2}
+.subtitle{color:var(--muted);font-size:15px;margin-bottom:28px;text-align:center;line-height:1.5}
+.form-group{margin-bottom:18px}
+.form-label{display:block;font-size:14px;font-weight:500;color:var(--text);margin-bottom:8px}
+.input-wrap{position:relative}
+.input-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--teal)}
+.form-control{width:100%;padding:14px 14px 14px 44px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;outline:none;transition:border-color 0.2s;font-family:'Inter',sans-serif;background:var(--input-bg)}
+.form-control:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(25,182,166,0.12)}
+.form-control.error-field{border-color:var(--danger);background:#fff8f8}
+.error-msg{font-size:12px;color:var(--danger);margin-top:4px;display:none}
+.error-msg.show{display:block}
+.banner{border-radius:10px;padding:12px 16px;font-size:14px;margin-bottom:16px;display:none}
+.banner.show{display:block}
+.banner.pending{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+.banner.rejected{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+.banner.error{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+.btn-signin{width:100%;padding:14px;background:var(--btn-gradient);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:'Inter',sans-serif;box-shadow:0 4px 12px rgba(25,182,166,0.25);margin-top:4px}
+.btn-signin:hover{opacity:0.92;transform:translateY(-1px);box-shadow:0 6px 16px rgba(25,182,166,0.35)}
+.back-role{text-align:center;font-size:13px;color:var(--muted);text-decoration:none;display:block;margin-top:14px;font-weight:500;transition:color 0.2s}
+.back-role:hover{color:var(--teal)}
+</style>
+</head>
+<body>
+<div class="left-panel">
+  <a href="role-select.html" class="brand-logo">
+    <div class="brand-icon">🏢</div>
+    <div class="brand-text">GlobeSync</div>
+  </a>
+  <h1>Grow Your Travel<br>Business with Us</h1>
+  <p>Join the GlobeSync agency network. Earn commission on every booking you make for your clients.</p>
+  <div class="perks-row">
+    <div class="perk-item"><div class="perk-dot">💼</div>Manage all client bookings in one dashboard</div>
+    <div class="perk-item"><div class="perk-dot">💰</div>Track commission earned on every completed trip</div>
+    <div class="perk-item"><div class="perk-dot">🌍</div>Access all 10+ curated travel packages at retail price</div>
+    <div class="perk-item"><div class="perk-dot">🎫</div>Raise support tickets on behalf of your passengers</div>
+  </div>
+</div>
+
+<div class="right-panel">
+  <p class="top-link">New agency? <a href="agency-signup.html">Apply to join</a></p>
+  <div class="form-container">
+    <div style="text-align:center"><div class="agency-pill">🏢 Agency Portal</div></div>
+    <h2>Welcome<br>Back</h2>
+    <p class="subtitle">Sign in to your agency account</p>
+
+    <div class="banner" id="banner-pending">
+      ⏳ <strong>Account pending approval.</strong> An admin will review your application. You'll be able to log in once approved.
+    </div>
+    <div class="banner" id="banner-rejected">
+      ✕ <strong>Application rejected.</strong> Contact <a href="mailto:support@globesync.com" style="color:inherit">support@globesync.com</a> for more information.
+    </div>
+    <div class="banner error" id="banner-error">
+      Invalid email or password. Please try again.
+    </div>
+
+    <form id="login-form" onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label class="form-label">Business Email</label>
+        <div class="input-wrap">
+          <span class="input-icon">✉️</span>
+          <input type="email" id="email" class="form-control" placeholder="your@agency.com">
+        </div>
+        <div class="error-msg" id="email-error">Please enter a valid email address</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="input-wrap">
+          <span class="input-icon">🔒</span>
+          <input type="password" id="password" class="form-control" placeholder="Enter your password">
+        </div>
+        <div class="error-msg" id="password-error">Password is required</div>
+      </div>
+      <button type="submit" class="btn-signin">Sign In →</button>
+    </form>
+    <a href="role-select.html" class="back-role">← Back to role selection</a>
+  </div>
+</div>
+
+<script src="JS/mockData.js"></script>
+<script src="JS/api.js"></script>
+<script src="JS/helpers.js"></script>
+<script>
+// Redirect if already logged in as agency
+if (Auth.getRole() === 'agency') window.location.href = 'agency/agency-dashboard.html';
+
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  if (el) { el.textContent = msg; el.classList.add('show'); }
+  const input = document.getElementById(id.replace('-error',''));
+  if (input) input.classList.add('error-field');
+}
+function clearErrors() {
+  document.querySelectorAll('.error-msg').forEach(e => e.classList.remove('show'));
+  document.querySelectorAll('.form-control').forEach(e => e.classList.remove('error-field'));
+  document.querySelectorAll('.banner').forEach(b => b.classList.remove('show'));
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  clearErrors();
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value.trim();
+  let valid = true;
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showErr('email-error', 'Please enter a valid email address'); valid = false;
+  }
+  if (!password) {
+    showErr('password-error', 'Password is required'); valid = false;
+  }
+  if (!valid) return;
+
+  try {
+    const res = await apiPostSnake('/auth/agency-login', { email, password });
+    Auth.login('agency', res.user);
+    window.location.href = 'agency/agency-dashboard.html';
+  } catch(e) {
+    if (e.message && e.message.includes('pending')) {
+      document.getElementById('banner-pending').classList.add('show');
+    } else if (e.message && e.message.includes('rejected')) {
+      document.getElementById('banner-rejected').classList.add('show');
+    } else {
+      document.getElementById('banner-error').classList.add('show');
+    }
+  }
+}
+
+// Live clear
+document.querySelectorAll('.form-control').forEach(el => {
+  el.addEventListener('input', () => {
+    el.classList.remove('error-field');
+    const err = document.getElementById(el.id + '-error');
+    if (err) err.classList.remove('show');
+    document.getElementById('banner-error').classList.remove('show');
+  });
+});
+</script>
+</body>
+</html>

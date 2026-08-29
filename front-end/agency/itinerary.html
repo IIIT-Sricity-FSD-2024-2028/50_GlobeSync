@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlobeSync — Agency Itinerary</title>
+<link rel="stylesheet" href="../static/shared.css">
+<style>
+  :root {
+    --teal: #19b6a6;
+    --teal-dark: #128b7d;
+    --teal-soft: #f0fdfc;
+    --gradient-agency: linear-gradient(135deg, #19b6a6 0%, #0ea5e9 100%);
+  }
+
+  .sidebar-logo .logo-icon { background: var(--gradient-agency) !important; }
+  .sidebar-logo .logo-text { background: var(--gradient-agency); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .nav-item.active, .nav-item:hover { background: var(--teal-soft); color: var(--teal); }
+  .nav-item.active .nav-icon, .nav-item:hover .nav-icon { color: var(--teal); }
+
+  .timeline { padding: 20px; }
+  .timeline-item { display: flex; gap: 16px; margin-bottom: 24px; }
+  .timeline-marker { display: flex; flex-direction: column; align-items: center; }
+  .timeline-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--border); transition: background 0.3s; flex-shrink: 0; }
+  .timeline-dot.completed { background: var(--teal); box-shadow: 0 0 0 4px var(--teal-soft); }
+  .timeline-dot.progress { background: #F5A623; box-shadow: 0 0 0 4px #fffbeb; }
+  .timeline-line { flex: 1; width: 2px; background: var(--border-light); margin-top: 8px; }
+  .timeline-content { flex: 1; padding-bottom: 16px; }
+  .timeline-content h4 { font-size: 15px; font-weight: 700; margin-bottom: 4px; color: var(--text); }
+  .timeline-content p { font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 8px; }
+  .timeline-status { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .status-completed { color: var(--teal); }
+  .status-progress { color: #d97706; }
+  .status-pending { color: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon" style="font-size:18px">🏢</div>
+      <div>
+        <div class="logo-text">GlobeSync</div>
+        <div class="logo-sub">Agency Portal</div>
+      </div>
+    </div>
+        <nav class="sidebar-nav">
+      <a class="nav-item" href="agency-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="browse-packages.html"><span class="nav-icon">📦</span>Browse Packages</a>
+      <a class="nav-item" href="create-itinerary.html"><span class="nav-icon">📅</span>Create Itinerary</a>
+      <a class="nav-item active" href="bookings.html"><span class="nav-icon">📋</span>My Bookings</a>
+      <a class="nav-item" href="passengers.html"><span class="nav-icon">👥</span>Passengers</a>
+      <a class="nav-item" href="commission.html"><span class="nav-icon">💰</span>Commission Ledger</a>
+      <a class="nav-item" href="payments.html"><span class="nav-icon">💳</span>Payments</a>
+      <a class="nav-item" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+      <a class="nav-item" href="profile.html"><span class="nav-icon">🏢</span>Agency Profile</a>
+      <a class="nav-item" data-page="support" href="support.html"><span class="nav-icon">🎧</span>Support</a>
+    </nav>
+    <div style="padding:12px;margin-top:auto">
+      <div style="background:var(--teal-soft);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--teal-dark);border:1px solid #99f6e4">
+        💼 <strong>Agency Role</strong><br>Reseller access only.
+      </div>
+    </div>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="agencyLogout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="page-title">Trip Itinerary</div>
+        <div class="page-subtitle" id="trip-subtitle">Read-only day-by-day plan for this booking</div>
+      </div>
+      <div class="topbar-actions">
+        <a href="bookings.html" class="btn btn-secondary">← Back to Bookings</a>
+      </div>
+    </div>
+
+    <div class="card" style="max-width:800px; margin:0 auto;">
+      <div class="card-header"><span class="card-title">Day-by-Day Plan</span></div>
+      <div class="card-body" id="itinerary-list">
+        <!-- Dynamically populated -->
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="../JS/mockData.js"></script>
+<script src="../JS/api.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/agency.js"></script>
+<script>
+requireAgency();
+const agency = getAgency();
+const urlParams = new URLSearchParams(window.location.search);
+const tripId = urlParams.get('tripId');
+
+if (!tripId) {
+  window.location.href = 'bookings.html';
+}
+
+let _trip = null;
+let _itinerary = [];
+
+async function loadData() {
+  try {
+    const bookings = await getMyBookings(agency.agency_id || agency.agencyId);
+    _trip = bookings.find(b => b.trip_id == tripId);
+    if (!_trip) throw new Error("Trip not found or unauthorized");
+    
+    document.getElementById('trip-subtitle').textContent = `Itinerary for Trip #${_trip.trip_id} - ${_trip.destination}`;
+
+    _itinerary = await apiGetSnake(`/itineraries/trip/${tripId}`);
+    
+    renderTimeline();
+  } catch (e) { 
+    console.error('Failed to load data:', e); 
+    document.getElementById('itinerary-list').innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><h3>No itinerary</h3><p>Could not load the itinerary or it has not been created yet.</p></div>';
+  }
+}
+
+function renderTimeline() {
+  const container = document.getElementById('itinerary-list');
+  if (_itinerary.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><h3>No items yet</h3><p>This trip has no itinerary items planned yet.</p></div>';
+    return;
+  }
+
+  // Sort by day number
+  const sorted = [..._itinerary].sort((a, b) => a.day_number - b.day_number);
+
+  container.innerHTML = '<div class="timeline">' + sorted.map((item, index) => {
+    let dotClass = '';
+    let statusClass = 'status-pending';
+    if (item.activity_status === 'Completed') { dotClass = 'completed'; statusClass = 'status-completed'; }
+    else if (item.activity_status === 'In Progress') { dotClass = 'progress'; statusClass = 'status-progress'; }
+
+    const isLast = index === sorted.length - 1;
+
+    return `
+      <div class="timeline-item">
+        <div class="timeline-marker">
+          <div class="timeline-dot ${dotClass}"></div>
+          ${!isLast ? '<div class="timeline-line"></div>' : ''}
+        </div>
+        <div class="timeline-content">
+          <h4>Day ${item.day_number}: ${item.activity_name}</h4>
+          <p>${item.activity_description}</p>
+          <div class="timeline-status ${statusClass}">${item.activity_status}</div>
+        </div>
+      </div>
+    `;
+  }).join('') + '</div>';
+}
+
+(async () => { await loadData(); })();
+</script>
+</body>
+</html>

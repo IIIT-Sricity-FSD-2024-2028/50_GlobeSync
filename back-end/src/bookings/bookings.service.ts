@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { bookings, Booking } from '../data';
 import { CreateBookingDto, UpdateBookingDto } from './dto';
 
@@ -16,7 +16,15 @@ export class BookingsService {
     return bookings.filter((b) => b.travelerId === travelerId);
   }
 
+  findByAgency(agencyId: number): Booking[] {
+    return bookings.filter((b) => b.agencyId === agencyId);
+  }
+
   create(dto: CreateBookingDto): Booking {
+    if (!!dto.travelerId === !!dto.agencyId) {
+      throw new BadRequestException('Exactly one of travelerId or agencyId must be provided.');
+    }
+
     const maxId = bookings.length > 0 ? Math.max(...bookings.map((b) => b.bookingId)) : 0;
     const newBooking: Booking = {
       bookingId: maxId + 1,
@@ -24,6 +32,7 @@ export class BookingsService {
       status: (dto.status as Booking['status']) || 'Pending',
       tripId: dto.tripId,
       travelerId: dto.travelerId,
+      agencyId: dto.agencyId,
       service: dto.service,
       type: dto.type as Booking['type'],
       amount: dto.amount,
@@ -41,6 +50,7 @@ export class BookingsService {
       ...(dto.status !== undefined && { status: dto.status as Booking['status'] }),
       ...(dto.tripId !== undefined && { tripId: dto.tripId }),
       ...(dto.travelerId !== undefined && { travelerId: dto.travelerId }),
+      ...(dto.agencyId !== undefined && { agencyId: dto.agencyId }),
       ...(dto.service !== undefined && { service: dto.service }),
       ...(dto.type !== undefined && { type: dto.type as Booking['type'] }),
       ...(dto.amount !== undefined && { amount: dto.amount }),

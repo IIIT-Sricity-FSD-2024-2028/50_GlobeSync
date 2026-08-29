@@ -8,5 +8,7 @@ export class CreatePaymentDto {
   @IsNotEmpty() @IsString() @IsIn(['Card', 'UPI', 'Cash']) method: string;
   @ApiPropertyOptional({ example: 'Paid', enum: ['Paid', 'Pending'] })
   @IsOptional() @IsString() @IsIn(['Paid', 'Pending']) status?: string;
-  @ApiProperty({ example: 1 }) @IsNotEmpty() @IsNumber() bookingId: number;
+  @ApiPropertyOptional({ example: 1 }) @IsOptional() @IsNumber() bookingId?: number;
+  @ApiPropertyOptional({ example: 1 }) @IsOptional() @IsNumber() tripId?: number;
+  @ApiPropertyOptional({ example: 1 }) @IsOptional() @IsNumber() agencyId?: number;
 }

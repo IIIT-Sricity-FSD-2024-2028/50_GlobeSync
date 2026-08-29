@@ -13,10 +13,11 @@ export interface Trip {
   startDate: string;
   endDate: string;
   budget: number;
-  travelerId: number;
+  travelerId?: number;
+  agencyId?: number;
   guideId: number | null;
-  packageId: number;
-  status: 'Confirmed' | 'Pending' | 'Planning' | 'Completed' | 'Cancelled';
+  packageId?: number;
+  status: 'Planning' | 'Pending' | 'Confirmed' | 'Active' | 'Completed' | 'Cancelled';
 }
 
 export const trips: Trip[] = [

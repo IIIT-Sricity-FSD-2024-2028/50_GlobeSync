@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP Admin — Agency Approvals</title>
+<link rel="stylesheet" href="../static/shared.css">
+<style>
+:root{--primary:#E8467C;--gradient:linear-gradient(135deg,#E8467C 0%,#F5A623 100%);--gradient-soft:linear-gradient(135deg,#ffeef5 0%,#fff8ee 100%)}
+.table-card{background:#fff;border-radius:16px;border:1px solid rgba(0,0,0,0.04);box-shadow:0 4px 16px rgba(0,0,0,0.02);overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;padding:14px 16px;border-bottom:1px solid var(--border-light);background:#fafafa}
+td{padding:14px 16px;border-bottom:1px solid var(--border-light);color:var(--text-primary)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+.btn-sm{padding:5px 12px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-main);border:none;transition:all 0.15s}
+.btn-approve{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}.btn-approve:hover{background:#bbf7d0}
+.btn-reject{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}.btn-reject:hover{background:#fecaca}
+.rate-input{width:60px;padding:4px 8px;border:1px solid var(--border-light);border-radius:6px;font-size:13px;outline:none}
+.rate-input:focus{border-color:var(--primary)}
+.empty-state{text-align:center;padding:60px;color:var(--text-muted)}
+.tab-bar{display:flex;gap:4px;margin-bottom:20px;background:#f3f4f6;padding:4px;border-radius:10px;width:fit-content}
+.tab{padding:7px 18px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;color:var(--text-muted);transition:all 0.2s}
+.tab.active{background:#fff;color:var(--primary);box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);color:#fff;font-size:18px">🌐</div><div><div class="logo-text" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">GlobeSync</div><div class="logo-sub">Admin Portal</div></div></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="admin-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="bookings.html"><span class="nav-icon">🎫</span>Bookings</a>
+      <a class="nav-item" href="trips.html"><span class="nav-icon">📍</span>Trips</a>
+      <a class="nav-item" href="packages.html"><span class="nav-icon">📦</span>Packages</a>
+      <a class="nav-item active" href="agencies.html"><span class="nav-icon">🏢</span>Agencies</a>
+      <a class="nav-item" href="reviews.html"><span class="nav-icon">⭐</span>Reviews</a>
+      <a class="nav-item" href="reports.html"><span class="nav-icon">📈</span>Reports</a>
+      <a class="nav-item" data-page="profile" href="profile.html"><span class="nav-icon">🔴</span>My Profile</a>
+    </nav>
+    <div style="padding:12px;margin-top:auto">
+      <div style="background:#ffeef5;border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:#9d174d;border:1px solid #fecdd3">
+        👔 <strong>Admin Role</strong><br>Operational access only.
+      </div>
+    </div>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="page-title">Agency Approvals</div>
+        <div class="page-subtitle">Review agency applications and manage reseller commission rates</div>
+      </div>
+    </div>
+
+    <div class="tab-bar">
+      <div class="tab active" onclick="filterAgencies('pending',this)">Pending Approvals</div>
+      <div class="tab" onclick="filterAgencies('approved',this)">Approved Partners</div>
+      <div class="tab" onclick="filterAgencies('rejected',this)">Rejected</div>
+    </div>
+
+    <div class="table-card" id="agency-table-wrap"></div>
+  </main>
+</div>
+
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/api.js"></script>
+<script src="../JS/agency.js"></script>
+<script>
+if(Auth.getRole() !== 'admin' && Auth.getRole() !== 'superuser') window.location.href = '../login.html';
+
+async function filterAgencies(status, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  try {
+    const [allAgencies, allBookings] = await Promise.all([
+      apiGetSnake('/agencies'),
+      apiGetSnake('/bookings')
+    ]);
+    window._allBookings = allBookings;
+    const list = allAgencies.filter(a => a.status === status);
+    render(list, status);
+  } catch(e) {
+    window._allBookings = [];
+    render([], status);
+  }
+}
+
+function render(list, status) {
+  const wrap = document.getElementById('agency-table-wrap');
+  if (!list.length) {
+    wrap.innerHTML = `<div class="empty-state"><div style="font-size:40px;margin-bottom:12px">🏢</div><div style="font-size:16px;color:var(--text-primary)">No ${status} agencies</div></div>`;
+    return;
+  }
+  
+  if (status === 'pending') {
+    const rows = list.map(a => `<tr>
+      <td><strong>${a.business_name}</strong><br><span style="font-size:12px;color:var(--text-muted)">${a.contact_email} · ${a.contact_phone}</span></td>
+      <td>${formatDate(a.created_at)}</td>
+      <td>${window._allBookings ? window._allBookings.filter(b => b.agency_id === a.agency_id).length : 0}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input type="number" class="rate-input" id="rate-${a.agency_id}" value="10" min="0" max="100"> %
+        </div>
+      </td>
+      <td>
+        <div style="display:flex;gap:8px">
+          <button class="btn-sm btn-approve" onclick="doApprove(${a.agency_id})">Approve</button>
+          <button class="btn-sm btn-reject" onclick="doReject(${a.agency_id})">Reject</button>
+        </div>
+      </td>
+    </tr>`).join('');
+    wrap.innerHTML = `<table>
+      <thead><tr><th>Business Details</th><th>Applied</th><th>Packages Booked</th><th>Set Commission</th><th>Actions</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  } else {
+    const rows = list.map(a => `<tr>
+      <td><strong>${a.business_name}</strong><br><span style="font-size:12px;color:var(--text-muted)">${a.contact_email} · ${a.contact_phone}</span></td>
+      <td>${formatDate(a.created_at)}</td>
+      <td>${window._allBookings ? window._allBookings.filter(b => b.agency_id === a.agency_id).length : 0}</td>
+      <td>${a.commission_rate != null ? a.commission_rate + '%' : '—'}</td>
+      <td>${agencyStatusPill(a.status)}</td>
+    </tr>`).join('');
+    wrap.innerHTML = `<table>
+      <thead><tr><th>Business Details</th><th>Applied</th><th>Packages Booked</th><th>Commission Rate</th><th>Status</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+}
+
+async function doApprove(id) {
+  const rateInput = document.getElementById('rate-' + id);
+  const rate = rateInput ? rateInput.value : 10;
+  const res = await approveAgency(id, rate);
+  if (res.ok) {
+    showToast('Agency approved with ' + rate + '% commission', 'success');
+    filterAgencies('pending', document.querySelector('.tab.active'));
+  } else {
+    showToast(res.error, 'error');
+  }
+}
+
+async function doReject(id) {
+  if (!confirm('Reject this agency application?')) return;
+  const res = await rejectAgency(id);
+  if (res.ok) {
+    showToast('Agency application rejected', 'success');
+    filterAgencies('pending', document.querySelector('.tab.active'));
+  }
+}
+
+filterAgencies('pending', document.querySelector('.tab.active'));
+</script>
+</body>
+</html>

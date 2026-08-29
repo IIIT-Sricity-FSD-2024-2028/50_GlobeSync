@@ -156,3 +156,72 @@ CREATE TABLE SupportTicket (
     FOREIGN KEY (traveler_id) REFERENCES Traveler(traveler_id),
     FOREIGN KEY (care_id) REFERENCES CustomerCare(care_id)
 );
+
+-- =================================================================================
+-- AGENCY EXTENSION — added in Review-2 design stage
+-- The three tables below extend the schema for the B2B reseller (Agency) feature.
+-- Existing tables above are unmodified; agency_id FKs are added via ALTER at bottom.
+-- =================================================================================
+
+-- ================= AGENCY =================
+CREATE TABLE Agency (
+    agency_id       INT AUTO_INCREMENT PRIMARY KEY,
+    business_name   VARCHAR(100),
+    contact_email   VARCHAR(100),
+    contact_phone   VARCHAR(20),
+    password        VARCHAR(100),
+    status          VARCHAR(20) DEFAULT 'pending',
+    commission_rate DECIMAL(5,2),
+    created_at      DATE
+);
+-- status values: 'pending' | 'approved' | 'rejected'
+
+-- ================= PASSENGER =================
+-- Generalises the SavedPassenger concept to support both B2C and B2B ownership.
+-- CONSTRAINT: exactly one of (traveler_id, agency_id) must be non-null per row.
+--   traveler_id set  -> passenger belongs to a registered Traveler (B2C self-booking)
+--   agency_id   set  -> passenger is an offline client owned by an Agency (B2B booking)
+CREATE TABLE Passenger (
+    passenger_id INT AUTO_INCREMENT PRIMARY KEY,
+    name         VARCHAR(100),
+    age          INT,
+    gender       VARCHAR(10),
+    contact      VARCHAR(50),
+    traveler_id  INT NULL,
+    agency_id    INT NULL,
+    FOREIGN KEY (traveler_id) REFERENCES Traveler(traveler_id),
+    FOREIGN KEY (agency_id)   REFERENCES Agency(agency_id)
+);
+
+-- ================= COMMISSION LEDGER =================
+-- One row per Agency booking. Created automatically by the backend when a
+-- trip with agencyId is confirmed (TripsService.create).
+-- status lifecycle: 'pending' (trip active) → 'settled' (trip marked Completed)
+--   The transition is applied automatically in TripsService.updateStatus.
+CREATE TABLE CommissionLedger (
+    commission_id INT AUTO_INCREMENT PRIMARY KEY,
+    agency_id     INT NOT NULL,
+    trip_id       INT NOT NULL,
+    amount        DECIMAL(10,2),
+    status        VARCHAR(20) DEFAULT 'pending',
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (agency_id) REFERENCES Agency(agency_id),
+    FOREIGN KEY (trip_id)   REFERENCES Trip(trip_id)
+);
+
+-- =================================================================================
+-- ALTER EXISTING TABLES — add nullable agency_id FK column
+-- Run these after the CREATE statements above.
+-- When agency_id is set, traveler_id on the same row may be NULL
+-- (the Agency is the commercial owner; the Passenger record holds the traveler detail).
+-- =================================================================================
+
+-- ALTER TABLE Trip
+--     ADD COLUMN agency_id INT NULL,
+--     ADD FOREIGN KEY (agency_id) REFERENCES Agency(agency_id);
+
+-- ALTER TABLE SupportTicket
+--     ADD COLUMN agency_id INT NULL,
+--     ADD FOREIGN KEY (agency_id) REFERENCES Agency(agency_id);
+-- NOTE: traveler_id on SupportTicket becomes nullable when agency_id is set
+--       since the Agency is the platform's sole support contact for its passengers.

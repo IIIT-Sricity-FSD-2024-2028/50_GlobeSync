@@ -12,9 +12,9 @@ export class PackagesController {
   constructor(private readonly packagesService: PackagesService) {}
 
   @Get()
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY)
   @ApiRoleHeader()
-  @ApiOperation({ summary: 'Get all packages', description: 'Returns list of all travel packages. Accessible by superuser, admin, traveler, and guide.' })
+  @ApiOperation({ summary: 'Get all packages', description: 'Returns list of all travel packages. Accessible by superuser, admin, traveler, guide, and agency.' })
   @ApiResponse({ status: 200, description: 'List of packages returned successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden — insufficient role' })
   findAll() {
@@ -22,9 +22,9 @@ export class PackagesController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY)
   @ApiRoleHeader()
-  @ApiOperation({ summary: 'Get package by ID', description: 'Returns a single package. Accessible by superuser, admin, traveler, and guide.' })
+  @ApiOperation({ summary: 'Get package by ID', description: 'Returns a single package. Accessible by superuser, admin, traveler, guide, and agency.' })
   @ApiParam({ name: 'id', type: Number, description: 'Package ID' })
   @ApiResponse({ status: 200, description: 'Package found' })
   @ApiResponse({ status: 404, description: 'Package not found' })

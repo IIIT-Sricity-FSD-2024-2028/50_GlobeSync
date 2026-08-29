@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { bookings, supportTickets, trips } from '../../data';
+import { bookings, supportTickets, trips, passengers } from '../../data';
 import { Role } from '../enums/role.enum';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 
@@ -89,6 +89,24 @@ export class RolesGuard implements CanActivate {
         }
         return;
 
+      case 'AgenciesController':
+        if (
+          userRole === Role.AGENCY &&
+          ['findOne', 'update'].includes(handlerName)
+        ) {
+          this.ensureParamMatchesUser(request.params?.id, userId);
+        }
+        return;
+
+      case 'PassengersController':
+        if (userRole === Role.TRAVELER) {
+          this.enforceTravelerPassengerOwnership(handlerName, request, userId);
+        }
+        if (userRole === Role.AGENCY) {
+          this.enforceAgencyPassengerOwnership(handlerName, request, userId);
+        }
+        return;
+
       case 'DashboardController':
         if (userRole === Role.TRAVELER && handlerName === 'getTravelerDashboard') {
           this.ensureParamMatchesUser(request.params?.travelerId, userId);
@@ -105,17 +123,38 @@ export class RolesGuard implements CanActivate {
         if (userRole === Role.GUIDE) {
           this.enforceGuideTripOwnership(handlerName, request, userId);
         }
+        if (userRole === Role.AGENCY) {
+          this.enforceAgencyTripOwnership(handlerName, request, userId);
+        }
         return;
 
       case 'BookingsController':
         if (userRole === Role.TRAVELER) {
           this.enforceTravelerBookingOwnership(handlerName, request, userId);
         }
+        if (userRole === Role.AGENCY) {
+          this.enforceAgencyBookingOwnership(handlerName, request, userId);
+        }
         return;
 
       case 'SupportTicketsController':
         if (userRole === Role.TRAVELER) {
           this.enforceTravelerTicketOwnership(handlerName, request, userId);
+        }
+        if (userRole === Role.AGENCY) {
+          this.enforceAgencyTicketOwnership(handlerName, request, userId);
+        }
+        return;
+
+      case 'PaymentsController':
+        if (userRole === Role.AGENCY && handlerName === 'findByAgency') {
+          this.ensureParamMatchesUser(request.params?.agencyId, userId);
+        }
+        return;
+
+      case 'RefundsController':
+        if (userRole === Role.AGENCY && handlerName === 'findByAgency') {
+          this.ensureParamMatchesUser(request.params?.agencyId, userId);
         }
         return;
 
@@ -152,6 +191,34 @@ export class RolesGuard implements CanActivate {
     }
   }
 
+  private enforceAgencyTripOwnership(
+    handlerName: string,
+    request: {
+      params?: Record<string, string | undefined>;
+      body?: Record<string, unknown>;
+    },
+    userId: number,
+  ): void {
+    if (handlerName === 'findByAgency') {
+      this.ensureParamMatchesUser(request.params?.agencyId, userId);
+      return;
+    }
+
+    if (handlerName === 'create') {
+      this.ensureBodyAgencyMatchesUser(request.body, userId);
+      return;
+    }
+
+    if (['findOne', 'update', 'updateStatus'].includes(handlerName)) {
+      const tripId = this.parseNumericValue(request.params?.id);
+      const trip = trips.find((item) => item.tripId === tripId);
+
+      if (!trip || trip.agencyId !== userId) {
+        throw new ForbiddenException(OWN_RESOURCE_ERROR);
+      }
+    }
+  }
+
   private enforceGuideTripOwnership(
     handlerName: string,
     request: {
@@ -164,7 +231,7 @@ export class RolesGuard implements CanActivate {
       return;
     }
 
-    if (['findOne', 'updateStatus'].includes(handlerName)) {
+    if (['findOne', 'update', 'updateStatus'].includes(handlerName)) {
       const tripId = this.parseNumericValue(request.params?.id);
       const trip = trips.find((item) => item.tripId === tripId);
 
@@ -202,6 +269,34 @@ export class RolesGuard implements CanActivate {
     }
   }
 
+  private enforceAgencyBookingOwnership(
+    handlerName: string,
+    request: {
+      params?: Record<string, string | undefined>;
+      body?: Record<string, unknown>;
+    },
+    userId: number,
+  ): void {
+    if (handlerName === 'findByAgency') {
+      this.ensureParamMatchesUser(request.params?.agencyId, userId);
+      return;
+    }
+
+    if (handlerName === 'create') {
+      this.ensureBodyAgencyMatchesUser(request.body, userId);
+      return;
+    }
+
+    if (['findOne', 'update'].includes(handlerName)) {
+      const bookingId = this.parseNumericValue(request.params?.id);
+      const booking = bookings.find((item) => item.bookingId === bookingId);
+
+      if (!booking || booking.agencyId !== userId) {
+        throw new ForbiddenException(OWN_RESOURCE_ERROR);
+      }
+    }
+  }
+
   private enforceTravelerTicketOwnership(
     handlerName: string,
     request: {
@@ -230,12 +325,94 @@ export class RolesGuard implements CanActivate {
     }
   }
 
+  private enforceAgencyTicketOwnership(
+    handlerName: string,
+    request: {
+      params?: Record<string, string | undefined>;
+      body?: Record<string, unknown>;
+    },
+    userId: number,
+  ): void {
+    if (handlerName === 'findByAgency') {
+      this.ensureParamMatchesUser(request.params?.agencyId, userId);
+      return;
+    }
+
+    if (handlerName === 'create') {
+      this.ensureBodyAgencyMatchesUser(request.body, userId);
+      return;
+    }
+
+    if (handlerName === 'findOne') {
+      const ticketId = this.parseNumericValue(request.params?.id);
+      const ticket = supportTickets.find((item) => item.ticketId === ticketId);
+
+      if (!ticket || ticket.agencyId !== userId) {
+        throw new ForbiddenException(OWN_RESOURCE_ERROR);
+      }
+    }
+  }
+
+  private enforceTravelerPassengerOwnership(
+    handlerName: string,
+    request: { params?: Record<string, string | undefined>; body?: Record<string, unknown>; },
+    userId: number,
+  ): void {
+    if (handlerName === 'findByTraveler') {
+      this.ensureParamMatchesUser(request.params?.travelerId, userId);
+      return;
+    }
+    if (handlerName === 'create') {
+      this.ensureBodyTravelerMatchesUser(request.body, userId);
+      return;
+    }
+    if (['findOne', 'update', 'remove'].includes(handlerName)) {
+      const passId = this.parseNumericValue(request.params?.id);
+      const pass = passengers.find((item) => item.passId === passId);
+      if (!pass || pass.travelerId !== userId) {
+        throw new ForbiddenException(OWN_RESOURCE_ERROR);
+      }
+    }
+  }
+
+  private enforceAgencyPassengerOwnership(
+    handlerName: string,
+    request: { params?: Record<string, string | undefined>; body?: Record<string, unknown>; },
+    userId: number,
+  ): void {
+    if (handlerName === 'findByAgency') {
+      this.ensureParamMatchesUser(request.params?.agencyId, userId);
+      return;
+    }
+    if (handlerName === 'create') {
+      this.ensureBodyAgencyMatchesUser(request.body, userId);
+      return;
+    }
+    if (['findOne', 'update', 'remove'].includes(handlerName)) {
+      const passId = this.parseNumericValue(request.params?.id);
+      const pass = passengers.find((item) => item.passId === passId);
+      if (!pass || pass.agencyId !== userId) {
+        throw new ForbiddenException(OWN_RESOURCE_ERROR);
+      }
+    }
+  }
+
   private ensureBodyTravelerMatchesUser(
     body: Record<string, unknown> | undefined,
     userId: number,
   ): void {
     const travelerId = this.parseNumericValue(body?.travelerId);
     if (travelerId !== userId) {
+      throw new ForbiddenException(OWN_RESOURCE_ERROR);
+    }
+  }
+
+  private ensureBodyAgencyMatchesUser(
+    body: Record<string, unknown> | undefined,
+    userId: number,
+  ): void {
+    const agencyId = this.parseNumericValue(body?.agencyId);
+    if (agencyId !== userId) {
       throw new ForbiddenException(OWN_RESOURCE_ERROR);
     }
   }

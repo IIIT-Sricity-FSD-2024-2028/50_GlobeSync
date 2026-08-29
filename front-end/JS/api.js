@@ -65,6 +65,7 @@ function getCurrentUserId() {
     user.adminId    || user.admin_id    ||
     user.guideId    || user.guide_id    ||
     user.careId     || user.care_id     ||
+    user.agencyId   || user.agency_id   ||
     user.id         || null;
 
   return id !== null && id !== undefined ? String(id) : null;
@@ -308,7 +309,7 @@ function getUserId() {
   const u = getCurrentUser();
   if (!u) return null;
   return u.travelerId || u.traveler_id || u.adminId || u.admin_id ||
-         u.guideId || u.guide_id || u.careId || u.care_id || u.id || null;
+         u.guideId || u.guide_id || u.careId || u.care_id || u.agencyId || u.agency_id || u.id || null;
 }
 
 // ---------------------------------------------------------

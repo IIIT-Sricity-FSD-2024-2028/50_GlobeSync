@@ -9,7 +9,8 @@
 export interface SupportTicket {
   ticketId: number;
   caseId: number;
-  travelerId: number;
+  travelerId?: number;
+  agencyId?: number;
   description: string;
   issueType: string;
   careId: number;

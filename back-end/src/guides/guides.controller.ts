@@ -12,9 +12,9 @@ export class GuidesController {
   constructor(private readonly guidesService: GuidesService) {}
 
   @Get()
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY)
   @ApiRoleHeader()
-  @ApiOperation({ summary: 'Get all guides', description: 'Returns list of all guides. Accessible by superuser, admin, traveler, and guide.' })
+  @ApiOperation({ summary: 'Get all guides', description: 'Returns list of all guides. Accessible by superuser, admin, traveler, guide, and agency.' })
   @ApiResponse({ status: 200, description: 'List of guides returned successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden — insufficient role' })
   findAll() {
@@ -22,9 +22,9 @@ export class GuidesController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY)
   @ApiRoleHeader()
-  @ApiOperation({ summary: 'Get guide by ID', description: 'Returns a single guide. Accessible by superuser, admin, traveler, and guide.' })
+  @ApiOperation({ summary: 'Get guide by ID', description: 'Returns a single guide. Accessible by superuser, admin, traveler, guide, and agency.' })
   @ApiParam({ name: 'id', type: Number, description: 'Guide ID' })
   @ApiResponse({ status: 200, description: 'Guide found' })
   @ApiResponse({ status: 404, description: 'Guide not found' })

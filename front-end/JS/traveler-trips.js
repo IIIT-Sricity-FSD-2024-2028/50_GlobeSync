@@ -332,7 +332,8 @@ async function selectGuide(tripId, guideId) {
   const guide = _guides.find(g => g.guide_id === guideId);
   if (trip && guide) {
     try {
-      await apiPutSnake(`/trips/${tripId}`, { ...trip, guide_id: guideId, status: 'Planning' });
+      const { trip_id: _removed, ...tripDataForUpdate } = trip;
+      await apiPutSnake(`/trips/${tripId}`, { ...tripDataForUpdate, guide_id: guideId, status: 'Planning' });
       await apiPost('/messages', { sender: 'traveler', senderId: uid, receiver: 'guide', receiverId: guideId, content: `Hi! I've just requested you as my guide for a new trip to ${trip.destination} (${formatDate(trip.start_date)} - ${formatDate(trip.end_date)}). Looking forward to planning this with you!` });
       closeModal('guide-modal');
       showToast(`Request sent to ${guide.name}!`);
@@ -352,3 +353,39 @@ async function selectGuide(tripId, guideId) {
   setupLiveValidation('activity-form');
   renderTrips();
 })();
+
+let _selectingTripId = null;
+function openGuideSelection(tripId) {
+  _selectingTripId = tripId;
+  const list = document.getElementById('guide-list-container');
+  if(!list) return;
+  list.innerHTML = _guides.map(g => {
+    return `
+      <div class="guide-card" style="padding:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:12px;display:flex;align-items:center;gap:16px">
+        <div style="width:48px;height:48px;border-radius:50%;background:var(--gradient);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700">${g.name[0]}</div>
+        <div style="flex:1">
+          <div style="font-weight:700">${g.name}</div>
+          <div style="font-size:12px;color:var(--text-muted)">⭐ ${g.rating || '4.5'} | ${g.language || 'English'}</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="selectNewGuide(${g.guide_id})">Select</button>
+      </div>`;
+  }).join('');
+  openModal('guide-modal');
+}
+
+async function selectNewGuide(guideId) {
+  if(!_selectingTripId) return;
+  try {
+    const trip = _trips.find(t => t.trip_id === _selectingTripId);
+    if(trip) {
+      await apiPutSnake(`/trips/${_selectingTripId}`, { ...trip, guide_id: guideId, status: 'Pending' });
+      await apiPost('/messages', { sender: 'traveler', senderId: uid, receiver: 'guide', receiverId: guideId, content: `Hi! I've just assigned you as the guide for my trip to ${trip.destination}. Looking forward to it!` });
+      showToast('Guide updated successfully! Trip is now Pending.');
+      closeModal('guide-modal');
+      await fetchData();
+      renderTrips();
+    }
+  } catch(e) {
+    console.error('Failed to select new guide', e);
+  }
+}

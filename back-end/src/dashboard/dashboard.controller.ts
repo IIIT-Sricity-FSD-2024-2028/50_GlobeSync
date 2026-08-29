@@ -62,4 +62,15 @@ export class DashboardController {
   getSupportDashboard() {
     return this.dashboardService.getSupportDashboard();
   }
+
+  @Get('agency/:agencyId')
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.AGENCY)
+  @ApiUserHeaders()
+  @ApiOperation({ summary: 'Agency dashboard', description: 'B2B metrics: total bookings, passengers, pending/settled commission, recent bookings.' })
+  @ApiParam({ name: 'agencyId', type: Number })
+  @ApiResponse({ status: 200, description: 'Agency dashboard data' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  getAgencyDashboard(@Param('agencyId', ParseIntPipe) agencyId: number) {
+    return this.dashboardService.getAgencyDashboard(agencyId);
+  }
 }

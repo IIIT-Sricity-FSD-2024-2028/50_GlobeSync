@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlobeSync — Agency Signup</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--teal:#19b6a6;--teal-dark:#128b7d;--danger:#ef4444;--muted:#6b7280;--text:#1a1a2e;--border:#e5f7f5;--input-bg:#f0fdfc;--gradient:linear-gradient(135deg,#19b6a6 0%,#0ea5e9 100%)}
+body{font-family:'Inter',sans-serif;min-height:100vh;background:#f9fafb;display:flex;flex-direction:column}
+
+/* NAV */
+nav{background:#fff;border-bottom:1px solid #f0e6e6;padding:16px 40px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-icon{width:36px;height:36px;background:var(--gradient);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px}
+.logo-name{font-weight:700;font-size:21px;color:var(--teal)}
+.nav-link{font-size:13px;color:var(--muted);text-decoration:none;font-weight:500}
+.nav-link:hover{color:var(--teal)}
+
+/* CARD */
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:48px 24px}
+.card{background:#fff;border-radius:20px;padding:48px;max-width:520px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,0.07);border:1px solid rgba(0,0,0,0.03)}
+.card-icon{width:56px;height:56px;background:#f0fdfc;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:20px}
+h1{font-size:30px;font-weight:800;color:var(--text);margin-bottom:6px}
+.subtitle{color:var(--muted);font-size:14px;margin-bottom:32px;line-height:1.6}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-group{margin-bottom:18px}
+.form-label{display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:7px}
+.form-control{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;outline:none;transition:border-color 0.2s;font-family:'Inter',sans-serif;background:var(--input-bg);color:var(--text)}
+.form-control:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(25,182,166,0.12)}
+.form-control.error-field{border-color:var(--danger);background:#fff8f8}
+.error-msg{font-size:12px;color:var(--danger);margin-top:4px;display:none}
+.error-msg.show{display:block}
+.btn-submit{width:100%;padding:14px;background:var(--gradient);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;box-shadow:0 4px 12px rgba(25,182,166,0.25);transition:all 0.2s;margin-top:8px}
+.btn-submit:hover{opacity:0.92;transform:translateY(-1px)}
+.login-link{text-align:center;font-size:13px;color:var(--muted);margin-top:16px}
+.login-link a{color:var(--teal);font-weight:600;text-decoration:none}
+
+/* success state */
+.success-screen{display:none;text-align:center;padding:20px 0}
+.success-screen.show{display:block}
+.success-icon{font-size:56px;margin-bottom:16px}
+.success-title{font-size:24px;font-weight:800;color:var(--text);margin-bottom:8px}
+.success-msg{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:28px;max-width:340px;margin-left:auto;margin-right:auto}
+.pending-badge{display:inline-flex;align-items:center;gap:6px;background:#fffbeb;border:1px solid #fde68a;border-radius:20px;padding:6px 16px;font-size:13px;font-weight:600;color:#92400e;margin-bottom:24px}
+.btn-login{display:inline-block;padding:12px 32px;background:var(--gradient);color:#fff;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;box-shadow:0 4px 12px rgba(25,182,166,0.25)}
+</style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="logo">
+    <div class="logo-icon">✈</div>
+    <span class="logo-name">GlobeSync</span>
+  </a>
+  <a href="agency-login.html" class="nav-link">Already have an account? Sign in →</a>
+</nav>
+
+<main>
+  <div class="card">
+    <!-- Signup Form -->
+    <div id="signup-form-wrap">
+      <div class="card-icon">🏢</div>
+      <h1>Register as a<br>Travel Agency</h1>
+      <p class="subtitle">Submit your business details. An admin will review your application and set your commission rate before you can start booking.</p>
+
+      <form id="signup-form" onsubmit="handleSignup(event)" novalidate>
+        <div class="form-group">
+          <label class="form-label">Business Name *</label>
+          <input type="text" id="business_name" class="form-control" placeholder="e.g., Wanderlust Travels Pvt Ltd">
+          <div class="error-msg" id="business_name-error"></div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Contact Email *</label>
+            <input type="email" id="contact_email" class="form-control" placeholder="you@agency.com">
+            <div class="error-msg" id="contact_email-error"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Contact Phone *</label>
+            <input type="tel" id="contact_phone" class="form-control" placeholder="10-digit mobile">
+            <div class="error-msg" id="contact_phone-error"></div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Password *</label>
+            <input type="password" id="password" class="form-control" placeholder="Min. 6 characters">
+            <div class="error-msg" id="password-error"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Confirm Password *</label>
+            <input type="password" id="confirm_password" class="form-control" placeholder="Repeat password">
+            <div class="error-msg" id="confirm_password-error"></div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-submit">Submit Application</button>
+      </form>
+      <div class="login-link">Already registered? <a href="agency-login.html">Sign in</a></div>
+    </div>
+
+    <!-- Success State -->
+    <div class="success-screen" id="success-screen">
+      <div class="success-icon">📬</div>
+      <div class="pending-badge">⏳ Application Submitted</div>
+      <div class="success-title">You're in the queue!</div>
+      <div class="success-msg">Your agency application has been received. An admin will review it and assign your commission rate. You'll be able to log in once approved — usually within 24 hours.</div>
+      <a href="agency-login.html" class="btn-login">Go to Agency Login</a>
+    </div>
+  </div>
+</main>
+
+<script src="JS/mockData.js"></script>
+<script src="JS/api.js"></script>
+<script src="JS/helpers.js"></script>
+<script>
+function showFieldErr(id, msg) {
+  const el = document.getElementById(id + '-error');
+  const inp = document.getElementById(id);
+  if (el) { el.textContent = msg; el.classList.add('show'); }
+  if (inp) inp.classList.add('error-field');
+}
+function clearErrors() {
+  document.querySelectorAll('.error-msg').forEach(e => e.classList.remove('show'));
+  document.querySelectorAll('.form-control').forEach(e => e.classList.remove('error-field'));
+}
+
+async function handleSignup(e) {
+  e.preventDefault();
+  clearErrors();
+  const name  = document.getElementById('business_name').value.trim();
+  const email = document.getElementById('contact_email').value.trim();
+  const phone = document.getElementById('contact_phone').value.trim();
+  const pass  = document.getElementById('password').value.trim();
+  const conf  = document.getElementById('confirm_password').value.trim();
+  let valid = true;
+
+  if (!name)  { showFieldErr('business_name', 'Business name is required'); valid = false; }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showFieldErr('contact_email', 'Valid email required'); valid = false;
+  }
+  if (!/^\d{10}$/.test(phone)) { showFieldErr('contact_phone', 'Must be exactly 10 digits'); valid = false; }
+  if (!pass || pass.length < 6) { showFieldErr('password', 'Minimum 6 characters'); valid = false; }
+  if (pass !== conf) { showFieldErr('confirm_password', 'Passwords do not match'); valid = false; }
+  if (!valid) return;
+
+  try {
+    await apiPostSnake('/agencies/register', {
+      business_name: name,
+      contact_email: email,
+      contact_phone: phone,
+      password: pass
+    });
+    document.getElementById('signup-form-wrap').style.display = 'none';
+    document.getElementById('success-screen').classList.add('show');
+  } catch(e) {
+    if (e.message.includes('Email already registered') || e.message.includes('already exists')) {
+      showFieldErr('contact_email', 'An agency with this email already exists');
+    } else {
+      alert(e.message);
+    }
+  }
+}
+
+// Live clear on input
+document.querySelectorAll('.form-control').forEach(el => {
+  el.addEventListener('input', () => {
+    el.classList.remove('error-field');
+    const err = document.getElementById(el.id + '-error');
+    if (err) err.classList.remove('show');
+  });
+});
+</script>
+</body>
+</html>
