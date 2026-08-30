@@ -8,9 +8,9 @@
  */
 export interface Message {
   messageId: number;
-  sender: 'traveler' | 'guide' | 'support';
+  sender: 'traveler' | 'guide' | 'support' | 'agency';
   senderId: number;
-  receiver: 'traveler' | 'guide' | 'support';
+  receiver: 'traveler' | 'guide' | 'support' | 'agency';
   receiverId: number;
   content: string;
   timestamp: string;

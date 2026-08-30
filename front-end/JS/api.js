@@ -97,7 +97,7 @@ function buildHeaders() {
 // Error handler
 // ---------------------------------------------------------
 
-async function handleResponse(response) {
+async function handleResponse(response, options = {}) {
   // Try to parse JSON body regardless of status
   let data;
   try {
@@ -116,7 +116,9 @@ async function handleResponse(response) {
     console.error(`[API ${response.status}]`, msg, data);
 
     // Only alert on user-facing errors (not 404 which callers may handle silently)
-    if (response.status === 403) {
+    if (options.silent) {
+      // Caller opted out of global alerts
+    } else if (response.status === 403) {
       alert('Access denied. You do not have permission for this action.');
     } else if (response.status === 401) {
       alert('Unauthorized. Please log in again.');
@@ -145,12 +147,13 @@ async function handleResponse(response) {
  * @param {string} path - API path, e.g. '/trips' or '/dashboard/admin'
  * @returns {Promise<any>} Parsed JSON response
  */
-async function apiGet(path) {
+async function apiGet(path, options = {}) {
   const response = await fetch(`${BASE_URL}${path}`, {
     method: 'GET',
     headers: buildHeaders(),
+    ...options
   });
-  return handleResponse(response);
+  return handleResponse(response, options);
 }
 
 /**
@@ -159,13 +162,14 @@ async function apiGet(path) {
  * @param {object} data - Request body
  * @returns {Promise<any>} Parsed JSON response
  */
-async function apiPost(path, data) {
+async function apiPost(path, data, options = {}) {
   const response = await fetch(`${BASE_URL}${path}`, {
     method: 'POST',
     headers: buildHeaders(),
     body: JSON.stringify(data),
+    ...options
   });
-  return handleResponse(response);
+  return handleResponse(response, options);
 }
 
 /**
@@ -265,8 +269,8 @@ function toCamelCase(obj) {
 /**
  * GET with automatic camelCase→snake_case response conversion.
  */
-async function apiGetSnake(path) {
-  const data = await apiGet(path);
+async function apiGetSnake(path, options = {}) {
+  const data = await apiGet(path, options);
   return toSnakeCase(data);
 }
 

@@ -12,7 +12,7 @@ async function loadData() {
     [_myTrips, _allTravelers, _allAgencies] = await Promise.all([
       apiGetSnake(`/trips/guide/${guideId}`),
       apiGetSnake('/travelers'),
-      apiGetSnake('/agencies').catch(()=>[])
+      apiGetSnake('/agencies', { silent: true }).catch(()=>[])
     ]);
     console.log('[guide-requests] trips:', _myTrips.length);
     renderRequests();

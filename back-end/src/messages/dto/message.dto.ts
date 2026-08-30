@@ -3,10 +3,10 @@ import { IsIn, IsInt, IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateMessageDto {
   @ApiProperty({ example: 'traveler', enum: ['traveler', 'guide', 'support', 'agency'] })
-  @IsNotEmpty() @IsString() @IsIn(['traveler', 'guide', 'support', 'agency']) sender: string;
+  @IsNotEmpty() @IsString() @IsIn(['traveler', 'guide', 'support', 'agency']) sender: 'traveler' | 'guide' | 'support' | 'agency';
   @ApiProperty({ example: 1 }) @IsNotEmpty() @IsInt() senderId: number;
   @ApiProperty({ example: 'guide', enum: ['traveler', 'guide', 'support', 'agency'] })
-  @IsNotEmpty() @IsString() @IsIn(['traveler', 'guide', 'support', 'agency']) receiver: string;
+  @IsNotEmpty() @IsString() @IsIn(['traveler', 'guide', 'support', 'agency']) receiver: 'traveler' | 'guide' | 'support' | 'agency';
   @ApiProperty({ example: 1 }) @IsNotEmpty() @IsInt() receiverId: number;
   @ApiProperty({ example: 'Hello! I have a question about my trip.' })
   @IsNotEmpty() @IsString() content: string;

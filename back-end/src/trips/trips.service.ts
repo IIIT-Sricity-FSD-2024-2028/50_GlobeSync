@@ -53,7 +53,8 @@ export class TripsService {
           commissionId: commId + 1,
           agencyId: dto.agencyId,
           tripId: newTrip.tripId,
-          amount: commAmount,
+          grossAmount: dto.budget,
+          commissionAmount: commAmount,
           status: 'pending',
           createdAt: new Date().toISOString()
         });

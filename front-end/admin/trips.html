@@ -68,15 +68,16 @@ if (!Auth.isLoggedIn() || Auth.getRole() !== 'admin') window.location.href = '..
 const emojis = {'Paris':'🗼','Tokyo':'🗾','Swiss':'🏔','New York':'🗽','Bali':'🏝','Dubai':'🏗','Goa':'🏖','Kerala':'🛶','Rajasthan':'🏰','Singapore':'🦁'};
 function getEmoji(d) { for (const k in emojis) if (d.includes(k)) return emojis[k]; return '✈'; }
 
-let _trips = [], _travelers = [], _guides = [], _reviews = [];
+let _trips = [], _travelers = [], _guides = [], _reviews = [], _agencies = [];
 
 async function loadData() {
   try {
-    [_trips, _travelers, _guides, _reviews] = await Promise.all([
+    [_trips, _travelers, _guides, _reviews, _agencies] = await Promise.all([
       apiGetSnake('/trips'),
       apiGetSnake('/travelers'),
       apiGetSnake('/guides'),
-      apiGetSnake('/reviews')
+      apiGetSnake('/reviews'),
+      apiGetSnake('/agencies')
     ]);
     render();
   } catch (e) { console.error('Failed to load trips:', e); }
@@ -92,13 +93,21 @@ function render() {
   document.getElementById('s-pending').textContent = _trips.filter(t => t.status === 'Pending' || t.status === 'Planning').length;
 
   document.getElementById('trips-tbody').innerHTML = trips.map(t => {
-    const traveler = _travelers.find(tr => tr.traveler_id === t.traveler_id);
+    let ownerName = '—';
+    if (t.agency_id) {
+      const agency = _agencies.find(a => a.agency_id === t.agency_id);
+      ownerName = agency ? `<span style="color:var(--primary);font-weight:600">🏢 ${agency.business_name}</span>` : '🏢 Unknown Agency';
+    } else if (t.traveler_id) {
+      const traveler = _travelers.find(tr => tr.traveler_id === t.traveler_id);
+      ownerName = traveler ? traveler.name : '—';
+    }
+
     const guide = _guides.find(g => g.guide_id === t.guide_id);
     const review = _reviews.find(r => r.trip_id === t.trip_id);
     return `<tr>
       <td style="font-weight:700;color:var(--primary)">TR00${t.trip_id}</td>
       <td><span style="font-size:18px">${getEmoji(t.destination)}</span> ${t.destination}</td>
-      <td>${traveler ? traveler.name : '—'}</td>
+      <td>${ownerName}</td>
       <td>${guide ? guide.name : '<span class="badge badge-gray">Unassigned</span>'}</td>
       <td style="font-size:13px">${formatDate(t.start_date)} → ${formatDate(t.end_date)}</td>
       <td style="font-weight:700">${formatCurrency(t.budget)}</td>

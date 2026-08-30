@@ -42,58 +42,79 @@ export class DashboardService {
 
   /** Superuser dashboard — system-wide overview */
   getSuperuserDashboard() {
-    return {
-      usersByRole: {
-        travelers: travelers.length,
-        guides: guides.length,
-        admins: admins.length,
-        supportUsers: supportUsers.length,
-      },
-      entitiesCount: {
-        travelers: travelers.length,
-        guides: guides.length,
-        admins: admins.length,
-        supportUsers: supportUsers.length,
-        packages: packages.length,
-        trips: trips.length,
-        bookings: bookings.length,
-        payments: payments.length,
-        refunds: refunds.length,
-        itineraries: itineraries.length,
-        expenses: expenses.length,
-        reviews: reviews.length,
-        supportTickets: supportTickets.length,
-        messages: messages.length,
-        passengers: passengers.length,
-        packageBookings: packageBookings.length,
-        agencies: agencies.length,
-        commissionLedger: commissionLedger.length,
-      },
-      totalTrips: trips.length,
-      totalBookings: bookings.length,
-      totalPayments: payments.length,
-      totalTickets: supportTickets.length,
-      totalAgencies: agencies.length,
-      agencyMetrics: {
-        totalAgencies: agencies.length,
-        approvedAgencies: agencies.filter(a => a.status === 'approved').length,
-        pendingAgencies: agencies.filter(a => a.status === 'pending').length,
-        rejectedAgencies: agencies.filter(a => a.status === 'rejected').length,
-        totalCommissionPending: commissionLedger
-          .filter(c => c.status === 'pending')
-          .reduce((sum, c) => sum + c.amount, 0),
-        totalCommissionSettled: commissionLedger
-          .filter(c => c.status === 'settled')
-          .reduce((sum, c) => sum + c.amount, 0),
-        agencyChannelRevenue: trips
-          .filter(t => t.agencyId != null)
-          .reduce((sum, t) => sum + t.budget, 0),
-        travelerChannelRevenue: trips
-          .filter(t => t.travelerId != null)
-          .reduce((sum, t) => sum + t.budget, 0),
+      const settledPayments = payments.filter(p => p.status === 'Paid');
+      let agencyRevenue = 0;
+      let travelerRevenue = 0;
+
+      for (const p of settledPayments) {
+        let isAgency = false;
+        if (p.agencyId != null) isAgency = true;
+        else if (p.tripId) {
+          const trip = trips.find(t => t.tripId === p.tripId);
+          if (trip && trip.agencyId != null) isAgency = true;
+        } else if (p.bookingId) {
+          const booking = bookings.find(b => b.bookingId === p.bookingId);
+          if (booking && booking.agencyId != null) isAgency = true;
+          else if (booking && booking.tripId) {
+            const trip = trips.find(t => t.tripId === booking.tripId);
+            if (trip && trip.agencyId != null) isAgency = true;
+          }
+        }
+        
+        if (isAgency) agencyRevenue += p.amount;
+        else travelerRevenue += p.amount;
       }
-    };
-  }
+
+      return {
+        usersByRole: {
+          travelers: travelers.length,
+          guides: guides.length,
+          admins: admins.length,
+          supportUsers: supportUsers.length,
+        },
+        entitiesCount: {
+          travelers: travelers.length,
+          guides: guides.length,
+          admins: admins.length,
+          supportUsers: supportUsers.length,
+          packages: packages.length,
+          trips: trips.length,
+          bookings: bookings.length,
+          payments: payments.length,
+          refunds: refunds.length,
+          itineraries: itineraries.length,
+          expenses: expenses.length,
+          reviews: reviews.length,
+          supportTickets: supportTickets.length,
+          messages: messages.length,
+          passengers: passengers.length,
+          packageBookings: packageBookings.length,
+          agencies: agencies.length,
+          commissionLedger: commissionLedger.length,
+        },
+        totalTrips: trips.length,
+        totalBookings: bookings.length,
+        totalPayments: payments.length,
+        totalTickets: supportTickets.length,
+        totalAgencies: agencies.length,
+        totalPlatformRevenue: settledPayments.reduce((sum, p) => sum + p.amount, 0),
+        agencyMetrics: {
+          totalAgencies: agencies.length,
+          approvedAgencies: agencies.filter(a => a.status === 'approved').length,
+          pendingAgencies: agencies.filter(a => a.status === 'pending').length,
+          rejectedAgencies: agencies.filter(a => a.status === 'rejected').length,
+          totalCommissionPending: commissionLedger
+            .filter(c => c.status === 'pending')
+            .reduce((sum, c) => sum + c.commissionAmount, 0),
+          totalCommissionSettled: commissionLedger
+            .filter(c => c.status === 'settled')
+            .reduce((sum, c) => sum + c.commissionAmount, 0),
+          agencyChannelRevenue: agencyRevenue,
+          travelerChannelRevenue: travelerRevenue,
+        }
+      };
+    }
+
 
   /** Traveler dashboard — personal metrics */
   getTravelerDashboard(travelerId: number) {
@@ -167,10 +188,10 @@ export class DashboardService {
 
     const pendingCommission = myCommission
       .filter((c) => c.status === 'pending')
-      .reduce((sum, c) => sum + c.amount, 0);
+      .reduce((sum, c) => sum + c.commissionAmount, 0);
     const settledCommission = myCommission
       .filter((c) => c.status === 'settled')
-      .reduce((sum, c) => sum + c.amount, 0);
+      .reduce((sum, c) => sum + c.commissionAmount, 0);
 
     const recentBookings = [...myTrips].reverse().slice(0, 5);
 

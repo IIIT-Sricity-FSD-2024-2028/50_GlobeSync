@@ -33,7 +33,7 @@ export const trips: Trip[] = [
   { tripId: 10, destination: 'Rajasthan, India', startDate: '2026-06-01', endDate: '2026-06-10', budget: 25000, travelerId: 3, guideId: 1, packageId: 10, status: 'Planning' },
   { tripId: 11, destination: 'Singapore', startDate: '2026-07-05', endDate: '2026-07-13', budget: 195000, travelerId: 1, guideId: 2, packageId: 9, status: 'Planning' },
   { tripId: 12, destination: 'Kerala, India', startDate: '2026-06-15', endDate: '2026-06-20', budget: 18500, travelerId: 2, guideId: 1, packageId: 8, status: 'Pending' },
-  { tripId: 13, destination: 'Rome, Italy', startDate: '2025-12-05', endDate: '2025-12-12', budget: 175000, travelerId: 1, guideId: 1, packageId: 1, status: 'Completed' },
+  { tripId: 13, destination: 'Rome, Italy', startDate: '2025-12-05', endDate: '2025-12-12', budget: 175000, agencyId: 1, guideId: 1, packageId: 1, status: 'Completed' },
   { tripId: 14, destination: 'Sydney, Australia', startDate: '2026-01-10', endDate: '2026-01-20', budget: 220000, travelerId: 2, guideId: 1, packageId: 2, status: 'Completed' },
   { tripId: 15, destination: 'Cape Town, South Africa', startDate: '2025-11-15', endDate: '2025-11-22', budget: 160000, travelerId: 3, guideId: 1, packageId: 3, status: 'Completed' },
   { tripId: 16, destination: 'London, UK', startDate: '2025-08-10', endDate: '2025-08-17', budget: 195000, travelerId: 4, guideId: 1, packageId: 1, status: 'Completed' },

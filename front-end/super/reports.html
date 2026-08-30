@@ -49,35 +49,49 @@
 
     <!-- PERFORMANCE STATS -->
     <div class="stats-grid stats-grid-4 mb-4">
-      <div class="stat-card"><div class="stat-info"><div class="stat-label">Total Revenue</div><div class="stat-value" id="total-revenue">₹0</div></div><div class="stat-icon green">💰</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Total Platform Revenue</div><div class="stat-value" id="total-revenue">₹0</div></div><div class="stat-icon green">💰</div></div>
       <div class="stat-card"><div class="stat-info"><div class="stat-label">Total Agencies</div><div class="stat-value" id="agency-count">0</div><div class="stat-change" id="agency-status"></div></div><div class="stat-icon blue">🏢</div></div>
       <div class="stat-card"><div class="stat-info"><div class="stat-label">Active Users (MAU)</div><div class="stat-value" id="mau-count">0</div></div><div class="stat-icon pink">👤</div></div>
       <div class="stat-card"><div class="stat-info"><div class="stat-label">System Performance</div><div class="stat-value">99.8%</div></div><div class="stat-icon orange">⚡</div></div>
     </div>
 
     <div class="analytics-grid">
-      <!-- REVENUE TRENDS -->
-      <div class="card">
+      <!-- REVENUE BREAKDOWN (UNIFIED MODEL) -->
+      <div class="card" style="grid-column: span 2;">
         <div class="card-header">
-          <span class="card-title">Booking Trends (Last 6 Months)</span>
-          <select class="form-control" style="width:auto;padding:4px 8px;font-size:12px" onchange="updateChart(this.value)">
-            <option value="All">All Services</option><option value="Flight">Flights</option><option value="Hotel">Hotels</option>
-          </select>
+          <span class="card-title">Unified Revenue Model</span>
         </div>
         <div class="card-body">
-          <div class="bar-chart" id="booking-chart"></div>
-          <div style="padding:20px 0 0;display:flex;gap:40px">
-            <div><div style="font-size:13px;color:var(--text-muted)">Top Service</div><div style="font-weight:700;font-size:18px;color:var(--primary)">Flights (42%)</div></div>
-            <div><div style="font-size:13px;color:var(--text-muted)">Avg Order Value</div><div style="font-weight:700;font-size:18px;color:var(--primary)">₹12,450</div></div>
-          </div>
-        </div>
-      </div>
+          <div style="display:flex; gap:20px; align-items:flex-start;">
+            
+            <div style="flex:1; background:var(--gradient-soft); padding:20px; border-radius:12px;">
+              <h4 style="margin-bottom:16px; color:var(--primary-dark)">Direct Traveler Channel</h4>
+              <div style="font-size:28px; font-weight:800; color:var(--text-primary)" id="traveler-revenue">₹0</div>
+              <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Revenue from B2C direct bookings</div>
+            </div>
 
-      <!-- SERVICE DISTRIBUTION -->
-      <div class="card">
-        <div class="card-header"><span class="card-title">Service Share</span></div>
-        <div class="card-body" id="service-share">
-          <!-- Dynamically populated -->
+            <div style="flex:1; background:#f0fdf4; padding:20px; border-radius:12px; border:1px solid #bbf7d0;">
+              <h4 style="margin-bottom:16px; color:#166534">Agency Reseller Channel</h4>
+              <div style="font-size:28px; font-weight:800; color:#15803d" id="agency-revenue">₹0</div>
+              <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Gross revenue from B2B agency bookings</div>
+              
+              <div style="margin-top:20px; padding-top:16px; border-top:1px solid #dcfce7;">
+                <h5 style="font-size:13px; color:#166534; margin-bottom:12px;">Commission (Cost of Sales)</h5>
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                  <span style="font-size:13px; color:#15803d;">Settled (Paid)</span>
+                  <span style="font-weight:700; color:#15803d;" id="commission-settled">₹0</span>
+                </div>
+                <div style="display:flex; justify-content:space-between;">
+                  <span style="font-size:13px; color:#991b1b;">Pending (Payable)</span>
+                  <span style="font-weight:700; color:#991b1b;" id="commission-pending">₹0</span>
+                </div>
+                <div style="font-size:11px; color:#475569; margin-top:12px; font-style:italic;">
+                  Note: Commission is a cost paid out of the Agency Channel Gross Revenue. It is not additional platform revenue.
+                </div>
+              </div>
+            </div>
+
+          </div>
         </div>
       </div>
     </div>
@@ -122,65 +136,27 @@ const user = Auth.getUser();
 
 async function loadAnalytics() {
   try {
-    const [payments, travelers, guides, bookings, agencies] = await Promise.all([
-      apiGetSnake('/payments'),
-      apiGetSnake('/travelers'),
-      apiGetSnake('/guides'),
-      apiGetSnake('/bookings'),
-      apiGetSnake('/agencies')
-    ]);
+    const dashboard = await apiGetSnake('/dashboard/super');
+    
+    document.getElementById('total-revenue').textContent = formatCurrency(dashboard.total_platform_revenue || 0);
+    document.getElementById('traveler-revenue').textContent = formatCurrency(dashboard.agency_metrics?.traveler_channel_revenue || 0);
+    document.getElementById('agency-revenue').textContent = formatCurrency(dashboard.agency_metrics?.agency_channel_revenue || 0);
+    document.getElementById('commission-settled').textContent = formatCurrency(dashboard.agency_metrics?.total_commission_settled || 0);
+    document.getElementById('commission-pending').textContent = formatCurrency(dashboard.agency_metrics?.total_commission_pending || 0);
 
-    const totalRev = payments.reduce((s, p) => s + (p.amount || 0), 0);
-    document.getElementById('total-revenue').textContent = formatCurrency(totalRev);
-    document.getElementById('mau-count').textContent = travelers.length + guides.length + 42;
-    document.getElementById('agency-count').textContent = agencies.length;
-    const activeAgencies = agencies.filter(a => a.status === 'active' || a.status === 'verified').length;
+    const mauCount = (dashboard.users_by_role?.travelers || 0) + (dashboard.users_by_role?.guides || 0) + 42;
+    document.getElementById('mau-count').textContent = mauCount;
+    
+    const activeAgencies = dashboard.agency_metrics?.approved_agencies || 0;
+    document.getElementById('agency-count').textContent = dashboard.total_agencies || 0;
     document.getElementById('agency-status').textContent = `${activeAgencies} Active Agencies`;
 
-    // Booking Chart
-    window._allBookings = bookings;
-    updateChart('All');
-
-    // Service Distribution
-    const counts = { Flight: 0, Hotel: 0, Transport: 0 };
-    bookings.forEach(b => { if (counts[b.type] !== undefined) counts[b.type]++; });
-    const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
-    document.getElementById('service-share').innerHTML = Object.entries(counts).map(([type, val]) => {
-      const pct = Math.round(val/total*100);
-      const color = type === 'Flight' ? '#6366f1' : type === 'Hotel' ? '#E8467C' : '#10b981';
-      return `
-        <div style="margin-bottom:20px">
-          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
-            <span style="font-weight:600">${type}</span><span>${pct}%</span>
-          </div>
-          <div style="height:8px;background:var(--border-light);border-radius:4px;overflow:hidden">
-            <div style="height:100%;background:${color};width:${pct}%"></div>
-          </div>
-        </div>`;
-    }).join('');
   } catch (e) {
     console.error('Error loading analytics:', e);
   }
 }
 
-function updateChart(filterType) {
-  let filtered = window._allBookings || [];
-  if (filterType !== 'All') {
-    filtered = filtered.filter(b => b.type === filterType);
-  }
-  
-  // Create some mock historical data based on current filtered length
-  const base = filtered.length;
-  const data = [Math.floor(base*0.5), Math.floor(base*0.8), Math.floor(base*0.6), Math.floor(base*1.1), Math.floor(base*0.9), base];
-  
-  const months = ['Jan','Feb','Mar','Apr','May','Jun'];
-  const max = Math.max(...data, 1);
-  document.getElementById('booking-chart').innerHTML = data.map((v, i) => `
-    <div class="bar-item" style="height:${Math.round(v/max*100)}%" title="${v} bookings">
-      <div class="bar-label">${months[i]}</div>
-    </div>`).join('');
-}
-
+// Remove updateChart as we removed the chart
 loadAnalytics();
 injectNotifBell('superuser');
 </script>

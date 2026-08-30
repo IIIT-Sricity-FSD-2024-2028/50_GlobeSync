@@ -1,5 +1,5 @@
 let activeConvId = null;
-let _myTrips = [], _allTravelers = [], _allMessages = [];
+let _myTrips = [], _allTravelers = [], _allAgencies = [], _allMessages = [];
 let user = null, guideId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -20,9 +20,10 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadData() {
   try {
     console.log('[guide-messages] Loading data for guideId:', guideId);
-    [_myTrips, _allTravelers, _allMessages] = await Promise.all([
+    [_myTrips, _allTravelers, _allAgencies, _allMessages] = await Promise.all([
       apiGetSnake(`/trips/guide/${guideId}`),
       apiGetSnake('/travelers'),
+      apiGetSnake('/agencies', { silent: true }).catch(() => []),
       apiGetSnake(`/messages/user/guide/${guideId}`).then(res => Array.isArray(res) ? res : (res.value || []))
     ]);
     console.log('[guide-messages] trips:', _myTrips.length, 'travelers:', _allTravelers.length, 'messages:', _allMessages.length);
@@ -39,48 +40,56 @@ async function loadData() {
 function getConversations() {
   const convs = {};
 
-  // Include travelers from assigned trips
+  // Include assigned trips
   _myTrips.forEach(t => {
-    if (!convs[t.traveler_id]) {
-      const traveler = _allTravelers.find(tr => tr.traveler_id === t.traveler_id);
-      if (traveler) {
-        convs[t.traveler_id] = {
-          id: t.traveler_id,
-          traveler: traveler,
-          latestTrip: t,
-          messages: [],
-          unread: t.status === 'Pending' || t.status === 'Planning'
-        };
-      }
+    const pType = t.agency_id ? 'agency' : 'traveler';
+    const pId = t.agency_id || t.traveler_id;
+    const convKey = `${pType}_${pId}`;
+    
+    if (!convs[convKey]) {
+      const partner = pType === 'agency' ? _allAgencies.find(a => a.agency_id === pId) : _allTravelers.find(tr => tr.traveler_id === pId);
+      convs[convKey] = {
+        id: convKey,
+        userType: pType,
+        userId: pId,
+        partnerName: partner ? partner.name : (pType === 'agency' ? 'Agency ' + pId : 'Traveler ' + pId),
+        partnerEmail: partner ? partner.email : 'Unknown Email',
+        latestTrip: t,
+        messages: [],
+        unread: t.status === 'Pending' || t.status === 'Planning'
+      };
     }
   });
 
   // Add messages
   _allMessages.forEach(m => {
     const isMeSender = (m.sender === 'guide' && m.sender_id == guideId);
+    const otherType = isMeSender ? m.receiver : m.sender;
     const otherId = isMeSender ? m.receiver_id : m.sender_id;
+    const convKey = `${otherType}_${otherId}`;
     
-    if (!convs[otherId]) {
-      const traveler = _allTravelers.find(tr => tr.traveler_id === otherId);
-      if (traveler) {
-        convs[otherId] = {
-          id: otherId,
-          traveler: traveler,
-          latestTrip: _myTrips.find(t => t.traveler_id === otherId) || { status: 'None', destination: 'N/A' },
-          messages: [],
-          unread: false
-        };
-      }
+    if (!convs[convKey]) {
+      const partner = otherType === 'agency' ? _allAgencies.find(a => a.agency_id === otherId) : _allTravelers.find(tr => tr.traveler_id === otherId);
+      const latestTrip = _myTrips.find(t => (otherType === 'agency' ? t.agency_id === otherId : t.traveler_id === otherId)) || { status: 'None', destination: 'N/A' };
+      
+      convs[convKey] = {
+        id: convKey,
+        userType: otherType,
+        userId: otherId,
+        partnerName: partner ? partner.name : (otherType === 'agency' ? 'Agency ' + otherId : 'Traveler ' + otherId),
+        partnerEmail: partner ? partner.email : 'Unknown Email',
+        latestTrip: latestTrip,
+        messages: [],
+        unread: false
+      };
     }
     
-    if (convs[otherId]) {
-      convs[otherId].messages.push({
-        from: isMeSender ? 'guide' : 'traveler',
-        type: 'text',
-        text: m.content,
-        time: formatMsgTime(m.timestamp)
-      });
-    }
+    convs[convKey].messages.push({
+      from: isMeSender ? 'guide' : otherType,
+      type: 'text',
+      text: m.content,
+      time: formatMsgTime(m.timestamp)
+    });
   });
 
   return Object.values(convs);
@@ -95,10 +104,10 @@ function renderConversationList() {
     const lastMsg = c.messages[c.messages.length - 1];
     const snippet = lastMsg ? lastMsg.text.substring(0, 45) + '...' : `📩 Assigned trip — ${c.latestTrip.destination}`;
     return `
-    <div class="msg-item ${c.unread ? 'unread' : ''} ${activeConvId === c.id ? 'active' : ''}" onclick="openConversation(${c.id})">
-      <div class="msg-avatar">${c.traveler.name[0]}</div>
+    <div class="msg-item ${c.unread ? 'unread' : ''} ${activeConvId === c.id ? 'active' : ''}" onclick="openConversation('${c.id}')">
+      <div class="msg-avatar">${c.partnerName[0]}</div>
       <div class="msg-preview">
-        <div class="msg-sender">${c.traveler.name}</div>
+        <div class="msg-sender">${c.partnerName}</div>
         <div class="msg-snippet">${snippet}</div>
         <div class="msg-time">Today • ${c.latestTrip.destination}</div>
       </div>
@@ -114,15 +123,15 @@ function openConversation(tid) {
   conv.unread = false;
   renderConversationList();
 
-  const tripCount = _myTrips.filter(t => t.traveler_id === tid).length;
+  const tripCount = _myTrips.filter(t => (conv.userType === 'agency' ? t.agency_id === conv.userId : t.traveler_id === conv.userId)).length;
 
   const detail = document.getElementById('msg-detail');
   detail.innerHTML = `
     <div class="msg-detail-header">
-      <div class="msg-avatar">${conv.traveler.name[0]}</div>
+      <div class="msg-avatar">${conv.partnerName[0]}</div>
       <div class="msg-meta">
-        <h3>${conv.traveler.name}</h3>
-        <p>Traveler ID: ${conv.traveler.traveler_id} • ${tripCount} trip${tripCount > 1 ? 's' : ''} assigned • ${conv.traveler.email}</p>
+        <h3>${conv.partnerName}</h3>
+        <p>${conv.userType === 'agency' ? 'Agency' : 'Traveler'} ID: ${conv.userId} • ${tripCount} trip${tripCount > 1 ? 's' : ''} assigned • ${conv.partnerEmail}</p>
       </div>
       <div>
         ${statusBadge(conv.latestTrip.status)}
@@ -133,8 +142,8 @@ function openConversation(tid) {
       ${conv.messages.map(m => renderMessage(m)).join('')}
     </div>
     <div class="msg-input-bar">
-      <input type="text" id="reply-input-${tid}" placeholder="Type a message to ${conv.traveler.name.split(' ')[0]}..." onkeydown="if(event.key==='Enter') sendReply(${tid})">
-      <button onclick="sendReply(${tid})">Send ➤</button>
+      <input type="text" id="reply-input-${tid}" placeholder="Type a message to ${conv.partnerName.split(' ')[0]}..." onkeydown="if(event.key==='Enter') sendReply('${tid}')">
+      <button onclick="sendReply('${tid}')">Send ➤</button>
     </div>
   `;
 
@@ -151,7 +160,7 @@ function renderRequestCard(t, conv) {
     <div class="trip-request-card">
       <div class="req-badge">⏳ Action Required</div>
       <div class="req-title">${emoji} ${t.destination}</div>
-      <div class="req-row"><span>Traveler</span><strong>${conv.traveler.name}</strong></div>
+      <div class="req-row"><span>${conv.userType === 'agency' ? 'Agency' : 'Traveler'}</span><strong>${conv.partnerName}</strong></div>
       <div class="req-row"><span>Dates</span><strong>${formatDate(t.start_date)} → ${formatDate(t.end_date)}</strong></div>
       <div class="req-row"><span>Budget</span><strong>${formatCurrency(t.budget)}</strong></div>
       <div class="req-actions">
@@ -171,6 +180,8 @@ function renderMessage(m) {
 }
 
 async function sendReply(tid) {
+  const conv = getConversations().find(c => c.id === tid);
+  if (!conv) return;
   const input = document.getElementById('reply-input-' + tid);
   const text = input.value.trim();
   if (!text) return;
@@ -178,7 +189,7 @@ async function sendReply(tid) {
   try {
     await apiPost('/messages', {
       sender: 'guide', senderId: guideId,
-      receiver: 'traveler', receiverId: tid,
+      receiver: conv.userType, receiverId: conv.userId,
       content: text
     });
     input.value = '';
@@ -194,7 +205,7 @@ async function acceptRequest(tripId) {
     if (trip) {
       await apiPost('/messages', {
         sender: 'guide', senderId: guideId,
-        receiver: 'traveler', receiverId: trip.traveler_id,
+        receiver: trip.agency_id ? 'agency' : 'traveler', receiverId: trip.agency_id || trip.traveler_id,
         content: `I've accepted your trip request for ${trip.destination}! Your trip is now confirmed. I'll start preparing your detailed itinerary. 🎉`
       });
     }
@@ -211,7 +222,7 @@ async function declineRequest(tripId) {
     if (trip) {
       await apiPost('/messages', {
         sender: 'guide', senderId: guideId,
-        receiver: 'traveler', receiverId: trip.traveler_id,
+        receiver: trip.agency_id ? 'agency' : 'traveler', receiverId: trip.agency_id || trip.traveler_id,
         content: `I'm sorry, but I won't be able to guide your trip to ${trip.destination} on those dates. Please feel free to select another guide. 🙏`
       });
     }

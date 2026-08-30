@@ -36,9 +36,9 @@ export class MessagesService {
     const maxId = messages.length > 0 ? Math.max(...messages.map((m) => m.messageId)) : 0;
     const item: Message = {
       messageId: maxId + 1,
-      sender: dto.sender as Message['sender'],
+      sender: dto.sender,
       senderId: dto.senderId,
-      receiver: dto.receiver as Message['receiver'],
+      receiver: dto.receiver,
       receiverId: dto.receiverId,
       content: dto.content,
       timestamp: new Date().toISOString(),

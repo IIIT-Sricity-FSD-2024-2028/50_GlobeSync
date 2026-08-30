@@ -209,3 +209,54 @@ function agencyStatusPill(status) {
   const c = cfg[status] || { cls: 'badge-gray', label: status };
   return `<span class="badge ${c.cls}">${c.label}</span>`;
 }
+
+// ── Guide Selection ───────────────────────────────────────────────────────────
+
+let _agencySelectingTripId = null;
+
+async function openGuideSelection(tripId) {
+  _agencySelectingTripId = tripId;
+  const list = document.getElementById('guide-list-container');
+  if(!list) return;
+  
+  try {
+    const guides = await apiGetSnake('/guides');
+    list.innerHTML = guides.map(g => {
+      return `
+        <div class="guide-card" style="padding:12px;border:1px solid var(--border-light);border-radius:8px;margin-bottom:12px;display:flex;align-items:center;gap:16px">
+          <div style="width:48px;height:48px;border-radius:50%;background:var(--gradient-agency);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700">${g.name[0]}</div>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:15px">${g.name}</div>
+            <div style="font-size:12px;color:var(--text-muted)">⭐ ${g.rating || '4.5'} | ${g.language || 'English'}</div>
+          </div>
+          <button class="btn-agency" style="padding:6px 12px;font-size:12px" onclick="selectNewGuide(${g.guide_id})">Select</button>
+        </div>`;
+    }).join('');
+    document.getElementById('guide-modal').style.display = 'flex';
+  } catch (e) {
+    console.error('Failed to load guides', e);
+  }
+}
+
+async function selectNewGuide(guideId) {
+  if(!_agencySelectingTripId) return;
+  try {
+    const agencyId = getAgency().agency_id || getAgency().agencyId;
+    const trips = await getMyBookings(agencyId);
+    const trip = trips.find(t => t.trip_id === _agencySelectingTripId || t.packagebooking_id === _agencySelectingTripId);
+    
+    if(trip) {
+      await apiPatchSnake(`/trips/${_agencySelectingTripId}`, { guide_id: guideId, status: 'Pending' });
+      await apiPost('/messages', { sender: 'agency', senderId: agencyId, receiver: 'guide', receiverId: guideId, content: `Hi! We've just assigned you as the guide for our trip to ${trip.destination}. Looking forward to it!` });
+      showToast('Guide updated successfully! Trip is now Pending.');
+      document.getElementById('guide-modal').style.display = 'none';
+      if (typeof filterBookings === 'function') {
+        const activeTab = document.querySelector('.tab.active');
+        filterBookings(activeTab ? activeTab.textContent.trim() : 'All', activeTab);
+      }
+    }
+  } catch(e) {
+    console.error('Failed to select new guide', e);
+  }
+}
+
