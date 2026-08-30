@@ -8,6 +8,13 @@ export class AgenciesService {
     return agencies;
   }
 
+  findAllLookup() {
+    return agencies.map(a => ({
+      agencyId: a.agencyId,
+      businessName: a.businessName,
+    }));
+  }
+
   findOne(id: number): Agency {
     const agency = agencies.find((a) => a.agencyId === id);
     if (!agency) {

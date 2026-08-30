@@ -1,14 +1,19 @@
 import { NestFactory, Reflector } from '@nestjs/core';
+import helmet from 'helmet';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { RolesGuard } from './common/guards/roles.guard';
-import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 import * as fs from 'fs';
 import * as path from 'path';
+import { join } from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Apply standard HTTP security headers
+  app.use(helmet());
 
   // Enable CORS for frontend
   app.enableCors({
@@ -30,8 +35,9 @@ async function bootstrap() {
   const reflector = app.get(Reflector);
   app.useGlobalGuards(new RolesGuard(reflector));
 
-  // Enable global exception filter
-  app.useGlobalFilters(new GlobalExceptionFilter());
+  // Serve uploaded files as static assets at /uploads/<filename>
+  // The uploads/ directory is created at runtime by the UploadsController (via multer).
+  app.useStaticAssets(join(__dirname, '..', 'uploads'), { prefix: '/uploads/' });
 
   // Swagger configuration
   const config = new DocumentBuilder()

@@ -23,7 +23,7 @@ async function loadData() {
     [_myTrips, _allTravelers, _allAgencies, _allMessages] = await Promise.all([
       apiGetSnake(`/trips/guide/${guideId}`),
       apiGetSnake('/travelers'),
-      apiGetSnake('/agencies', { silent: true }).catch(() => []),
+      apiGetSnake('/agencies/lookup').catch(() => []),
       apiGetSnake(`/messages/user/guide/${guideId}`).then(res => Array.isArray(res) ? res : (res.value || []))
     ]);
     console.log('[guide-messages] trips:', _myTrips.length, 'travelers:', _allTravelers.length, 'messages:', _allMessages.length);
@@ -48,11 +48,13 @@ function getConversations() {
     
     if (!convs[convKey]) {
       const partner = pType === 'agency' ? _allAgencies.find(a => a.agency_id === pId) : _allTravelers.find(tr => tr.traveler_id === pId);
+      const name = partner ? (pType === 'agency' ? partner.business_name : partner.name) : (pType === 'agency' ? 'Agency #' + pId : 'Traveler #' + pId);
+      
       convs[convKey] = {
         id: convKey,
         userType: pType,
         userId: pId,
-        partnerName: partner ? partner.name : (pType === 'agency' ? 'Agency ' + pId : 'Traveler ' + pId),
+        partnerName: name,
         partnerEmail: partner ? partner.email : 'Unknown Email',
         latestTrip: t,
         messages: [],

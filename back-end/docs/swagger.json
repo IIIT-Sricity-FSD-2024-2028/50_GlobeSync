@@ -3750,6 +3750,44 @@
         ]
       }
     },
+    "/agencies/lookup": {
+      "get": {
+        "operationId": "AgenciesController_findAllLookup",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return agency ID and name pairs"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get lightweight list of agencies for lookup",
+        "tags": [
+          "agencies"
+        ]
+      }
+    },
     "/agencies/{id}": {
       "get": {
         "operationId": "AgenciesController_findOne",
@@ -4528,6 +4566,97 @@
         "summary": "Get passengers by agency ID (ownership checked via Guard)",
         "tags": [
           "passengers"
+        ]
+      }
+    },
+    "/uploads/attachment": {
+      "post": {
+        "operationId": "UploadsController_uploadAttachment",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "File to upload",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Attachment file (JPG, PNG, or PDF, max 5 MB)"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "File uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "message": "File uploaded successfully",
+                    "filename": "1722345678900-123456789.pdf",
+                    "path": "/uploads/1722345678900-123456789.pdf",
+                    "size": 204800
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No file provided or invalid file type/size",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — missing or invalid x-user-role header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload a file attachment (JPG, PNG, PDF — max 5 MB)",
+        "tags": [
+          "uploads"
         ]
       }
     }

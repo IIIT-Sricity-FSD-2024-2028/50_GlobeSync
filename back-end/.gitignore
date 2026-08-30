@@ -1,0 +1,5 @@
+# Runtime-generated log files — never commit these
+logs/
+
+# Runtime-generated file uploads — never commit these
+uploads/

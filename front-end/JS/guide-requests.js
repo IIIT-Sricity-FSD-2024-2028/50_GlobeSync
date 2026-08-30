@@ -12,7 +12,7 @@ async function loadData() {
     [_myTrips, _allTravelers, _allAgencies] = await Promise.all([
       apiGetSnake(`/trips/guide/${guideId}`),
       apiGetSnake('/travelers'),
-      apiGetSnake('/agencies', { silent: true }).catch(()=>[])
+      apiGetSnake('/agencies/lookup').catch(()=>[])
     ]);
     console.log('[guide-requests] trips:', _myTrips.length);
     renderRequests();
@@ -30,7 +30,7 @@ function renderRequests() {
     requests = requests.filter(r => {
       const traveler = _allTravelers.find(tr => tr.traveler_id === r.traveler_id);
       const agency = _allAgencies.find(a => a.agency_id === r.agency_id);
-      const reqName = traveler ? traveler.name : (agency ? agency.agency_name : '');
+      const reqName = traveler ? traveler.name : (agency ? agency.business_name : '');
       return r.destination.toLowerCase().includes(search) || reqName.toLowerCase().includes(search);
     });
   }
@@ -60,7 +60,7 @@ function renderRequests() {
   list.innerHTML = requests.map(t => {
     const traveler = _allTravelers.find(tr => tr.traveler_id === t.traveler_id);
     const agency = _allAgencies.find(a => a.agency_id === t.agency_id);
-    const reqName = traveler ? traveler.name : (agency ? agency.agency_name : 'Unknown Requestor');
+    const reqName = traveler ? traveler.name : (agency ? agency.business_name : 'Unknown Requestor');
     const badgeName = agency ? 'Agency Request' : 'New Request';
     const tagLabel = agency ? 'Agency Code' : 'Traveler Code';
     const tagVal = agency ? `#AGY-${(t.agency_id||0).toString().padStart(4, '0')}` : `#TRV-${(t.traveler_id||0).toString().padStart(4, '0')}`;

@@ -48,6 +48,16 @@ export class AgenciesController {
   createDirect(@Body() createDirectAgencyDto: CreateDirectAgencyDto) {
     return this.agenciesService.createDirect(createDirectAgencyDto);
   }
+  @Get('lookup')
+  @Roles(Role.TRAVELER, Role.GUIDE, Role.ADMIN, Role.SUPERUSER, Role.SUPPORT)
+  @ApiRoleHeader()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get lightweight list of agencies for lookup' })
+  @ApiResponse({ status: 200, description: 'Return agency ID and name pairs' })
+  findAllLookup() {
+    return this.agenciesService.findAllLookup();
+  }
+
 
   @Get()
   @Roles(Role.ADMIN, Role.SUPERUSER)

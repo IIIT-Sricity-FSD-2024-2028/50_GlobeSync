@@ -136,7 +136,7 @@ const user = Auth.getUser();
 
 async function loadAnalytics() {
   try {
-    const dashboard = await apiGetSnake('/dashboard/super');
+    const dashboard = await apiGetSnake('/dashboard/superuser');
     
     document.getElementById('total-revenue').textContent = formatCurrency(dashboard.total_platform_revenue || 0);
     document.getElementById('traveler-revenue').textContent = formatCurrency(dashboard.agency_metrics?.traveler_channel_revenue || 0);
