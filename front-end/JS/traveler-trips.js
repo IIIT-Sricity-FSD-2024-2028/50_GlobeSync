@@ -332,8 +332,18 @@ async function selectGuide(tripId, guideId) {
   const guide = _guides.find(g => g.guide_id === guideId);
   if (trip && guide) {
     try {
-      const { trip_id: _removed, ...tripDataForUpdate } = trip;
-      await apiPutSnake(`/trips/${tripId}`, { ...tripDataForUpdate, guide_id: guideId, status: 'Planning' });
+      const tripDataForUpdate = {
+        destination: trip.destination,
+        start_date: trip.start_date,
+        end_date: trip.end_date,
+        budget: trip.budget,
+        traveler_id: trip.traveler_id,
+        agency_id: trip.agency_id || null,
+        guide_id: guideId,
+        package_id: trip.package_id || null,
+        status: 'Planning'
+      };
+      await apiPutSnake(`/trips/${tripId}`, tripDataForUpdate);
       await apiPost('/messages', { sender: 'traveler', senderId: uid, receiver: 'guide', receiverId: guideId, content: `Hi! I've just requested you as my guide for a new trip to ${trip.destination} (${formatDate(trip.start_date)} - ${formatDate(trip.end_date)}). Looking forward to planning this with you!` });
       closeModal('guide-modal');
       showToast(`Request sent to ${guide.name}!`);
@@ -378,7 +388,18 @@ async function selectNewGuide(guideId) {
   try {
     const trip = _trips.find(t => t.trip_id === _selectingTripId);
     if(trip) {
-      await apiPutSnake(`/trips/${_selectingTripId}`, { ...trip, guide_id: guideId, status: 'Pending' });
+      const tripDataForUpdate = {
+        destination: trip.destination,
+        start_date: trip.start_date,
+        end_date: trip.end_date,
+        budget: trip.budget,
+        traveler_id: trip.traveler_id,
+        agency_id: trip.agency_id || null,
+        guide_id: guideId,
+        package_id: trip.package_id || null,
+        status: 'Pending'
+      };
+      await apiPutSnake(`/trips/${_selectingTripId}`, tripDataForUpdate);
       await apiPost('/messages', { sender: 'traveler', senderId: uid, receiver: 'guide', receiverId: guideId, content: `Hi! I've just assigned you as the guide for my trip to ${trip.destination}. Looking forward to it!` });
       showToast('Guide updated successfully! Trip is now Pending.');
       closeModal('guide-modal');

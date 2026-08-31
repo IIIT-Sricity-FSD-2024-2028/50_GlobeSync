@@ -60,6 +60,13 @@ function getConversations() {
         messages: [],
         unread: t.status === 'Pending' || t.status === 'Planning'
       };
+    } else {
+      if (t.status === 'Pending' || t.status === 'Planning') {
+        convs[convKey].latestTrip = t;
+        convs[convKey].unread = true;
+      } else if (t.trip_id > convs[convKey].latestTrip.trip_id && convs[convKey].latestTrip.status !== 'Pending' && convs[convKey].latestTrip.status !== 'Planning') {
+        convs[convKey].latestTrip = t;
+      }
     }
   });
 
@@ -202,7 +209,7 @@ async function sendReply(tid) {
 
 async function acceptRequest(tripId) {
   try {
-    await apiPatch(`/trips/${tripId}/status`, { status: 'Confirmed' });
+    await apiPatchSnake(`/trips/${tripId}/status`, { status: 'Confirmed' });
     const trip = _myTrips.find(t => t.trip_id === tripId);
     if (trip) {
       await apiPost('/messages', {
@@ -219,8 +226,22 @@ async function acceptRequest(tripId) {
 async function declineRequest(tripId) {
   if (!confirm('Decline this trip request?')) return;
   try {
-    await apiPatch(`/trips/${tripId}/status`, { status: 'Planning' });
     const trip = _myTrips.find(t => t.trip_id === tripId);
+    if (!trip) return;
+
+    const tripDataForUpdate = {
+      destination: trip.destination,
+      start_date: trip.start_date,
+      end_date: trip.end_date,
+      budget: trip.budget,
+      traveler_id: trip.traveler_id,
+      agency_id: trip.agency_id || null,
+      guide_id: null,
+      package_id: trip.package_id || null,
+      status: 'Planning'
+    };
+    await apiPutSnake(`/trips/${tripId}`, tripDataForUpdate);
+    
     if (trip) {
       await apiPost('/messages', {
         sender: 'guide', senderId: guideId,

@@ -332,9 +332,19 @@ async function selectGuide(tripId, guideId) {
   const guide = _guides.find(g => g.guide_id === guideId);
   if (trip && guide) {
     try {
-      const { trip_id: _removed, ...tripDataForUpdate } = trip;
-      await apiPutSnake(`/trips/${tripId}`, { ...tripDataForUpdate, guide_id: guideId, status: 'Planning' });
-      await apiPost('/messages', { sender: 'traveler', senderId: uid, receiver: 'guide', receiverId: guideId, content: `Hi! I've just requested you as my guide for a new trip to ${trip.destination} (${formatDate(trip.start_date)} - ${formatDate(trip.end_date)}). Looking forward to planning this with you!` });
+      const tripDataForUpdate = {
+        destination: trip.destination,
+        start_date: trip.start_date,
+        end_date: trip.end_date,
+        budget: trip.budget,
+        traveler_id: trip.traveler_id,
+        agency_id: trip.agency_id || null,
+        guide_id: guideId,
+        package_id: trip.package_id || null,
+        status: 'Pending'
+      };
+      await apiPutSnake(`/trips/${tripId}`, tripDataForUpdate);
+      await apiPost('/messages', { sender: 'agency', senderId: uid, receiver: 'guide', receiverId: guideId, content: `Hi! We've just requested you as a guide for a new trip to ${trip.destination} (${formatDate(trip.start_date)} - ${formatDate(trip.end_date)}). Looking forward to planning this with you!` });
       closeModal('guide-modal');
       showToast(`Request sent to ${guide.name}!`);
       await fetchData();
