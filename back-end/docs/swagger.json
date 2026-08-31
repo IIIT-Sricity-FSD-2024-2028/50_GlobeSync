@@ -5817,7 +5817,7 @@
           },
           "commissionRate": {
             "type": "number",
-            "example": 10
+            "example": 1.5
           }
         },
         "required": [
@@ -5841,8 +5841,8 @@
           },
           "commissionRate": {
             "type": "number",
-            "example": 15,
-            "description": "Commission rate percentage, typically required when approving"
+            "example": 1.5,
+            "description": "Commission rate percentage (1.0 to 1.5), typically required when approving"
           }
         },
         "required": [

@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsString, Min, Max } from 'class-validator';
 import { CreateAgencyDto } from './create-agency.dto';
 
 export class CreateDirectAgencyDto extends CreateAgencyDto {
@@ -9,9 +9,10 @@ export class CreateDirectAgencyDto extends CreateAgencyDto {
   @IsIn(['pending', 'approved', 'rejected'])
   status?: string;
 
-  @ApiPropertyOptional({ example: 10 })
+  @ApiPropertyOptional({ example: 1.5 })
   @IsOptional()
   @IsNumber()
-  @Min(0)
+  @Min(1.0)
+  @Max(1.5)
   commissionRate?: number;
 }

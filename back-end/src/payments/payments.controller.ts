@@ -49,7 +49,7 @@ export class PaymentsController {
   }
 
   @Post()
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER)
+  @Roles(Role.SUPERUSER, Role.TRAVELER)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Create a payment' })
   @ApiResponse({ status: 201, description: 'Payment created' })

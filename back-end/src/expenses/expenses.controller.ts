@@ -23,7 +23,7 @@ export class ExpensesController {
   }
 
   @Post()
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.AGENCY)
+  @Roles(Role.SUPERUSER, Role.TRAVELER, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Create an expense' })
   @ApiResponse({ status: 201, description: 'Expense created' })
@@ -31,7 +31,7 @@ export class ExpensesController {
   create(@Body() dto: CreateExpenseDto) { return this.expensesService.create(dto); }
 
   @Put(':id')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.AGENCY)
+  @Roles(Role.SUPERUSER, Role.TRAVELER, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Update an expense' })
   @ApiParam({ name: 'id', type: Number })
@@ -42,7 +42,7 @@ export class ExpensesController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPERUSER, Role.ADMIN)
+  @Roles(Role.SUPERUSER)
   @ApiRoleHeader()
   @ApiOperation({ summary: 'Delete an expense' })
   @ApiParam({ name: 'id', type: Number })

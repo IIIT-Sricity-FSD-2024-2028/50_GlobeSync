@@ -17,7 +17,7 @@ export const agencies: Agency[] = [
     contactPhone: '9876543210',
     password: 'horizon123',
     status: 'approved',
-    commissionRate: 10,
+    commissionRate: 1.5,
     createdAt: '2024-01-15T08:00:00Z',
   },
   {
@@ -27,7 +27,7 @@ export const agencies: Agency[] = [
     contactPhone: '9123456780',
     password: 'wander123',
     status: 'approved',
-    commissionRate: 8,
+    commissionRate: 1.2,
     createdAt: '2024-02-20T10:30:00Z',
   },
   {
