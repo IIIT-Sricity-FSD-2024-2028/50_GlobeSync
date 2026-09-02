@@ -26,6 +26,31 @@ export class BookingsService {
     }
 
     const maxId = bookings.length > 0 ? Math.max(...bookings.map((b) => b.bookingId)) : 0;
+    let finalAmount = dto.amount;
+    let insuranceRate = 0;
+    let insuranceAmount = 0;
+    let cancellationFee = 0;
+    let cancellationProtectionSelected = false;
+
+    if (dto.transportMode) {
+      // 1. Compulsory Travel Insurance (7%)
+      insuranceRate = 0.07;
+      insuranceAmount = dto.amount * insuranceRate;
+      finalAmount += insuranceAmount;
+
+      // 2. Optional Cancellation Protection based on mode
+      if (dto.cancellationProtectionSelected) {
+        if (dto.transportMode === 'Flight') cancellationFee = 100;
+        else if (dto.transportMode === 'Bus') cancellationFee = 70;
+        else if (dto.transportMode === 'Train') cancellationFee = 50;
+      }
+
+      if (cancellationFee > 0) {
+        cancellationProtectionSelected = true;
+        finalAmount += cancellationFee;
+      }
+    }
+
     const newBooking: Booking = {
       bookingId: maxId + 1,
       bookingDate: dto.bookingDate,
@@ -35,7 +60,16 @@ export class BookingsService {
       agencyId: dto.agencyId,
       service: dto.service,
       type: dto.type as Booking['type'],
-      amount: dto.amount,
+      amount: finalAmount,
+      ...(insuranceRate > 0 && {
+        insuranceSelected: true,
+        insuranceRate,
+        insuranceAmount
+      }),
+      ...(cancellationProtectionSelected && {
+        cancellationProtectionSelected: true,
+        cancellationFee
+      })
     };
     bookings.push(newBooking);
     return newBooking;
@@ -54,6 +88,8 @@ export class BookingsService {
       ...(dto.service !== undefined && { service: dto.service }),
       ...(dto.type !== undefined && { type: dto.type as Booking['type'] }),
       ...(dto.amount !== undefined && { amount: dto.amount }),
+      ...(dto.cancellationProtectionSelected !== undefined && { cancellationProtectionSelected: dto.cancellationProtectionSelected }),
+      ...(dto.cancellationFee !== undefined && { cancellationFee: dto.cancellationFee }),
     };
     bookings[idx] = updated;
     return updated;

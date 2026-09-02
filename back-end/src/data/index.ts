@@ -24,3 +24,8 @@ export { passengers, Passenger } from './passengers.data';
 export { packageBookings, PackageBooking } from './package-bookings.data';
 export { agencies, Agency } from './agencies.data';
 export { commissionLedger, CommissionEntry } from './commission-ledger.data';
+export { revenueConfig, RevenueConfig } from './revenue-config.data';
+export { subscriptionPlans, SubscriptionPlan } from './subscription-plans.data';
+export { agencySubscriptions, AgencySubscription } from './agency-subscriptions.data';
+export { featuredListings, FeaturedListing } from './featured-listings.data';
+export { revenueTransactions, RevenueTransaction } from './revenue-transactions.data';

@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlobeSync Superuser</title>
+<link rel="stylesheet" href="../static/shared.css">
+<link rel="stylesheet" href="../static/notifications.css">
+<style>
+:root{--primary:#6366f1;--primary-dark:#4338ca;--gradient:linear-gradient(135deg,#6366f1 0%,#E8467C 100%);--gradient-soft:linear-gradient(135deg,#f5f3ff 0%,#ffeef5 100%)}
+.card{background:#fff;border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light);margin-bottom:24px}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.card-title{font-size:18px;font-weight:700;color:var(--text-dark)}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:24px;margin-bottom:24px}
+.stat-card{background:#fff;padding:20px;border-radius:var(--radius-lg);border:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between;transition:transform 0.2s}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.stat-info{display:flex;flex-direction:column;gap:4px}
+.stat-label{font-size:13px;color:var(--text-muted);font-weight:600;text-transform:uppercase}
+.stat-value{font-size:24px;font-weight:700;color:var(--text-dark)}
+.stat-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px}
+.stat-icon.blue{background:#eff6ff;color:#3b82f6}
+.stat-icon.green{background:#f0fdf4;color:#22c55e}
+.stat-icon.orange{background:#fff7ed;color:#f97316}
+.stat-icon.purple{background:#faf5ff;color:#a855f7}
+.stat-icon.pink{background:#fdf2f8;color:#ec4899}
+
+/* TABLE & FILTER */
+.filter-bar { display: flex; gap: 16px; margin-bottom: 20px; }
+.filter-select { padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-light); font-family: inherit; font-size: 14px; background: #fff; color: var(--text-dark); outline: none; cursor: pointer; transition: border-color 0.2s; }
+.filter-select:hover { border-color: var(--primary); }
+
+table{width:100%;border-collapse:collapse}
+th,td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--border-light)}
+th{font-size:12px;text-transform:uppercase;color:var(--text-muted);font-weight:600;background:#f8fafc}
+tr:hover{background:#f1f5f9}
+.badge{padding:4px 8px;border-radius:999px;font-size:12px;font-weight:600}
+.badge.earned{background:#dbeafe;color:#1e40af}
+.badge.settled{background:#dcfce3;color:#166534}
+.badge.pending{background:#fef3c7;color:#92400e}
+.badge.refunded{background:#fee2e2;color:#991b1b}
+
+/* TAGS */
+.type-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; background: #f1f5f9; color: #334155; }
+.type-tag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
+.type-tag.booking::before { background: #3b82f6; }
+.type-tag.agency::before { background: #8b5cf6; }
+.type-tag.subscription::before { background: #10b981; }
+.type-tag.promotion::before { background: #f59e0b; }
+.type-tag.provider::before { background: #ec4899; }
+
+.chart-container{height:300px;width:100%}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);color:#fff;font-size:18px">🌐</div>
+      <div>
+        <div class="logo-text" style="background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">GlobeSync</div>
+        <div class="logo-sub">Super User</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="super-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item active" href="revenue.html"><span class="nav-icon">💰</span>Revenue</a>
+      <a class="nav-item" href="users.html"><span class="nav-icon">👥</span>Users</a>
+      <a class="nav-item" href="agencies.html"><span class="nav-icon">🏢</span>Agencies</a>
+      <a class="nav-item" href="api-management.html"><span class="nav-icon">🔌</span>API Management</a>
+      <a class="nav-item" href="rules-config.html"><span class="nav-icon">⚙</span>Rules Config</a>
+      <a class="nav-item" href="reports.html"><span class="nav-icon">📈</span>Reports</a>
+      <a class="nav-item" data-page="profile" href="profile.html"><span class="nav-icon">🔴</span>My Profile</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="padding:10px 12px;font-size:12px;color:var(--text-muted);margin-bottom:4px">Logged in as Super User</div>
+      <button class="logout-btn" onclick="window.location.href='../index.html'"><span>🚪</span>Logout</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="page-title">Revenue Dashboard</div>
+        <div class="page-subtitle">GlobeSync Financial Overview & Ledger</div>
+      </div>
+      <div class="topbar-actions">
+        <div id="notif-bell-slot"></div>
+        <span class="badge badge-info" style="padding:6px 14px;font-size:13px;background:#e0e7ff;color:#3730a3">🔱 Super User</span>
+      </div>
+    </div>
+
+    <!-- KPI GRID -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-info">
+          <div class="stat-label">Gross Booking Value</div>
+          <div class="stat-value" id="kpi-gbv">₹0</div>
+        </div>
+        <div class="stat-icon blue">📦</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <div class="stat-label">Platform Revenue</div>
+          <div class="stat-value" id="kpi-rev" style="color: var(--primary)">₹0</div>
+        </div>
+        <div class="stat-icon green">💰</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <div class="stat-label">Total Payouts</div>
+          <div class="stat-value" id="kpi-payouts">₹0</div>
+        </div>
+        <div class="stat-icon orange">💸</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <div class="stat-label">Pending Settled</div>
+          <div class="stat-value" id="kpi-pending">₹0</div>
+        </div>
+        <div class="stat-icon purple">⏳</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-info">
+          <div class="stat-label">Subscription MRR</div>
+          <div class="stat-value" id="kpi-sub-rev">₹0</div>
+        </div>
+        <div class="stat-icon pink">💎</div>
+      </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;margin-bottom:24px">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Revenue Growth (6 Months)</span></div>
+        <div class="chart-container"><canvas id="trendChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Revenue by Source</span></div>
+        <div class="chart-container"><canvas id="sourceChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- LEDGER -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Transactions Ledger</span>
+      </div>
+      <div class="filter-bar">
+        <select class="filter-select" id="filter-type" onchange="renderTable()">
+          <option value="ALL">All Revenue Streams</option>
+          <option value="BOOKING_COMMISSION">Booking Commission</option>
+          <option value="AGENCY_COMMISSION">Agency Commission</option>
+          <option value="GUIDE_COMMISSION">Guide Commission</option>
+          <option value="PROVIDER_COMMISSION">Provider Commission</option>
+          <option value="PACKAGE_MARKUP">Package Markup</option>
+          <option value="SUBSCRIPTION">Subscriptions</option>
+          <option value="FEATURED_LISTING">Featured Listings</option>
+        </select>
+        <select class="filter-select" id="filter-status" onchange="renderTable()">
+          <option value="ALL">All Statuses</option>
+          <option value="EARNED">Earned</option>
+          <option value="SETTLED">Settled</option>
+          <option value="PENDING">Pending</option>
+          <option value="REFUNDED">Refunded</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Date</th>
+              <th>Revenue Stream</th>
+              <th>Ref/Entity</th>
+              <th>Gross Value</th>
+              <th>Comm %</th>
+              <th>GlobeSync Rev</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tx-tbody">
+            <!-- Populated via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+let allTransactions = [];
+
+function formatCurrency(val) {
+  return '₹' + (val || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+}
+
+function getTypeStyle(type) {
+  if(type.includes('BOOKING')) return 'booking';
+  if(type.includes('AGENCY')) return 'agency';
+  if(type.includes('SUBSCRIPTION')) return 'subscription';
+  if(type.includes('FEATURED')) return 'promotion';
+  return 'provider';
+}
+
+function renderTable() {
+  const typeFilter = document.getElementById('filter-type').value;
+  const statusFilter = document.getElementById('filter-status').value;
+
+  const filtered = allTransactions.filter(t => {
+    const matchType = typeFilter === 'ALL' || t.revenue_type === typeFilter;
+    const matchStatus = statusFilter === 'ALL' || t.status === statusFilter;
+    return matchType && matchStatus;
+  });
+
+  const tbody = document.getElementById('tx-tbody');
+  
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:40px;">No transactions found matching your filters.</td></tr>`;
+    return;
+  }
+
+  // Sort descending by ID
+  filtered.sort((a,b) => b.transaction_id - a.transaction_id);
+
+  tbody.innerHTML = filtered.map(t => {
+    const typeLabel = t.revenue_type.replace('_', ' ');
+    const typeClass = getTypeStyle(t.revenue_type);
+    let refStr = '-';
+    if(t.booking_reference) refStr = `Booking #${t.booking_reference}`;
+    else if(t.agency_id) refStr = `Agency #${t.agency_id}`;
+    
+    return `
+      <tr>
+        <td style="color:var(--text-muted)">#${t.transaction_id}</td>
+        <td>${new Date(t.created_at).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'})}</td>
+        <td><span class="type-tag ${typeClass}">${typeLabel}</span></td>
+        <td>${refStr}</td>
+        <td style="font-weight:600">${formatCurrency(t.gross_amount)}</td>
+        <td style="color:var(--text-muted)">${t.commission_rate ? t.commission_rate + '%' : '-'}</td>
+        <td style="font-weight:700;color:#059669">${formatCurrency(t.revenue_amount)}</td>
+        <td><span class="badge ${t.status.toLowerCase()}">${t.status}</span></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function loadData() {
+  try {
+    const [overviewRes, txRes] = await Promise.all([
+      fetch('http://localhost:3000/api/admin/revenue/overview'),
+      fetch('http://localhost:3000/api/admin/revenue/transactions')
+    ]);
+
+    if(overviewRes.ok) {
+      const data = await overviewRes.json();
+      
+      // Update KPIs
+      document.getElementById('kpi-gbv').innerText = formatCurrency(data.grossBookingValue);
+      document.getElementById('kpi-rev').innerText = formatCurrency(data.totalRevenue);
+      document.getElementById('kpi-payouts').innerText = formatCurrency(data.totalPayouts);
+      document.getElementById('kpi-pending').innerText = formatCurrency(data.pendingRevenue);
+      document.getElementById('kpi-sub-rev').innerText = formatCurrency(data.breakdown.SUBSCRIPTION || 0);
+
+      // 1. Source Doughnut Chart
+      const ctxSource = document.getElementById('sourceChart').getContext('2d');
+      const breakdownLabels = Object.keys(data.breakdown).map(k => k.replace('_', ' '));
+      const breakdownValues = Object.values(data.breakdown);
+      
+      new Chart(ctxSource, {
+        type: 'doughnut',
+        data: {
+          labels: breakdownLabels,
+          datasets: [{
+            data: breakdownValues,
+            backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f43f5e'],
+            borderWidth: 0
+          }]
+        },
+        options: { 
+          responsive: true, 
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { usePointStyle: true, padding: 10 } }
+          },
+          cutout: '65%'
+        }
+      });
+
+      // 2. Monthly Trend Chart (Stacked Bar Graph)
+      const ctxTrend = document.getElementById('trendChart').getContext('2d');
+      const trendLabels = data.monthlyTrend.map(m => m.month);
+      
+      const bookingsData = data.monthlyTrend.map(m => m.breakdown.BOOKING_COMMISSION || 0);
+      const agencyData = data.monthlyTrend.map(m => m.breakdown.AGENCY_COMMISSION || 0);
+      const subData = data.monthlyTrend.map(m => m.breakdown.SUBSCRIPTION || 0);
+      const promoData = data.monthlyTrend.map(m => m.breakdown.FEATURED_LISTING || 0);
+      
+      new Chart(ctxTrend, {
+        type: 'bar',
+        data: {
+          labels: trendLabels,
+          datasets: [
+            { label: 'Booking Commission', data: bookingsData, backgroundColor: '#3b82f6', borderRadius: 4 },
+            { label: 'Agency Commission', data: agencyData, backgroundColor: '#8b5cf6', borderRadius: 4 },
+            { label: 'Subscriptions', data: subData, backgroundColor: '#10b981', borderRadius: 4 },
+            { label: 'Promotions', data: promoData, backgroundColor: '#f59e0b', borderRadius: 4 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { stacked: true, grid: { display: false } },
+            y: { stacked: true, beginAtZero: true, grid: { color: '#f1f5f9' } }
+          },
+          plugins: {
+            legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8, font: { size: 11 } } }
+          }
+        }
+      });
+    }
+
+    if(txRes.ok) {
+      allTransactions = await txRes.json();
+      renderTable();
+    }
+  } catch(e) {
+    console.error('Failed to load revenue data', e);
+  }
+}
+window.onload = loadData;
+
+function logout() {
+  window.location.href = '../index.html';
+}
+</script>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/api-client.js"></script>
+<script src="../JS/notifications.js"></script>
+<script>
+  setTimeout(() => {
+    if (typeof injectNotifBell === 'function') {
+      injectNotifBell('superuser');
+    }
+  }, 500);
+</script>
+</body>
+</html>

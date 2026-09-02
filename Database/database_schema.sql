@@ -225,3 +225,80 @@ CREATE TABLE CommissionLedger (
 --     ADD FOREIGN KEY (agency_id) REFERENCES Agency(agency_id);
 -- NOTE: traveler_id on SupportTicket becomes nullable when agency_id is set
 --       since the Agency is the platform's sole support contact for its passengers.
+
+-- =================================================================================
+-- REVENUE & MONETIZATION EXTENSION
+-- =================================================================================
+
+-- ================= REVENUE TRANSACTION =================
+CREATE TABLE RevenueTransaction (
+    transaction_id INT AUTO_INCREMENT PRIMARY KEY,
+    revenue_type VARCHAR(50) NOT NULL, -- 'BOOKING_COMMISSION', 'AGENCY_COMMISSION', 'GUIDE_COMMISSION', 'PROVIDER_COMMISSION', 'PACKAGE_MARKUP', 'SUBSCRIPTION', 'FEATURED_LISTING'
+    booking_reference INT NULL,
+    gross_amount DECIMAL(10,2),
+    commission_rate DECIMAL(5,2),
+    revenue_amount DECIMAL(10,2) NOT NULL,
+    payout_amount DECIMAL(10,2) DEFAULT 0.00,
+    currency VARCHAR(10) DEFAULT 'INR',
+    status VARCHAR(20) DEFAULT 'PENDING', -- 'PENDING', 'EARNED', 'SETTLED', 'CANCELLED', 'REFUNDED'
+    agency_id INT NULL,
+    guide_id INT NULL,
+    provider_id INT NULL, -- Maps to ExternalService provider or newly created entity
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    settled_at TIMESTAMP NULL,
+    FOREIGN KEY (agency_id) REFERENCES Agency(agency_id),
+    FOREIGN KEY (guide_id) REFERENCES TravelGuide(guide_id)
+);
+
+-- ================= SUBSCRIPTION PLAN =================
+CREATE TABLE SubscriptionPlan (
+    plan_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    billing_cycle VARCHAR(20) DEFAULT 'MONTHLY',
+    features TEXT,
+    status VARCHAR(20) DEFAULT 'ACTIVE'
+);
+
+-- ================= AGENCY SUBSCRIPTION =================
+CREATE TABLE AgencySubscription (
+    subscription_id INT AUTO_INCREMENT PRIMARY KEY,
+    agency_id INT NOT NULL,
+    plan_id INT NOT NULL,
+    status VARCHAR(20) DEFAULT 'ACTIVE', -- 'ACTIVE', 'TRIAL', 'EXPIRED', 'CANCELLED', 'PENDING'
+    start_date DATE NOT NULL,
+    renewal_date DATE NOT NULL,
+    expiry_date DATE NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    payment_reference VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (agency_id) REFERENCES Agency(agency_id),
+    FOREIGN KEY (plan_id) REFERENCES SubscriptionPlan(plan_id)
+);
+
+-- ================= FEATURED LISTING =================
+CREATE TABLE FeaturedListing (
+    listing_id INT AUTO_INCREMENT PRIMARY KEY,
+    agency_id INT NULL,
+    package_id INT NULL,
+    promotion_type VARCHAR(50) NOT NULL, -- 'HOMEPAGE', 'SEARCH_RESULT'
+    price DECIMAL(10,2) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    status VARCHAR(20) DEFAULT 'PENDING', -- 'PENDING', 'ACTIVE', 'EXPIRED'
+    payment_reference VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (agency_id) REFERENCES Agency(agency_id),
+    FOREIGN KEY (package_id) REFERENCES Package(package_id)
+);
+
+-- ================= REVENUE CONFIG =================
+CREATE TABLE RevenueConfig (
+    config_id INT AUTO_INCREMENT PRIMARY KEY,
+    key_name VARCHAR(100) UNIQUE NOT NULL,
+    value_number DECIMAL(10,2) NULL,
+    value_string VARCHAR(255) NULL,
+    description TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);

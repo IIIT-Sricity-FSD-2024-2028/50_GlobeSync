@@ -1,9 +1,11 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { payments, Payment } from '../data';
 import { CreatePaymentDto } from './dto';
+import { RevenueService } from '../revenue/revenue.service';
 
 @Injectable()
 export class PaymentsService {
+  constructor(private readonly revenueService: RevenueService) {}
   findAll(): Payment[] { return payments; }
 
   findOne(id: number): Payment {
@@ -37,6 +39,16 @@ export class PaymentsService {
       ...(dto.agencyId !== undefined && { agencyId: dto.agencyId }),
     };
     payments.push(item);
+    
+    // Revenue integration
+    if (item.status === 'Paid') {
+      if (item.agencyId) {
+        this.revenueService.calculateAgencyCommission(item.bookingId || item.tripId || 0, item.amount, item.agencyId);
+      } else {
+        this.revenueService.calculateBookingCommission(item.bookingId || item.tripId || 0, item.amount);
+      }
+    }
+    
     return item;
   }
 }

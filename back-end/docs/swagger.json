@@ -2306,6 +2306,108 @@
         ]
       }
     },
+    "/api/admin/revenue/overview": {
+      "get": {
+        "operationId": "RevenueController_getAdminOverview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Revenue"
+        ]
+      }
+    },
+    "/api/admin/revenue/breakdown": {
+      "get": {
+        "operationId": "RevenueController_getAdminBreakdown",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Revenue"
+        ]
+      }
+    },
+    "/api/admin/revenue/transactions": {
+      "get": {
+        "operationId": "RevenueController_getAllTransactions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Revenue"
+        ]
+      }
+    },
+    "/api/admin/revenue/config": {
+      "get": {
+        "operationId": "RevenueController_getConfig",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Revenue"
+        ]
+      }
+    },
+    "/api/admin/revenue/config/{key}": {
+      "put": {
+        "operationId": "RevenueController_updateConfig",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Revenue"
+        ]
+      }
+    },
+    "/api/agencies/{id}/revenue": {
+      "get": {
+        "operationId": "RevenueController_getAgencyRevenue",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Revenue"
+        ]
+      }
+    },
     "/refunds": {
       "get": {
         "operationId": "RefundsController_findAll",
@@ -4659,6 +4761,83 @@
           "uploads"
         ]
       }
+    },
+    "/api/subscriptions/plans": {
+      "get": {
+        "operationId": "SubscriptionsController_getPlans",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Subscriptions"
+        ]
+      }
+    },
+    "/api/agencies/{id}/subscription": {
+      "get": {
+        "operationId": "SubscriptionsController_getAgencySubscription",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Subscriptions"
+        ]
+      }
+    },
+    "/api/subscriptions": {
+      "post": {
+        "operationId": "SubscriptionsController_subscribe",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Subscriptions"
+        ]
+      }
+    },
+    "/api/promotions": {
+      "get": {
+        "operationId": "PromotionsController_getAllPromotions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Promotions"
+        ]
+      },
+      "post": {
+        "operationId": "PromotionsController_createPromotion",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Promotions"
+        ]
+      }
     }
   },
   "info": {
@@ -5278,6 +5457,30 @@
               "Confirmed",
               "Cancelled"
             ]
+          },
+          "insuranceSelected": {
+            "type": "boolean",
+            "example": true
+          },
+          "transportMode": {
+            "type": "string",
+            "example": "Flight"
+          },
+          "cancellationProtectionSelected": {
+            "type": "boolean",
+            "example": true
+          },
+          "cancellationFee": {
+            "type": "number",
+            "example": 100
+          },
+          "insuranceRate": {
+            "type": "number",
+            "example": 7
+          },
+          "insuranceAmount": {
+            "type": "number",
+            "example": 150
           }
         },
         "required": [
@@ -5333,6 +5536,30 @@
               "Confirmed",
               "Cancelled"
             ]
+          },
+          "cancellationProtectionSelected": {
+            "type": "boolean",
+            "example": false
+          },
+          "cancellationFee": {
+            "type": "number",
+            "example": 100
+          },
+          "insuranceSelected": {
+            "type": "boolean",
+            "example": true
+          },
+          "insuranceRate": {
+            "type": "number",
+            "example": 7
+          },
+          "insuranceAmount": {
+            "type": "number",
+            "example": 150
+          },
+          "transportMode": {
+            "type": "string",
+            "example": "Flight"
           }
         }
       },

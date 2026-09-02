@@ -65,6 +65,19 @@ export class DashboardService {
         else travelerRevenue += p.amount;
       }
 
+      // Calculate Guide Income Metrics
+      let totalGuideRevenue = 0;
+      for (const trip of trips) {
+        if (trip.guideId != null && (trip.status === 'Confirmed' || trip.status === 'Completed' || trip.status === 'Active' || trip.status === 'Pending')) {
+          const guide = guides.find(g => g.guideId === trip.guideId);
+          if (guide) {
+            totalGuideRevenue += guide.pricePerTrip;
+          }
+        }
+      }
+      const amountPaidToGuides = totalGuideRevenue * 0.65;
+      const companyRevenueFromGuides = totalGuideRevenue * 0.35;
+
       return {
         usersByRole: {
           travelers: travelers.length,
@@ -111,6 +124,11 @@ export class DashboardService {
             .reduce((sum, c) => sum + c.commissionAmount, 0),
           agencyChannelRevenue: agencyRevenue,
           travelerChannelRevenue: travelerRevenue,
+        },
+        guideMetrics: {
+          totalGuideRevenue,
+          amountPaidToGuides,
+          companyRevenueFromGuides
         }
       };
     }

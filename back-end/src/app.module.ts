@@ -21,6 +21,9 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { AgenciesModule } from './agencies/agencies.module';
 import { PassengersModule } from './passengers/passengers.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { RevenueModule } from './revenue/revenue.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { PromotionsModule } from './promotions/promotions.module';
 
 @Module({
   imports: [
@@ -43,6 +46,9 @@ import { UploadsModule } from './uploads/uploads.module';
     AgenciesModule,
     PassengersModule,
     UploadsModule,
+    RevenueModule,
+    SubscriptionsModule,
+    PromotionsModule,
   ],
   providers: [
     // APP_FILTER registers GlobalExceptionFilter as a DI-managed global exception filter.

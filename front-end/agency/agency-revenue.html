@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agency Revenue & Subscription</title>
+<link rel="stylesheet" href="../static/shared.css">
+<style>
+:root{--primary:#2563eb;--primary-dark:#1d4ed8;--gradient:linear-gradient(135deg,#2563eb 0%,#10b981 100%);}
+.card{background:#fff;border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light);margin-bottom:24px}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.card-title{font-size:18px;font-weight:700;color:var(--text-dark)}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-bottom:24px}
+.stat-card{background:#fff;padding:20px;border-radius:var(--radius-lg);border:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between}
+.stat-info{display:flex;flex-direction:column;gap:4px}
+.stat-label{font-size:13px;color:var(--text-muted);font-weight:600;text-transform:uppercase}
+.stat-value{font-size:24px;font-weight:700;color:var(--text-dark)}
+table{width:100%;border-collapse:collapse}
+th,td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--border-light)}
+th{font-size:12px;text-transform:uppercase;color:var(--text-muted);font-weight:600;background:#f8fafc}
+.badge{padding:4px 8px;border-radius:999px;font-size:12px;font-weight:600}
+.badge.earned{background:#dbeafe;color:#1e40af}
+.badge.settled{background:#dcfce3;color:#166534}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon" style="background:var(--gradient);color:#fff;">🌐</div>
+      <div>
+        <div class="logo-text" style="background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">GlobeSync</div>
+        <div class="logo-sub">Agency Portal</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <!-- Minimal nav for demo -->
+      <a class="nav-item" href="agency-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item active" href="agency-revenue.html"><span class="nav-icon">💰</span>Revenue & Sub</a>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="page-title">Revenue & Subscription</div></div>
+    </div>
+
+    <!-- SUB INFO -->
+    <div class="card" style="background:#f0fdf4; border-color:#86efac">
+      <div class="card-header"><span class="card-title" style="color:#166534">Active Subscription</span></div>
+      <div id="sub-details">
+        Loading...
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Total Booking Sales</div><div class="stat-value" id="stat-sales">₹0</div></div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Agency Earnings</div><div class="stat-value" id="stat-earnings" style="color:#059669">₹0</div></div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Commission Paid</div><div class="stat-value" id="stat-commission" style="color:#dc2626">₹0</div></div></div>
+    </div>
+
+    <!-- TRANSACTIONS -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">Commission Ledger</span></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Date</th>
+              <th>Gross Booking</th>
+              <th>GlobeSync Comm.</th>
+              <th>Your Earnings</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tx-tbody">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// Mock Agency Auth (assuming agencyId = 1 is logged in)
+const AGENCY_ID = 1;
+
+async function loadData() {
+  try {
+    const [subRes, revRes] = await Promise.all([
+      fetch(`http://localhost:3000/api/agencies/${AGENCY_ID}/subscription`),
+      fetch(`http://localhost:3000/api/agencies/${AGENCY_ID}/revenue`)
+    ]);
+
+    if(subRes.ok) {
+      const sub = await subRes.json();
+      if(sub.status !== 'NONE') {
+        document.getElementById('sub-details').innerHTML = `
+          <div style="display:flex;gap:40px">
+            <div><div style="font-size:12px;color:#166534">Plan</div><div style="font-size:20px;font-weight:700">Plan #${sub.plan_id}</div></div>
+            <div><div style="font-size:12px;color:#166534">Amount</div><div style="font-size:20px;font-weight:700">₹${sub.amount.toLocaleString()}</div></div>
+            <div><div style="font-size:12px;color:#166534">Renewal</div><div style="font-size:20px;font-weight:700">${new Date(sub.renewal_date).toLocaleDateString()}</div></div>
+            <div><div style="font-size:12px;color:#166534">Status</div><span class="badge" style="background:#166534;color:#fff">${sub.status}</span></div>
+          </div>
+        `;
+      } else {
+        document.getElementById('sub-details').innerHTML = `<p>No active subscription. Please subscribe to a plan.</p>`;
+      }
+    }
+
+    if(revRes.ok) {
+      const rev = await revRes.json();
+      document.getElementById('stat-sales').innerText = '₹' + rev.totalSales.toLocaleString();
+      document.getElementById('stat-earnings').innerText = '₹' + rev.agencyEarnings.toLocaleString();
+      document.getElementById('stat-commission').innerText = '₹' + rev.totalCommissionToGlobeSync.toLocaleString();
+
+      const tbody = document.getElementById('tx-tbody');
+      tbody.innerHTML = rev.transactions.map(t => `
+        <tr>
+          <td>#${t.transaction_id}</td>
+          <td>${new Date(t.created_at).toLocaleDateString()}</td>
+          <td>₹${t.gross_amount.toLocaleString()}</td>
+          <td style="color:#dc2626">₹${t.revenue_amount.toLocaleString()}</td>
+          <td style="font-weight:bold;color:#059669">₹${t.payout_amount.toLocaleString()}</td>
+          <td><span class="badge ${t.status.toLowerCase()}">${t.status}</span></td>
+        </tr>
+      `).join('');
+    }
+  } catch(e) {
+    console.error('Failed to load agency revenue data', e);
+  }
+}
+
+window.onload = loadData;
+</script>
+</body>
+</html>

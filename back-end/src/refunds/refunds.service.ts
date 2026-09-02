@@ -1,9 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { refunds, Refund } from '../data';
 import { CreateRefundDto } from './dto';
+import { PaymentsService } from '../payments/payments.service';
+import { RevenueService } from '../revenue/revenue.service';
 
 @Injectable()
 export class RefundsService {
+  constructor(
+    private readonly paymentsService: PaymentsService,
+    private readonly revenueService: RevenueService
+  ) {}
   findAll(): Refund[] { return refunds; }
 
   findOne(id: number): Refund {
@@ -34,6 +40,19 @@ export class RefundsService {
     const idx = refunds.findIndex((r) => r.refundId === id);
     if (idx === -1) throw new NotFoundException(`Refund with ID ${id} not found`);
     refunds[idx] = { ...refunds[idx], refundStatus: status as Refund['refundStatus'] };
+    
+    // Revenue integration
+    if (status === 'Completed') {
+      try {
+        const payment = this.paymentsService.findOne(refunds[idx].paymentId);
+        if (payment && (payment.bookingId || payment.tripId)) {
+          this.revenueService.refundRevenue(payment.bookingId || payment.tripId || 0);
+        }
+      } catch (e) {
+        // Payment not found or error fetching it, just ignore
+      }
+    }
+
     return refunds[idx];
   }
 }

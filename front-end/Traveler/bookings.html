@@ -83,34 +83,36 @@
       <span style="font-size:14px;color:var(--text-secondary)">Total Amount</span>
       <span style="font-size:24px;font-weight:700;color:var(--primary)" id="pay-amount">₹0.00</span>
     </div>
+    <div id="cancellation-opt-out-container" style="display:none; padding:10px 20px; margin-bottom:15px; border:1px solid var(--border-light); border-radius:var(--radius-sm); background:#fff">
+      <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; cursor:pointer;">
+        <input type="checkbox" id="keep-cancellation" checked onchange="toggleCancellationOptOut()" style="accent-color:var(--primary)">
+        Keep Cancellation Protection (<span id="cancellation-fee-display"></span>)
+      </label>
+      <div style="font-size:11px; color:var(--text-muted); margin-top:4px; margin-left:22px;">If unchecked, the fee will be removed from your total amount.</div>
+    </div>
     <input type="hidden" id="pay-booking-id">
     <form id="payment-form" onsubmit="processPayment(event)">
-      <div class="form-group">
-        <label class="form-label">Card Number *</label>
-        <input class="form-control" id="p-card" placeholder="1234 5678 9012 3456" maxlength="19" data-required="Card number is required" data-minlen="14">
-        <div class="form-error" id="p-card-error"></div>
+      <div style="margin-bottom:12px">
+        <label class="form-label">Card Number</label>
+        <input class="form-control" type="text" placeholder="0000 0000 0000 0000" maxlength="19" data-required="Card number is required" oninput="formatCardNumber(this)">
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Expiry Date *</label>
-          <input class="form-control" id="p-expiry" placeholder="MM/YY" maxlength="5" data-required="Expiry date is required">
-          <div class="form-error" id="p-expiry-error"></div>
+      <div style="display:flex;gap:12px;margin-bottom:12px">
+        <div style="flex:1">
+          <label class="form-label">Expiry Date</label>
+          <input class="form-control" type="text" placeholder="MM/YY" maxlength="5" data-required="Expiry is required" oninput="formatExpiry(this)">
         </div>
-        <div class="form-group">
-          <label class="form-label">CVV *</label>
-          <input class="form-control" id="p-cvv" placeholder="123" maxlength="3" data-required="CVV is required" data-minlen="3">
-          <div class="form-error" id="p-cvv-error"></div>
+        <div style="flex:1">
+          <label class="form-label">CVV</label>
+          <input class="form-control" type="password" placeholder="•••" maxlength="4" data-required="CVV is required">
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Cardholder Name *</label>
-        <input class="form-control" id="p-name" placeholder="John Doe" data-required="Cardholder name is required">
-        <div class="form-error" id="p-name-error"></div>
+      <div style="margin-bottom:20px">
+        <label class="form-label">Name on Card</label>
+        <input class="form-control" type="text" placeholder="John Doe" data-required="Name is required">
       </div>
-      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted);margin-bottom:20px">🔒 Your payment information is encrypted and secure</div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" onclick="closeModal('payment-modal')">Cancel</button>
-        <button type="submit" class="btn btn-primary" style="background:var(--success);flex:1" id="pay-btn">Pay <span id="pay-btn-amount"></span></button>
+        <button type="submit" class="btn btn-primary" style="background:var(--primary);flex:1" id="pay-btn">Proceed to Pay <span id="pay-btn-amount"></span></button>
       </div>
     </form>
   </div>
@@ -220,49 +222,98 @@ async function cancelBooking(id) {
 function openPayment(id) {
   const b = _bookings.find(b => b.booking_id === id);
   document.getElementById('pay-booking-id').value = id;
+  
+  const container = document.getElementById('cancellation-opt-out-container');
+  const checkbox = document.getElementById('keep-cancellation');
+  if (b.cancellation_protection_selected) {
+    container.style.display = 'block';
+    document.getElementById('cancellation-fee-display').textContent = formatCurrency(b.cancellation_fee);
+    checkbox.checked = true;
+    checkbox.dataset.fee = b.cancellation_fee;
+    checkbox.dataset.baseAmount = b.amount;
+  } else {
+    container.style.display = 'none';
+  }
+
   document.getElementById('pay-amount').textContent = formatCurrency(b.amount);
   document.getElementById('pay-btn-amount').textContent = formatCurrency(b.amount);
   document.getElementById('payment-form').reset();
   openModal('payment-modal');
 }
 
+function toggleCancellationOptOut() {
+  const checkbox = document.getElementById('keep-cancellation');
+  const baseAmount = parseFloat(checkbox.dataset.baseAmount);
+  const fee = parseFloat(checkbox.dataset.fee);
+  const newAmount = checkbox.checked ? baseAmount : baseAmount - fee;
+  
+  document.getElementById('pay-amount').textContent = formatCurrency(newAmount);
+  document.getElementById('pay-btn-amount').textContent = formatCurrency(newAmount);
+}
+
+function formatCardNumber(input) {
+  let val = input.value.replace(/\D/g, '');
+  let formatted = '';
+  for (let i = 0; i < val.length; i++) {
+    if (i > 0 && i % 4 === 0) formatted += ' ';
+    formatted += val[i];
+  }
+  input.value = formatted;
+}
+
+function formatExpiry(input) {
+  let val = input.value.replace(/\D/g, '');
+  if (val.length >= 2) {
+    val = val.substring(0, 2) + '/' + val.substring(2, 4);
+  }
+  input.value = val;
+}
+
 async function processPayment(e) {
   e.preventDefault();
   if (!validateForm('payment-form')) return;
-  const expiry = document.getElementById('p-expiry').value;
-  if (!/^\d{2}\/\d{2}$/.test(expiry)) { document.getElementById('p-expiry').classList.add('error'); document.getElementById('p-expiry-error').textContent = 'Format must be MM/YY'; document.getElementById('p-expiry-error').classList.add('show'); return; }
+  const btn = document.getElementById('pay-btn');
+  btn.disabled = true;
+  btn.textContent = 'Processing...';
+
   const id = parseInt(document.getElementById('pay-booking-id').value);
   const b = _bookings.find(b => b.booking_id === id);
+  
+  const checkbox = document.getElementById('keep-cancellation');
+  let finalAmount = b.amount;
+  if (b.cancellation_protection_selected && !checkbox.checked) {
+    finalAmount = b.amount - b.cancellation_fee;
+  }
+
   try {
-    // Update booking status
     const payload = { ...b, status: 'Confirmed' };
     delete payload.booking_id;
+    if (b.cancellation_protection_selected && !checkbox.checked) {
+      payload.cancellationProtectionSelected = false;
+      payload.amount = finalAmount;
+    }
+
     await apiPutSnake(`/bookings/${id}`, payload);
 
-    // Sync the trip status to 'Confirmed'
     if (b.trip_id) {
       await apiPatchSnake(`/trips/${b.trip_id}/status`, { status: 'Confirmed' }).catch(err => console.error('Failed to update trip status:', err));
     }
 
-    // Create payment record
-    await apiPostSnake('/payments', { amount: b.amount, payment_date: new Date().toISOString().split('T')[0], method: 'Card', status: 'Paid', booking_id: id });
+    await apiPostSnake('/payments', { amount: finalAmount, payment_date: new Date().toISOString().split('T')[0], method: 'Card', status: 'Paid', booking_id: id });
     closeModal('payment-modal');
-    showToast('Payment successful! Booking and Trip confirmed ✓');
+    showToast('Payment successful! Booking confirmed ✓');
     await loadData();
     renderBookings();
-  } catch (e) { console.error('Payment failed:', e); }
+  } catch (err) {
+    console.error('Payment failed:', err);
+    showToast('Payment failed. Please try again.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Proceed to Pay <span id="pay-btn-amount"></span>';
+    toggleCancellationOptOut();
+  }
 }
 
-// Card number formatting
-document.getElementById('p-card').addEventListener('input', function() {
-  this.value = this.value.replace(/\D/g, '').replace(/(\d{4})/g, '$1 ').trim().slice(0, 19);
-});
-document.getElementById('p-expiry').addEventListener('input', function() {
-  this.value = this.value.replace(/\D/g, '').replace(/(\d{2})(\d)/, '$1/$2').slice(0, 5);
-});
-document.getElementById('p-cvv').addEventListener('input', function() {
-  this.value = this.value.replace(/\D/g, '').slice(0, 3);
-});
 
 document.getElementById('booking-search').addEventListener('input', renderBookings);
 setupLiveValidation('payment-form');

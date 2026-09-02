@@ -16,6 +16,11 @@ export interface Booking {
   service: string;
   type: 'Flight' | 'Hotel' | 'Transport' | 'Activity';
   amount: number;
+  insuranceSelected?: boolean;
+  insuranceRate?: number;
+  insuranceAmount?: number;
+  cancellationProtectionSelected?: boolean;
+  cancellationFee?: number;
 }
 
 export const bookings: Booking[] = [
