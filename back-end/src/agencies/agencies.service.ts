@@ -1,11 +1,24 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { agencies, Agency } from '../data';
-import { CreateAgencyDto, UpdateAgencyDto, UpdateAgencyStatusDto, CreateDirectAgencyDto } from './dto';
+import { CreateAgencyDto, UpdateAgencyDto, UpdateAgencyStatusDto, CreateDirectAgencyDto, AgencyResponseDto } from './dto';
+
+/** Type alias for the sanitized public response shape. */
+type SafeAgency = Omit<Agency, 'password'>;
 
 @Injectable()
 export class AgenciesService {
-  findAll(): Agency[] {
-    return agencies;
+  /**
+   * Strip the password from an Agency before returning it to callers.
+   * This returns a new object and never mutates the stored record,
+   * which must retain its password for auth.service.ts login lookups.
+   */
+  private sanitize(agency: Agency): SafeAgency {
+    const { password: _omitted, ...safe } = agency;
+    return safe;
+  }
+
+  findAll(): AgencyResponseDto[] {
+    return agencies.map((a) => this.sanitize(a));
   }
 
   findAllLookup() {
@@ -15,15 +28,15 @@ export class AgenciesService {
     }));
   }
 
-  findOne(id: number): Agency {
+  findOne(id: number): AgencyResponseDto {
     const agency = agencies.find((a) => a.agencyId === id);
     if (!agency) {
       throw new NotFoundException(`Agency with ID ${id} not found`);
     }
-    return agency;
+    return this.sanitize(agency);
   }
 
-  create(dto: CreateAgencyDto): Agency {
+  create(dto: CreateAgencyDto): AgencyResponseDto {
     // Check if email is already registered
     if (agencies.some(a => a.contactEmail.toLowerCase() === dto.contactEmail.toLowerCase())) {
       throw new BadRequestException('Email already registered');
@@ -39,11 +52,12 @@ export class AgenciesService {
       status: 'pending',
       createdAt: new Date().toISOString(),
     };
+    // Push the full record (with password) so auth login continues to work
     agencies.push(newAgency);
-    return newAgency;
+    return this.sanitize(newAgency);
   }
 
-  createDirect(dto: CreateDirectAgencyDto): Agency {
+  createDirect(dto: CreateDirectAgencyDto): AgencyResponseDto {
     if (agencies.some(a => a.contactEmail.toLowerCase() === dto.contactEmail.toLowerCase())) {
       throw new BadRequestException('Email already registered');
     }
@@ -59,11 +73,12 @@ export class AgenciesService {
       ...(dto.commissionRate !== undefined && { commissionRate: dto.commissionRate }),
       createdAt: new Date().toISOString(),
     };
+    // Push the full record (with password) so auth login continues to work
     agencies.push(newAgency);
-    return newAgency;
+    return this.sanitize(newAgency);
   }
 
-  update(id: number, dto: UpdateAgencyDto): Agency {
+  update(id: number, dto: UpdateAgencyDto): AgencyResponseDto {
     const idx = agencies.findIndex((a) => a.agencyId === id);
     if (idx === -1) {
       throw new NotFoundException(`Agency with ID ${id} not found`);
@@ -80,13 +95,14 @@ export class AgenciesService {
       ...(dto.businessName !== undefined && { businessName: dto.businessName }),
       ...(dto.contactEmail !== undefined && { contactEmail: dto.contactEmail }),
       ...(dto.contactPhone !== undefined && { contactPhone: dto.contactPhone }),
+      // Password update is stored in the in-memory record for auth, but never returned
       ...(dto.password !== undefined && { password: dto.password }),
     };
     agencies[idx] = updated;
-    return updated;
+    return this.sanitize(updated);
   }
 
-  updateStatus(id: number, dto: UpdateAgencyStatusDto): Agency {
+  updateStatus(id: number, dto: UpdateAgencyStatusDto): AgencyResponseDto {
     const idx = agencies.findIndex((a) => a.agencyId === id);
     if (idx === -1) {
       throw new NotFoundException(`Agency with ID ${id} not found`);
@@ -98,7 +114,7 @@ export class AgenciesService {
       ...(dto.commissionRate !== undefined && { commissionRate: dto.commissionRate }),
     };
     agencies[idx] = updated;
-    return updated;
+    return this.sanitize(updated);
   }
 
   remove(id: number): { message: string } {
@@ -113,3 +129,4 @@ export class AgenciesService {
     return { message: 'Agency deleted successfully' };
   }
 }
+

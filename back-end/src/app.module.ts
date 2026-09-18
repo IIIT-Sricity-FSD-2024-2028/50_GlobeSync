@@ -19,6 +19,8 @@ import { SupportTicketsModule } from './support-tickets/support-tickets.module';
 import { MessagesModule } from './messages/messages.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AgenciesModule } from './agencies/agencies.module';
+import { AdminsModule } from './admins/admins.module';
+import { SupportUsersModule } from './support-users/support-users.module';
 import { PassengersModule } from './passengers/passengers.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { RevenueModule } from './revenue/revenue.module';
@@ -44,6 +46,8 @@ import { PromotionsModule } from './promotions/promotions.module';
     MessagesModule,
     DashboardModule,
     AgenciesModule,
+    AdminsModule,
+    SupportUsersModule,
     PassengersModule,
     UploadsModule,
     RevenueModule,

@@ -2309,56 +2309,192 @@
     "/api/admin/revenue/overview": {
       "get": {
         "operationId": "RevenueController_getAdminOverview",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Revenue summary returned"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get revenue overview (Admin/Superuser only)",
         "tags": [
-          "Revenue"
+          "revenue"
         ]
       }
     },
     "/api/admin/revenue/breakdown": {
       "get": {
         "operationId": "RevenueController_getAdminBreakdown",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Revenue breakdown returned"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get revenue breakdown by category (Admin/Superuser only)",
         "tags": [
-          "Revenue"
+          "revenue"
         ]
       }
     },
     "/api/admin/revenue/transactions": {
       "get": {
         "operationId": "RevenueController_getAllTransactions",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Transaction list returned"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all revenue transactions (Admin/Superuser only)",
         "tags": [
-          "Revenue"
+          "revenue"
         ]
       }
     },
     "/api/admin/revenue/config": {
       "get": {
         "operationId": "RevenueController_getConfig",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Config returned"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get revenue configuration (Admin/Superuser only)",
         "tags": [
-          "Revenue"
+          "revenue"
         ]
       }
     },
@@ -2370,6 +2506,91 @@
             "name": "key",
             "required": true,
             "in": "path",
+            "description": "Config key to update",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Config updated"
+          },
+          "403": {
+            "description": "Forbidden — Superuser only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a revenue config value (Superuser only)",
+        "tags": [
+          "revenue"
+        ]
+      }
+    },
+    "/api/agencies/{id}/revenue": {
+      "get": {
+        "description": "AGENCY role: x-user-id must match :id. ADMIN/SUPERUSER may access any agency.",
+        "operationId": "RevenueController_getAgencyRevenue",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Agency ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
             "schema": {
               "type": "string"
             }
@@ -2377,34 +2598,27 @@
         ],
         "responses": {
           "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Revenue"
-        ]
-      }
-    },
-    "/api/agencies/{id}/revenue": {
-      "get": {
-        "operationId": "RevenueController_getAgencyRevenue",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "number"
+            "description": "Agency revenue returned"
+          },
+          "403": {
+            "description": "Forbidden — wrong role or mismatched agency ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
             }
           }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get revenue for a specific agency",
         "tags": [
-          "Revenue"
+          "revenue"
         ]
       }
     },
@@ -4178,6 +4392,350 @@
         ]
       }
     },
+    "/admins/{id}": {
+      "get": {
+        "description": "Returns the profile for the requesting admin or superuser. x-user-id must equal :id (self-scoped). Password is never returned.",
+        "operationId": "AdminsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Admin ID (must match x-user-id)",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile returned successfully"
+          },
+          "403": {
+            "description": "Forbidden — wrong role or mismatched ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Admin not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get admin/superuser profile",
+        "tags": [
+          "admins"
+        ]
+      },
+      "put": {
+        "description": "Updates name and/or email for the requesting admin or superuser. x-user-id must equal :id (self-scoped). Role and password cannot be changed here.",
+        "operationId": "AdminsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Admin ID (must match x-user-id)",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — wrong role or mismatched ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Admin not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update admin/superuser profile",
+        "tags": [
+          "admins"
+        ]
+      }
+    },
+    "/support-users/{id}": {
+      "get": {
+        "description": "Returns the profile for a support user. SUPPORT role: x-user-id must equal :id (self-scoped). ADMIN and SUPERUSER may access any record. The careId is used as the record identifier. Password is never returned.",
+        "operationId": "SupportUsersController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "careId — support user identifier",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile returned successfully"
+          },
+          "403": {
+            "description": "Forbidden — wrong role or mismatched careId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Support user not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get support-user profile",
+        "tags": [
+          "support-users"
+        ]
+      },
+      "put": {
+        "description": "Updates name, contact, and/or email for a support user. SUPPORT role: x-user-id must equal :id (self-scoped). ADMIN and SUPERUSER may update any record. Role and password cannot be changed through this endpoint.",
+        "operationId": "SupportUsersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "careId — support user identifier",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSupportUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — wrong role or mismatched careId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Support user not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update support-user profile",
+        "tags": [
+          "support-users"
+        ]
+      }
+    },
     "/passengers": {
       "post": {
         "operationId": "PassengersController_create",
@@ -4765,77 +5323,287 @@
     "/api/subscriptions/plans": {
       "get": {
         "operationId": "SubscriptionsController_getPlans",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "List of subscription plans returned"
+          },
+          "403": {
+            "description": "Forbidden — unauthenticated or unknown role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List all available subscription plans (all authenticated roles)",
         "tags": [
-          "Subscriptions"
+          "subscriptions"
         ]
       }
     },
     "/api/agencies/{id}/subscription": {
       "get": {
+        "description": "AGENCY role: x-user-id must match :id. ADMIN/SUPERUSER may access any agency.",
         "operationId": "SubscriptionsController_getAgencySubscription",
         "parameters": [
           {
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Agency ID",
             "schema": {
               "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Active subscription returned (or { status: \"NONE\" })"
+          },
+          "403": {
+            "description": "Forbidden — wrong role or mismatched agency ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get active subscription for a specific agency",
         "tags": [
-          "Subscriptions"
+          "subscriptions"
         ]
       }
     },
     "/api/subscriptions": {
       "post": {
+        "description": "AGENCY role: x-user-id must match body.agencyId. ADMIN/SUPERUSER may subscribe any agency.",
         "operationId": "SubscriptionsController_subscribe",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "201": {
-            "description": ""
+            "description": "Subscription created"
+          },
+          "403": {
+            "description": "Forbidden — wrong role or mismatched agency ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Plan not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Subscribe an agency to a plan",
         "tags": [
-          "Subscriptions"
+          "subscriptions"
         ]
       }
     },
     "/api/promotions": {
       "get": {
         "operationId": "PromotionsController_getAllPromotions",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "List of promotions returned"
+          },
+          "403": {
+            "description": "Forbidden — unauthenticated or unknown role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all active promotions/featured listings (all authenticated roles)",
         "tags": [
-          "Promotions"
+          "promotions"
         ]
       },
       "post": {
+        "description": "AGENCY role: x-user-id must match body.agencyId. ADMIN/SUPERUSER may create for any agency.",
         "operationId": "PromotionsController_createPromotion",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "201": {
-            "description": ""
+            "description": "Promotion created"
+          },
+          "403": {
+            "description": "Forbidden — wrong role or mismatched agency ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a promotion / featured listing",
         "tags": [
-          "Promotions"
+          "promotions"
         ]
       }
     }
@@ -5749,6 +6517,38 @@
           "method"
         ]
       },
+      "ErrorResponseDto": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 404
+          },
+          "error": {
+            "type": "string",
+            "example": "Not Found"
+          },
+          "message": {
+            "type": "object",
+            "example": "Resource with the given ID was not found"
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2026-05-05T12:00:00.000Z"
+          },
+          "path": {
+            "type": "string",
+            "example": "/travelers/abc-123"
+          }
+        },
+        "required": [
+          "statusCode",
+          "error",
+          "message",
+          "timestamp",
+          "path"
+        ]
+      },
       "CreateRefundDto": {
         "type": "object",
         "properties": {
@@ -5982,38 +6782,6 @@
           "password"
         ]
       },
-      "ErrorResponseDto": {
-        "type": "object",
-        "properties": {
-          "statusCode": {
-            "type": "number",
-            "example": 404
-          },
-          "error": {
-            "type": "string",
-            "example": "Not Found"
-          },
-          "message": {
-            "type": "object",
-            "example": "Resource with the given ID was not found"
-          },
-          "timestamp": {
-            "type": "string",
-            "example": "2026-05-05T12:00:00.000Z"
-          },
-          "path": {
-            "type": "string",
-            "example": "/travelers/abc-123"
-          }
-        },
-        "required": [
-          "statusCode",
-          "error",
-          "message",
-          "timestamp",
-          "path"
-        ]
-      },
       "CreateDirectAgencyDto": {
         "type": "object",
         "properties": {
@@ -6094,6 +6862,41 @@
           "password": {
             "type": "string",
             "example": "securepassword123"
+          }
+        }
+      },
+      "UpdateAdminDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Manoj Gupta",
+            "description": "Display name"
+          },
+          "email": {
+            "type": "string",
+            "example": "admin@ticp.com",
+            "description": "Email address"
+          }
+        }
+      },
+      "UpdateSupportUserDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Aisha Khan",
+            "description": "Full name"
+          },
+          "contact": {
+            "type": "string",
+            "example": "9001122334",
+            "description": "Contact phone number"
+          },
+          "email": {
+            "type": "string",
+            "example": "aisha@example.com",
+            "description": "Email address"
           }
         }
       },
