@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlobeSync — Book Package</title>
+<link rel="stylesheet" href="../static/shared.css">
+<style>
+:root{--teal:#19b6a6;--teal-dark:#128b7d;--teal-soft:#f0fdfc;--gradient-agency:linear-gradient(135deg,#19b6a6 0%,#0ea5e9 100%)}
+.sidebar-logo .logo-icon{background:var(--gradient-agency)!important}
+.sidebar-logo .logo-text{background:var(--gradient-agency);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-item.active,.nav-item:hover{background:var(--teal-soft);color:var(--teal)}
+/* Steps */
+.steps{display:flex;align-items:center;gap:0;margin-bottom:32px}
+.step{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text-muted)}
+.step.active{color:var(--teal)}
+.step.done{color:var(--success)}
+.step-num{width:28px;height:28px;border-radius:50%;border:2px solid var(--border-light);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;background:#fff}
+.step.active .step-num{border-color:var(--teal);background:var(--teal-soft);color:var(--teal)}
+.step.done .step-num{border-color:var(--success);background:#f0fdf4;color:var(--success)}
+.step-connector{flex:1;height:2px;background:var(--border-light);margin:0 8px}
+.step.done+.step-connector,.step.active+.step-connector{background:var(--teal)}
+/* Cards */
+.booking-card{background:#fff;border-radius:16px;border:1px solid rgba(0,0,0,0.04);box-shadow:0 4px 16px rgba(0,0,0,0.02);padding:28px;margin-bottom:20px}
+.card-title{font-size:17px;font-weight:700;color:var(--text-primary);margin-bottom:20px}
+.form-group{margin-bottom:18px}
+.form-label{display:block;font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:7px}
+.form-control{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;outline:none;transition:border-color 0.2s;font-family:var(--font-main);background:#fafafa;color:var(--text-primary)}
+.form-control:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(25,182,166,0.1)}
+.form-control.error-field{border-color:var(--danger);background:#fff8f8}
+.error-msg{font-size:12px;color:var(--danger);margin-top:4px;display:none}
+.error-msg.show{display:block}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+/* Commission preview */
+.commission-preview{background:var(--teal-soft);border:1px solid #99f6e4;border-radius:12px;padding:16px 20px;margin-top:12px}
+.cp-row{display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px}
+.cp-row:last-child{margin-bottom:0;font-weight:700;padding-top:8px;border-top:1px solid #99f6e4;font-size:15px;color:var(--teal-dark)}
+.cp-label{color:var(--text-muted)}
+.cp-val{color:var(--text-primary);font-weight:600}
+/* Summary card */
+.summary-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-light);font-size:14px}
+.summary-row:last-child{border-bottom:none}
+.summary-label{color:var(--text-muted)}
+.summary-val{font-weight:600;color:var(--text-primary)}
+/* Buttons */
+.btn-agency{background:var(--gradient-agency);color:#fff;border:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-main);box-shadow:0 4px 12px rgba(25,182,166,0.25);transition:all 0.2s}
+.btn-agency:hover{opacity:0.9;transform:translateY(-1px)}
+.btn-back{background:#f3f4f6;color:var(--text-secondary);border:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-main);transition:all 0.2s}
+.btn-back:hover{background:#e5e7eb}
+.step-btns{display:flex;gap:12px;margin-top:4px}
+/* Success */
+.success-card{text-align:center;padding:48px 32px}
+.success-icon{font-size:56px;margin-bottom:16px}
+.success-title{font-size:26px;font-weight:800;color:var(--text-primary);margin-bottom:8px}
+.success-sub{font-size:14px;color:var(--text-muted);margin-bottom:28px;line-height:1.7}
+.add-passenger-link{font-size:13px;color:var(--teal);cursor:pointer;font-weight:600}
+.add-passenger-link:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon" style="font-size:18px">🏢</div>
+      <div><div class="logo-text">GlobeSync</div><div class="logo-sub">Agency Portal</div></div>
+    </div>
+        <nav class="sidebar-nav">
+      <a class="nav-item" href="agency-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="browse-packages.html"><span class="nav-icon">📦</span>Browse Packages</a>
+      <a class="nav-item" href="create-itinerary.html"><span class="nav-icon">📅</span>Create Itinerary</a>
+      <a class="nav-item" href="bookings.html"><span class="nav-icon">📋</span>My Bookings</a>
+      <a class="nav-item" href="passengers.html"><span class="nav-icon">👥</span>Passengers</a>
+      <a class="nav-item" href="commission.html"><span class="nav-icon">💰</span>Commission Ledger</a>
+      <a class="nav-item" href="payments.html"><span class="nav-icon">💳</span>Payments</a>
+      <a class="nav-item" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+      <a class="nav-item" href="profile.html"><span class="nav-icon">🏢</span>Agency Profile</a>
+      <a class="nav-item" data-page="support" href="support.html"><span class="nav-icon">🎧</span>Support</a>
+    </nav>
+    <div style="padding:12px;margin-top:auto">
+      <div style="background:var(--teal-soft);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--teal-dark);border:1px solid #99f6e4">
+        💼 <strong>Agency Role</strong><br>Reseller access only.
+      </div>
+    </div>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="agencyLogout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="page-title">Book Package for Client</div><div class="page-subtitle">Step-by-step booking at retail price with commission preview</div></div>
+    </div>
+
+    <!-- Step indicator -->
+    <div class="steps" id="steps-bar">
+      <div class="step active" id="step-1-tab"><div class="step-num">1</div> Select Package &amp; Passenger</div>
+      <div class="step-connector"></div>
+      <div class="step" id="step-2-tab"><div class="step-num">2</div> Review &amp; Confirm</div>
+      <div class="step-connector"></div>
+      <div class="step" id="step-3-tab"><div class="step-num">3</div> Booking Confirmed</div>
+    </div>
+
+    <!-- STEP 1 -->
+    <div id="step-1">
+      <div class="booking-card">
+        <div class="card-title">1. Choose Package &amp; Travel Dates</div>
+        <div class="form-group">
+          <label class="form-label">Package *</label>
+          <select id="pkg-select" class="form-control" onchange="updatePreview()">
+            <option value="">— Select a package —</option>
+          </select>
+          <div class="error-msg" id="pkg-select-error"></div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Start Date *</label>
+            <input type="date" id="start-date" class="form-control" onchange="updatePreview()">
+            <div class="error-msg" id="start-date-error"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">End Date *</label>
+            <input type="date" id="end-date" class="form-control" onchange="updatePreview()">
+            <div class="error-msg" id="end-date-error"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="booking-card">
+        <div class="card-title">2. Select Passenger</div>
+        <div class="form-group">
+          <select id="pass-select" class="form-control" onchange="updatePreview()">
+            <option value="">— Select a passenger —</option>
+          </select>
+          <div class="error-msg" id="pass-select-error"></div>
+        </div>
+        <div id="no-passengers-hint" style="display:none;margin-top:4px;font-size:13px;color:var(--text-muted)">
+          No passengers yet. <a class="add-passenger-link" onclick="window.location.href='passengers.html'">Add a passenger first →</a>
+        </div>
+      </div>
+
+      <!-- Commission preview -->
+      <div class="booking-card" id="preview-card" style="display:none">
+        <div class="card-title">Commission Preview</div>
+        <div class="commission-preview">
+          <div class="cp-row"><span class="cp-label">Package Retail Price</span><span class="cp-val" id="prev-price">—</span></div>
+          <div class="cp-row"><span class="cp-label">Your Commission Rate</span><span class="cp-val" id="prev-rate">—</span></div>
+          <div class="cp-row"><span class="cp-label" style="color:var(--teal-dark);font-weight:700">Your Commission Earned</span><span class="cp-val" id="prev-comm" style="color:var(--teal)">—</span></div>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:8px">Commission will be marked <em>pending</em> until the trip is completed.</div>
+      </div>
+
+      <div class="step-btns">
+        <button class="btn-agency" onclick="goStep2()">Review Booking →</button>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div id="step-2" style="display:none">
+      <div class="booking-card">
+        <div class="card-title">Review Your Booking</div>
+        <div id="review-summary"></div>
+      </div>
+      <div class="step-btns">
+        <button class="btn-back" onclick="backStep1()">← Back</button>
+        <button class="btn-agency" onclick="confirmBooking()">✓ Confirm Booking</button>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div id="step-3" style="display:none">
+      <div class="booking-card">
+        <div class="success-card">
+          <div class="success-icon">🎉</div>
+          <div class="success-title">Booking Confirmed!</div>
+          <div class="success-sub" id="success-msg">Your booking has been confirmed. Commission has been added to your ledger as <em>pending</em> and will be settled when the trip completes.</div>
+          <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+            <button class="btn-agency" onclick="window.location.href='bookings.html'">View My Bookings</button>
+            <button class="btn-back" onclick="window.location.reload()">Book Another</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="../JS/mockData.js"></script>
+<script src="../JS/api.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/agency.js"></script>
+<script>
+requireAgency();
+const agency = getAgency();
+const agencyId = agency.agency_id || agency.agencyId;
+const commRate = agency.commission_rate != null ? agency.commission_rate : (agency.commissionRate != null ? agency.commissionRate : 0);
+
+let allPackages = [];
+let myPassengers = [];
+
+async function init() {
+  const pkgSel  = document.getElementById('pkg-select');
+  const passSel = document.getElementById('pass-select');
+
+  [allPackages, myPassengers] = await Promise.all([
+    apiGetSnake('/packages').catch(() => []),
+    getMyPassengers(agencyId)
+  ]);
+
+  allPackages.forEach(p => {
+    const o = document.createElement('option');
+    o.value = p.package_id; o.textContent = `${p.name} — ${formatCurrency(p.budget)}`;
+    pkgSel.appendChild(o);
+  });
+
+  if (!myPassengers.length) {
+    document.getElementById('no-passengers-hint').style.display = 'block';
+  } else {
+    myPassengers.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.pass_id; o.textContent = `${p.name} (${p.gender}, ${p.age})`;
+      passSel.appendChild(o);
+    });
+  }
+
+  // Pre-select from browse page
+  const preselect = localStorage.getItem('agency_preselect_pkg');
+  if (preselect) { pkgSel.value = preselect; localStorage.removeItem('agency_preselect_pkg'); updatePreview(); }
+
+  // Set default dates
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('start-date').setAttribute('min', today);
+  document.getElementById('end-date').setAttribute('min', today);
+}
+
+function updatePreview() {
+  const pkgId = parseInt(document.getElementById('pkg-select').value);
+  const pkg   = allPackages.find(p => p.package_id === pkgId);
+  if (!pkg) { document.getElementById('preview-card').style.display = 'none'; return; }
+  const rate = commRate || 0;
+  const comm = pkg.budget * rate / 100;
+  document.getElementById('prev-price').textContent = formatCurrency(pkg.budget);
+  document.getElementById('prev-rate').textContent  = rate + '%';
+  document.getElementById('prev-comm').textContent  = formatCurrency(comm);
+  document.getElementById('preview-card').style.display = 'block';
+
+  // Auto-compute end date from duration
+  const startVal = document.getElementById('start-date').value;
+  if (startVal && !document.getElementById('end-date').value) {
+    const end = new Date(startVal);
+    end.setDate(end.getDate() + pkg.duration);
+    document.getElementById('end-date').value = end.toISOString().split('T')[0];
+  }
+}
+
+function clearErr(id) {
+  const e = document.getElementById(id + '-error');
+  const i = document.getElementById(id);
+  if (e) { e.textContent = ''; e.classList.remove('show'); }
+  if (i) i.classList.remove('error-field');
+}
+function showErr(id, msg) {
+  const e = document.getElementById(id + '-error');
+  const i = document.getElementById(id);
+  if (e) { e.textContent = msg; e.classList.add('show'); }
+  if (i) i.classList.add('error-field');
+}
+
+function goStep2() {
+  ['pkg-select','start-date','end-date','pass-select'].forEach(clearErr);
+  let valid = true;
+  const pkgId  = document.getElementById('pkg-select').value;
+  const passId = document.getElementById('pass-select').value;
+  const start  = document.getElementById('start-date').value;
+  const end    = document.getElementById('end-date').value;
+  if (!pkgId)  { showErr('pkg-select',  'Please select a package'); valid = false; }
+  if (!passId) { showErr('pass-select', 'Please select a passenger'); valid = false; }
+  if (!start)  { showErr('start-date',  'Start date is required'); valid = false; }
+  if (!end)    { showErr('end-date',    'End date is required'); valid = false; }
+  if (start && end && start >= end) { showErr('end-date', 'End date must be after start date'); valid = false; }
+  if (!valid) return;
+
+  const pkg  = allPackages.find(p => p.package_id === parseInt(pkgId));
+  const pass = myPassengers.find(p => p.pass_id === parseInt(passId));
+  const rate = commRate || 0;
+  const comm = pkg.budget * rate / 100;
+
+  document.getElementById('review-summary').innerHTML = `
+    <div class="summary-row"><span class="summary-label">Package</span><span class="summary-val">${pkg.name}</span></div>
+    <div class="summary-row"><span class="summary-label">Destination</span><span class="summary-val">📍 ${pkg.destinations}</span></div>
+    <div class="summary-row"><span class="summary-label">Passenger</span><span class="summary-val">${pass.name} (${pass.gender}, ${pass.age})</span></div>
+    <div class="summary-row"><span class="summary-label">Travel Dates</span><span class="summary-val">${formatDate(start)} → ${formatDate(end)}</span></div>
+    <div class="summary-row"><span class="summary-label">Retail Price</span><span class="summary-val">${formatCurrency(pkg.budget)}</span></div>
+    <div class="summary-row"><span class="summary-label" style="color:var(--teal)">Your Commission (${rate}%)</span><span class="summary-val" style="color:var(--teal)">${formatCurrency(comm)} <em style="font-size:11px;font-weight:400">(pending until trip completes)</em></span></div>`;
+
+  setStep(2);
+}
+
+function backStep1() { setStep(1); }
+
+async function confirmBooking() {
+  const pkgId  = parseInt(document.getElementById('pkg-select').value);
+  const passId = parseInt(document.getElementById('pass-select').value);
+  const start  = document.getElementById('start-date').value;
+  const end    = document.getElementById('end-date').value;
+  const res = await createAgencyBooking(agencyId, {
+    package_id: pkgId, passenger_id: passId, start_date: start, end_date: end
+  });
+  if (!res.ok) { showToast('Booking failed: ' + (res.errors ? JSON.stringify(res.errors) : 'Unknown error'), 'error'); return; }
+  const pkg  = allPackages.find(p => p.package_id === pkgId);
+  const pass = myPassengers.find(p => p.pass_id === passId);
+  const rate = commRate || 0;
+  document.getElementById('success-msg').textContent =
+    `Booking confirmed for ${pass ? pass.name : 'passenger'} on the ${pkg ? pkg.name : 'selected'} package. Commission of ${formatCurrency((pkg ? pkg.budget : 0) * rate / 100)} is now pending in your ledger.`;
+  setStep(3);
+}
+
+function setStep(n) {
+  [1,2,3].forEach(i => {
+    document.getElementById('step-'+i).style.display = i === n ? '' : 'none';
+    const tab = document.getElementById('step-'+i+'-tab');
+    tab.classList.remove('active','done');
+    if (i < n)  tab.classList.add('done');
+    if (i === n) tab.classList.add('active');
+  });
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP — Expense Tracker</title>
+<link rel="stylesheet" href="../static/shared.css">
+<link rel="stylesheet" href="../static/notifications.css">
+<style>
+.category-bar{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.category-label{width:80px;font-size:13px;color:var(--text-secondary);font-weight:500}
+.category-track{flex:1;height:8px;background:var(--border-light);border-radius:4px;overflow:hidden}
+.category-fill{height:8px;background:var(--gradient);border-radius:4px;transition:width 0.4s}
+.category-amount{width:80px;text-align:right;font-size:13px;font-weight:700}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);color:#fff;font-size:18px">🌐</div><div><div class="logo-text" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">GlobeSync</div><div class="logo-sub">Traveler Portal</div></div></div>
+    <nav class="sidebar-nav">
+    <a class="nav-item" data-page="dashboard" href="traveler-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" data-page="trips" href="my-trips.html"><span class="nav-icon">📍</span>My Trips</a>
+      <a class="nav-item" data-page="itinerary" href="create-itinerary.html"><span class="nav-icon">📅</span>Create Itinerary</a>
+      <a class="nav-item" data-page="bookings" href="bookings.html"><span class="nav-icon">🎫</span>Bookings</a>
+      <a class="nav-item active" data-page="expenses" href="expenses.html"><span class="nav-icon">💰</span>Expenses</a>
+      <a class="nav-item" data-page="messages" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+      <a class="nav-item" data-page="profile" href="profile.html"><span class="nav-icon">👤</span>My Profile</a>
+      <a class="nav-item" data-page="support" href="support.html"><span class="nav-icon">🎧</span>Support</a>
+    </nav>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="page-title">Expense Tracker</div><div class="page-subtitle">Track and manage your travel spending</div></div>
+      <div class="topbar-actions">
+        <button class="btn btn-secondary" onclick="exportReport()">⬇ Export Report</button>
+        <button class="btn btn-primary" onclick="openModal('add-expense-modal')">+ Add Expense</button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid stats-grid-4 mb-4">
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Total On-Trip Spent</div><div class="stat-value" id="total-spent">₹0</div><div class="stat-change" id="total-change">+12% from last month</div></div><div class="stat-icon pink">💰</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">This Month</div><div class="stat-value" id="month-spent">₹0</div><div class="stat-change">+8% from last month</div></div><div class="stat-icon orange">📅</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Avg On-Trip</div><div class="stat-value" id="avg-trip">₹0</div><div class="stat-change">+5% from last month</div></div><div class="stat-icon green">✈</div></div>
+      <div class="stat-card"><div class="stat-info"><div class="stat-label">Expenses Count</div><div class="stat-value" id="expense-count">0</div></div><div class="stat-icon blue">📋</div></div>
+    </div>
+
+    <div class="grid-2">
+      <!-- BY CATEGORY -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">By Category</span></div>
+        <div class="card-body" id="category-breakdown"></div>
+      </div>
+
+      <!-- RECENT EXPENSES -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">Recent Expenses</span></div>
+        <div class="card-body" id="recent-expenses" style="padding:0"></div>
+      </div>
+    </div>
+
+    <!-- ALL EXPENSES TABLE -->
+    <div class="card mt-6">
+      <div class="card-header">
+        <span class="card-title">All Expenses</span>
+        <div class="search-bar" style="max-width:240px"><span class="search-icon">🔍</span><input type="text" id="exp-search" placeholder="Search..."></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Description</th><th>Type</th><th>Trip</th><th>Amount</th><th>Actions</th></tr></thead>
+          <tbody id="expenses-tbody"></tbody>
+        </table>
+      </div>
+      <div id="empty-expenses" class="empty-state" style="display:none"><div class="empty-icon">💰</div><h3>No expenses yet</h3><p>Add your first expense to start tracking</p></div>
+    </div>
+  </main>
+</div>
+
+<!-- ADD EXPENSE MODAL -->
+<div class="modal-overlay" id="add-expense-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="expense-modal-title">Add Expense</div>
+      <button class="modal-close" onclick="closeModal('add-expense-modal')">✕</button>
+    </div>
+    <form id="expense-form" onsubmit="saveExpense(event)">
+      <input type="hidden" id="edit-expense-id">
+      <div class="form-group">
+        <label class="form-label">Description *</label>
+        <input class="form-control" id="e-desc" placeholder="e.g., Hotel Lumiere Deposit" data-required="Description is required">
+        <div class="form-error" id="e-desc-error"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Amount (₹) *</label>
+          <input class="form-control" type="number" id="e-amount" placeholder="0.00" data-required="Amount is required" data-min="0.01" step="0.01">
+          <div class="form-error" id="e-amount-error"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type *</label>
+          <select class="form-control" id="e-type" data-required="Please select a type">
+            <option value="">Select type</option>
+            <option>Flight</option><option>Hotel</option><option>Food</option><option>Transport</option><option>Activity</option><option>Shopping</option><option>Other</option>
+          </select>
+          <div class="form-error" id="e-type-error"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Trip *</label>
+        <select class="form-control" id="e-trip" data-required="Please select a trip">
+          <option value="">Select trip</option>
+        </select>
+        <div class="form-error" id="e-trip-error"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('add-expense-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Expense</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/notifications.js"></script>
+<script src="../JS/api.js"></script>
+<script>
+if (!Auth.isLoggedIn() || Auth.getRole() !== 'traveler') window.location.href = '../traveler-login.html';
+const user = Auth.getUser();
+const uid = getUserId();
+const typeIcons = { Flight:'✈', Hotel:'🏨', Food:'🍽', Transport:'🚌', Activity:'🎯', Shopping:'🛍', Other:'📦' };
+const typeColors = { Flight:'#E8467C', Hotel:'#F5A623', Food:'#10b981', Transport:'#3b82f6', Activity:'#8b5cf6', Shopping:'#ec4899', Other:'#6b7280' };
+
+let _trips = [];
+let _expenses = [];
+
+async function loadData() {
+  try {
+    _trips = await apiGetSnake(`/trips/traveler/${uid}`);
+    // Load expenses for each trip
+    const expPromises = _trips.map(t => apiGetSnake(`/expenses/trip/${t.trip_id}`).catch(() => []));
+    const expResults = await Promise.all(expPromises);
+    _expenses = expResults.flat();
+  } catch (e) { console.error('Failed to load data:', e); }
+}
+
+function loadStats() {
+  const total = _expenses.reduce((s, e) => s + e.amount, 0);
+  document.getElementById('total-spent').textContent = formatCurrency(total);
+  document.getElementById('month-spent').textContent = formatCurrency(total * 0.65);
+  document.getElementById('avg-trip').textContent = formatCurrency(_trips.length > 0 ? total / _trips.length : 0);
+  document.getElementById('expense-count').textContent = _expenses.length;
+}
+
+function loadCategories() {
+  const total = _expenses.reduce((s, e) => s + e.amount, 0);
+  const byType = {};
+  _expenses.forEach(e => { byType[e.type] = (byType[e.type] || 0) + e.amount; });
+  const sorted = Object.entries(byType).sort((a, b) => b[1] - a[1]);
+  document.getElementById('category-breakdown').innerHTML = sorted.length === 0
+    ? '<div class="empty-state"><div class="empty-icon">📊</div><p>No expense data yet</p></div>'
+    : sorted.map(([type, amt]) => `
+      <div class="category-bar">
+        <div class="category-label">${typeIcons[type] || '📦'} ${type}</div>
+        <div class="category-track"><div class="category-fill" style="width:${Math.round(amt/total*100)}%;background:${typeColors[type]||'var(--primary)'}"></div></div>
+        <div class="category-amount">${formatCurrency(amt)}</div>
+      </div>`).join('');
+}
+
+function loadRecent() {
+  const exps = [..._expenses].slice(-5).reverse();
+  document.getElementById('recent-expenses').innerHTML = exps.length === 0
+    ? '<div class="empty-state"><p>No recent expenses</p></div>'
+    : exps.map(e => {
+        const trip = _trips.find(t => t.trip_id === e.trip_id);
+        return `<div style="padding:14px 20px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center">
+          <div><div style="font-weight:600;font-size:14px">${e.description}</div><div style="font-size:12px;color:var(--text-muted)">${trip ? trip.destination : ''}</div></div>
+          <span style="font-weight:700;color:var(--primary)">${formatCurrency(e.amount)}</span>
+        </div>`;
+      }).join('');
+}
+
+function renderTable() {
+  const search = document.getElementById('exp-search').value.toLowerCase();
+  let exps = [..._expenses];
+  if (search) exps = exps.filter(e => e.description.toLowerCase().includes(search) || e.type.toLowerCase().includes(search));
+  const tbody = document.getElementById('expenses-tbody');
+  const empty = document.getElementById('empty-expenses');
+  if (exps.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = exps.map(e => {
+    const trip = _trips.find(t => t.trip_id === e.trip_id);
+    return `<tr>
+      <td><span style="font-weight:600">${e.description}</span></td>
+      <td><span class="badge badge-info">${typeIcons[e.type]||'📦'} ${e.type}</span></td>
+      <td>${trip ? trip.destination : 'N/A'}</td>
+      <td style="font-weight:700;color:var(--primary)">${formatCurrency(e.amount)}</td>
+      <td><div style="display:flex;gap:6px">
+        <button onclick="editExpense(${e.expense_id})" class="btn btn-secondary btn-sm">✏ Edit</button>
+        <button onclick="deleteExpense(${e.expense_id})" class="btn btn-danger btn-sm">🗑 Delete</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function populateTrips() {
+  const sel = document.getElementById('e-trip');
+  sel.innerHTML = '<option value="">Select trip</option>' + _trips.map(t => `<option value="${t.trip_id}">${t.destination}</option>`).join('');
+}
+
+async function saveExpense(e) {
+  e.preventDefault();
+  if (!validateForm('expense-form')) return;
+  const id = document.getElementById('edit-expense-id').value;
+  const data = { description: document.getElementById('e-desc').value, amount: parseFloat(document.getElementById('e-amount').value), type: document.getElementById('e-type').value, trip_id: parseInt(document.getElementById('e-trip').value) };
+  try {
+    if (id) {
+      await apiPutSnake(`/expenses/${id}`, data);
+      showToast('Expense updated!');
+    } else {
+      await apiPostSnake('/expenses', data);
+      showToast('Expense added!');
+    }
+    closeModal('add-expense-modal');
+    document.getElementById('edit-expense-id').value = '';
+    document.getElementById('expense-form').reset();
+    document.getElementById('expense-modal-title').textContent = 'Add Expense';
+    await loadData();
+    refresh();
+  } catch (e) { console.error('Failed to save expense:', e); }
+}
+
+function editExpense(id) {
+  const e = _expenses.find(e => e.expense_id === id);
+  document.getElementById('expense-modal-title').textContent = 'Edit Expense';
+  document.getElementById('edit-expense-id').value = id;
+  document.getElementById('e-desc').value = e.description;
+  document.getElementById('e-amount').value = e.amount;
+  document.getElementById('e-type').value = e.type;
+  document.getElementById('e-trip').value = e.trip_id;
+  openModal('add-expense-modal');
+}
+
+async function deleteExpense(id) {
+  confirmDelete('Delete this expense?', async () => {
+    try {
+      await apiDeleteSnake(`/expenses/${id}`);
+      showToast('Expense deleted', 'error');
+      await loadData();
+      refresh();
+    } catch (e) { console.error('Failed to delete expense:', e); }
+  });
+}
+
+function exportReport() {
+  let csv = 'Description,Type,Amount\n' + _expenses.map(e => `"${e.description}","${e.type}","${e.amount}"`).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'expense-report.csv'; a.click();
+  showToast('Report exported!');
+}
+
+function refresh() { loadStats(); loadCategories(); loadRecent(); renderTable(); }
+document.getElementById('exp-search').addEventListener('input', renderTable);
+setupLiveValidation('expense-form');
+injectNotifBell('traveler');
+
+(async () => { await loadData(); populateTrips(); refresh(); })();
+</script>
+</body>
+</html>
+

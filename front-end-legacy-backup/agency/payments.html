@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlobeSync — Payments Ledger</title>
+<link rel="stylesheet" href="../static/shared.css">
+<style>
+:root{--teal:#19b6a6;--teal-dark:#128b7d;--teal-soft:#f0fdfc;--gradient-agency:linear-gradient(135deg,#19b6a6 0%,#0ea5e9 100%)}
+.sidebar-logo .logo-icon{background:var(--gradient-agency)!important}
+.sidebar-logo .logo-text{background:var(--gradient-agency);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-item.active,.nav-item:hover{background:var(--teal-soft);color:var(--teal)}
+.summary-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.sum-card{background:#fff;border-radius:14px;padding:20px;border:1px solid rgba(0,0,0,0.04);box-shadow:0 4px 12px rgba(0,0,0,0.02)}
+.sum-label{font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:6px}
+.sum-value{font-size:26px;font-weight:800;font-family:var(--font-main);color:var(--teal-dark)}
+.sum-sub{font-size:11px;color:var(--text-muted);margin-top:3px}
+.tab-bar{display:flex;gap:4px;margin-bottom:20px;background:#f3f4f6;padding:4px;border-radius:10px;width:fit-content}
+.tab{padding:7px 18px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;color:var(--text-muted);transition:all 0.2s}
+.tab.active{background:#fff;color:var(--teal);box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.table-card{background:#fff;border-radius:16px;border:1px solid rgba(0,0,0,0.04);box-shadow:0 4px 16px rgba(0,0,0,0.02);overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;padding:14px 16px;border-bottom:1px solid var(--border-light);background:#fafafa}
+td{padding:14px 16px;border-bottom:1px solid var(--border-light);color:var(--text-primary)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+.totals-row td{font-weight:700;background:#fafafa;border-top:2px solid var(--border-light)}
+.empty-state{text-align:center;padding:60px;color:var(--text-muted)}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon" style="font-size:18px">🏢</div>
+      <div><div class="logo-text">GlobeSync</div><div class="logo-sub">Agency Portal</div></div>
+    </div>
+        <nav class="sidebar-nav">
+      <a class="nav-item" href="agency-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="browse-packages.html"><span class="nav-icon">📦</span>Browse Packages</a>
+      <a class="nav-item" href="create-itinerary.html"><span class="nav-icon">📅</span>Create Itinerary</a>
+      <a class="nav-item" href="bookings.html"><span class="nav-icon">📋</span>My Bookings</a>
+      <a class="nav-item" href="passengers.html"><span class="nav-icon">👥</span>Passengers</a>
+      <a class="nav-item" href="commission.html"><span class="nav-icon">💰</span>Commission Ledger</a>
+      <a class="nav-item active" href="payments.html"><span class="nav-icon">💳</span>Payments</a>
+      <a class="nav-item" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+      <a class="nav-item" href="profile.html"><span class="nav-icon">🏢</span>Agency Profile</a>
+      <a class="nav-item" data-page="support" href="support.html"><span class="nav-icon">🎧</span>Support</a>
+    </nav>
+    <div style="padding:12px;margin-top:auto">
+      <div style="background:var(--teal-soft);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--teal-dark);border:1px solid #99f6e4">
+        💼 <strong>Agency Role</strong><br>Reseller access only.
+      </div>
+    </div>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="agencyLogout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="page-title">Payments Ledger</div><div class="page-subtitle">Track your platform payments and refunds for client trips</div></div>
+    </div>
+
+    <div class="summary-strip">
+      <div class="sum-card"><div class="sum-label">Total Paid</div><div class="sum-value" id="total-val">₹0</div><div class="sum-sub">All time payments</div></div>
+      <div class="sum-card"><div class="sum-label">Pending Payments</div><div class="sum-value" id="pending-val" style="color:var(--warning)">₹0</div><div class="sum-sub">Awaiting confirmation</div></div>
+      <div class="sum-card"><div class="sum-label">Active Refunds</div><div class="sum-value" id="refund-val" style="color:var(--primary)">₹0</div><div class="sum-sub">Processing refunds</div></div>
+    </div>
+
+    <div class="tab-bar">
+      <div class="tab active" onclick="filter('all',this)">All</div>
+      <div class="tab" onclick="filter('paid',this)">Paid</div>
+      <div class="tab" onclick="filter('pending',this)">Pending</div>
+    </div>
+
+    <div class="table-card" id="ledger-wrap"></div>
+  </main>
+</div>
+
+<script src="../JS/mockData.js"></script>
+<script src="../JS/api.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/agency.js"></script>
+<script>
+requireAgency();
+const agency = getAgency();
+const agencyId = agency.agency_id || agency.agencyId;
+
+let _payments = [];
+let _refunds = [];
+
+async function init() {
+  try {
+    [_payments, _refunds] = await Promise.all([
+      apiGetSnake(`/payments/agency/${agencyId}`),
+      apiGetSnake(`/refunds/agency/${agencyId}`)
+    ]);
+  } catch (e) {
+    console.error("Failed to load payments or refunds:", e);
+  }
+  
+  const totalPaid = _payments.filter(p => p.status === 'Paid').reduce((s, p) => s + p.amount, 0);
+  const totalPending = _payments.filter(p => p.status === 'Pending').reduce((s, p) => s + p.amount, 0);
+  
+  // Calculate active refunds value (associated with payments)
+  let totalRefunds = 0;
+  _refunds.filter(r => r.refund_status === 'Processing').forEach(r => {
+    const p = _payments.find(pay => pay.payment_id === r.payment_id);
+    if (p) totalRefunds += p.amount;
+  });
+
+  document.getElementById('total-val').textContent   = formatCurrency(totalPaid);
+  document.getElementById('pending-val').textContent = formatCurrency(totalPending);
+  document.getElementById('refund-val').textContent = formatCurrency(totalRefunds);
+  
+  await filter('all', null);
+}
+
+function filter(status, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const list = status === 'all' ? _payments : _payments.filter(e => e.status.toLowerCase() === status);
+  render(list);
+}
+
+function render(list) {
+  const wrap = document.getElementById('ledger-wrap');
+  if (!list.length) {
+    wrap.innerHTML = `<div class="empty-state"><div style="font-size:48px;margin-bottom:12px">💳</div><div style="font-size:17px;font-weight:600;color:var(--text-primary);margin-bottom:6px">No payments found</div><div style="font-size:14px">Your payments for client trips will appear here.</div></div>`;
+    return;
+  }
+  const rows = list.map(p => {
+    const refund = _refunds.find(r => r.payment_id === p.payment_id);
+    let refundHtml = '—';
+    if (refund) {
+       refundHtml = `<span class="badge ${refund.refund_status === 'Processing' ? 'badge-warning' : (refund.refund_status === 'Completed' ? 'badge-success' : 'badge-gray')}">Refund: ${refund.refund_status}</span>`;
+    }
+
+    return `<tr>
+      <td><strong>#${p.payment_id}</strong></td>
+      <td>#${p.trip_id || p.booking_id || '—'}</td>
+      <td style="color:var(--teal);font-weight:700">${formatCurrency(p.amount)}</td>
+      <td>${p.method}</td>
+      <td>${statusBadge(p.status)}</td>
+      <td>${formatDate(p.payment_date)}</td>
+      <td>${refundHtml}</td>
+    </tr>`;
+  }).join('');
+
+  const totalFiltered = list.reduce((s,p) => s + (p.amount || 0), 0);
+  
+  wrap.innerHTML = `<table>
+    <thead><tr><th>ID</th><th>Trip ID</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th><th>Refund Info</th></tr></thead>
+    <tbody>${rows}
+      <tr class="totals-row">
+        <td colspan="2" style="text-align:right;color:var(--text-muted)">Total (filtered)</td>
+        <td style="color:var(--teal)">${formatCurrency(totalFiltered)}</td>
+        <td colspan="4"></td>
+      </tr>
+    </tbody>
+  </table>`;
+}
+
+init();
+</script>
+</body>
+</html>

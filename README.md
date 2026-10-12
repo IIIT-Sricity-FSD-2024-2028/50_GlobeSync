@@ -20,14 +20,43 @@ root/
 
 ---
 
+## Getting Started
+
+### 1. Start the NestJS Backend Server
+```bash
+cd back-end
+npm install
+npm run start:dev
+```
+The backend server runs on `http://localhost:3000`. Swagger API documentation is available at `http://localhost:3000/api`.
+
+### 2. Start the React Frontend Application
+```bash
+cd front-end
+npm install
+npm run dev
+```
+The React development server runs on `http://localhost:5173`.
+
+### 3. Production Build
+```bash
+cd front-end
+npm run build
+```
+Builds the optimized production bundle in `front-end/dist`.
+
+---
+
 ## Tech Stack
 
 ### Frontend
 
-- HTML
-- CSS
-- JavaScript
-- Fetch API
+- React 18 with JSX and functional components
+- Vite build tooling & development server
+- Plain CSS with curated design tokens (`shared.css`)
+- Context API (`SessionContext`) for role-based session state
+- Pure Fetch API wrapper (`api.js`) injecting RBAC headers (`x-user-role`, `x-user-id`)
+- Client-side routing with `react-router-dom`
 
 ### Backend
 

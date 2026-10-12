@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlobeSync — My Bookings</title>
+<link rel="stylesheet" href="../static/shared.css">
+<style>
+:root{--teal:#19b6a6;--teal-dark:#128b7d;--teal-soft:#f0fdfc;--gradient-agency:linear-gradient(135deg,#19b6a6 0%,#0ea5e9 100%)}
+.sidebar-logo .logo-icon{background:var(--gradient-agency)!important}
+.sidebar-logo .logo-text{background:var(--gradient-agency);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-item.active,.nav-item:hover{background:var(--teal-soft);color:var(--teal)}
+.btn-agency{background:var(--gradient-agency);color:#fff;border:none;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-main);box-shadow:0 4px 12px rgba(25,182,166,0.25);transition:all 0.2s}
+.tab-bar{display:flex;gap:4px;margin-bottom:20px;background:#f3f4f6;padding:4px;border-radius:10px;width:fit-content}
+.tab{padding:7px 18px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;color:var(--text-muted);transition:all 0.2s}
+.tab.active{background:#fff;color:var(--teal);box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.table-card{background:#fff;border-radius:16px;border:1px solid rgba(0,0,0,0.04);box-shadow:0 4px 16px rgba(0,0,0,0.02);overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;padding:14px 16px;border-bottom:1px solid var(--border-light);background:#fafafa}
+td{padding:14px 16px;border-bottom:1px solid var(--border-light);color:var(--text-primary)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+.empty-state{text-align:center;padding:60px;color:var(--text-muted)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.empty-title{font-size:17px;font-weight:600;color:var(--text-primary);margin-bottom:6px}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon" style="font-size:18px">🏢</div>
+      <div><div class="logo-text">GlobeSync</div><div class="logo-sub">Agency Portal</div></div>
+    </div>
+        <nav class="sidebar-nav">
+      <a class="nav-item" href="agency-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="browse-packages.html"><span class="nav-icon">📦</span>Browse Packages</a>
+      <a class="nav-item" href="create-itinerary.html"><span class="nav-icon">📅</span>Create Itinerary</a>
+      <a class="nav-item active" href="bookings.html"><span class="nav-icon">📋</span>My Bookings</a>
+      <a class="nav-item" href="passengers.html"><span class="nav-icon">👥</span>Passengers</a>
+      <a class="nav-item" href="commission.html"><span class="nav-icon">💰</span>Commission Ledger</a>
+      <a class="nav-item" href="payments.html"><span class="nav-icon">💳</span>Payments</a>
+      <a class="nav-item" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+      <a class="nav-item" href="profile.html"><span class="nav-icon">🏢</span>Agency Profile</a>
+      <a class="nav-item" data-page="support" href="support.html"><span class="nav-icon">🎧</span>Support</a>
+    </nav>
+    <div style="padding:12px;margin-top:auto">
+      <div style="background:var(--teal-soft);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--teal-dark);border:1px solid #99f6e4">
+        💼 <strong>Agency Role</strong><br>Reseller access only.
+      </div>
+    </div>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="agencyLogout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="page-title">My Bookings</div><div class="page-subtitle">All bookings made on behalf of your clients</div></div>
+      <button class="btn-agency" onclick="window.location.href='book-package.html'">+ New Booking</button>
+    </div>
+
+    <div class="tab-bar">
+      <div class="tab active" onclick="filterBookings('All',this)">All</div>
+      <div class="tab" onclick="filterBookings('Confirmed',this)">Confirmed</div>
+      <div class="tab" onclick="filterBookings('Pending',this)">Pending</div>
+      <div class="tab" onclick="filterBookings('Completed',this)">Completed</div>
+    </div>
+
+    <div class="table-card" id="bookings-wrap"></div>
+  </main>
+
+<!-- GUIDE SELECTION MODAL -->
+<div class="modal-overlay" id="guide-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:2000;align-items:center;justify-content:center">
+  <div class="modal" style="background:#fff;border-radius:12px;padding:24px;width:90%;max-width:480px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:16px">
+      <div style="font-weight:700;font-size:18px">Select a New Guide</div>
+      <button style="border:none;background:none;font-size:20px;cursor:pointer" onclick="document.getElementById('guide-modal').style.display='none'">✕</button>
+    </div>
+    <div style="font-size:14px;color:var(--text-muted);margin-bottom:20px">Your previous guide was unavailable. Please select one of our top-rated guides below to continue with your trip.</div>
+    <div id="guide-list-container" style="max-height:300px;overflow-y:auto"></div>
+    <div style="text-align:right;margin-top:16px">
+      <button class="btn btn-secondary" style="padding:10px 16px;border-radius:8px;border:1px solid #ccc;cursor:pointer;background:#fff" onclick="document.getElementById('guide-modal').style.display='none'">Decide Later</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script src="../JS/mockData.js"></script>
+<script src="../JS/api.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/agency.js"></script>
+<script>
+requireAgency();
+const agency = getAgency();
+const agencyId = agency.agency_id || agency.agencyId;
+
+
+let _allGuides = [];
+let _selectingTripId = null;
+let _allBookingsList = [];
+
+async function filterBookings(status, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const all = await getMyBookings(agencyId);
+  const guides = await apiGetSnake('/guides').catch(() => []);
+  const list = status === 'All' ? all : all.filter(b => b.status === status);
+  render(list, guides);
+}
+
+function render(list, guides) {
+  const wrap = document.getElementById('bookings-wrap');
+  if (!list.length) {
+    wrap.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <div class="empty-title">No bookings found</div>
+      <div style="font-size:14px;margin-bottom:16px">Browse packages to make your first booking.</div>
+      <button class="btn-agency" onclick="window.location.href='browse-packages.html'">Browse Packages</button>
+    </div>`;
+    return;
+  }
+  const rows = list.map(b => {
+    const guide = guides.find(g => g.guide_id === b.guide_id);
+    return `<tr>
+      <td><strong>#${b.trip_id || b.packagebooking_id}</strong></td>
+      <td>${b.destination || '—'}</td>
+      <td>
+        ${guide ? guide.name : '<span class="badge badge-gray" style="background:#f1f5f9;padding:4px 8px;border-radius:6px;font-size:12px">Unassigned</span>'}
+        ${!guide && b.status === 'Planning' ? '<br><button onclick="openGuideSelection(' + (b.trip_id || b.packagebooking_id) + ')" style="margin-top:6px;background:var(--teal);color:#fff;border:none;padding:4px 8px;border-radius:4px;font-size:11px;cursor:pointer">🔍 Select Guide</button>' : ''}
+      </td>
+      <td>${formatDate(b.booking_date || b.start_date)}</td>
+      <td>${statusBadge(b.status)}</td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <a href="itinerary.html?tripId=${b.trip_id || b.packagebooking_id}" class="btn btn-secondary btn-sm" style="text-decoration:none;font-size:11px;padding:4px 8px">Itinerary</a>
+          <a href="expenses.html?tripId=${b.trip_id || b.packagebooking_id}" class="btn btn-secondary btn-sm" style="text-decoration:none;font-size:11px;padding:4px 8px">Expenses</a>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML = `<table>
+    <thead><tr><th>Trip ID</th><th>Destination</th><th>Guide</th><th>Start Date</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+filterBookings('All', null);
+</script>
+</body>
+</html>

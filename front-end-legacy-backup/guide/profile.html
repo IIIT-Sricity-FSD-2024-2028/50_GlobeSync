@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TICP — Guide Profile</title>
+<link rel="stylesheet" href="../static/shared.css">
+<link rel="stylesheet" href="../static/notifications.css">
+<style>
+:root{--primary:#F5A623;--primary-dark:#e09520;--gradient:linear-gradient(135deg,#F5A623 0%,#E8467C 100%);--gradient-soft:linear-gradient(135deg,#fff8ee 0%,#ffeef5 100%)}
+.profile-wrapper { display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: start; }
+.identity-card { background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); overflow: hidden; border: 1px solid var(--border-light); text-align: center; }
+.identity-cover { height: 120px; background: var(--gradient); }
+.identity-avatar { width: 90px; height: 90px; border-radius: 50%; background: #fff; border: 4px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 800; color: var(--primary); margin: -45px auto 16px; box-shadow: var(--shadow-sm); position: relative; z-index: 2; }
+.identity-info { padding: 0 24px 24px; }
+.identity-name { font-size: 20px; font-weight: 800; color: var(--text-primary); margin-bottom: 2px; }
+.identity-email { font-size: 14px; color: var(--text-muted); }
+.identity-role { font-size: 13px; color: var(--primary); font-weight: 600; background: var(--gradient-soft); padding: 4px 12px; border-radius: 20px; display: inline-block; margin-top: 12px; }
+.identity-stat { font-weight: bold; color: #d97706; margin-top: 8px; font-size: 14px; }
+.settings-section { background: white; border-radius: var(--radius-md); padding: 32px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-light); margin-bottom: 24px; }
+.section-title { font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; gap: 10px; }
+.form-group { margin-bottom: 20px; }
+.form-label { display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.premium-input { width: 100%; padding: 14px 16px; background: #f9fafb; border: 1px solid var(--border); border-radius: 12px; font-size: 15px; color: var(--text-primary); transition: all 0.3s ease; }
+.premium-input:focus { background: #fff; border-color: var(--primary); box-shadow: 0 0 0 4px var(--gradient-soft); outline: none; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);color:#fff;font-size:18px">🌐</div><div><div class="logo-text" style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">GlobeSync</div><div class="logo-sub">Guide Portal</div></div></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="guide-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="requests.html"><span class="nav-icon">📩</span>Trip Requests</a>
+      <a class="nav-item" href="travelers.html"><span class="nav-icon">👥</span>Travelers</a>
+      <a class="nav-item" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+      <a class="nav-item" href="completed-trips.html"><span class="nav-icon">✅</span>Completed Trips</a>
+      <a class="nav-item active" data-page="profile" href="profile.html"><span class="nav-icon">👤</span>My Profile</a>
+    </nav>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="page-title">Profile Settings</div><div class="page-subtitle">Manage your identity and professional details</div></div>
+    </div>
+
+    <div class="profile-wrapper">
+      <!-- LEFT IDENTITY CARD -->
+      <div class="identity-card">
+        <div class="identity-cover"></div>
+        <div class="identity-avatar" id="p-avatar">G</div>
+        <div class="identity-info">
+          <div class="identity-name" id="p-name">Loading...</div>
+          <div class="identity-email" id="p-email">loading@gmail.com</div>
+          <div class="identity-role">📍 Travel Guide</div>
+          <div class="identity-stat">⭐ <span id="p-rating">0.0</span> Rating</div>
+        </div>
+      </div>
+
+      <!-- RIGHT SETTINGS CONTENT -->
+      <div>
+        <form id="profile-form" onsubmit="saveProfile(event)">
+          
+          <div class="settings-section">
+            <div class="section-title"><span>👤</span> Personal Information</div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" id="input-name" class="premium-input" data-required="Name is required" required>
+                <div class="form-error" id="input-name-error"></div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" id="input-email" class="premium-input" data-required="Email is required" required>
+                <div class="form-error" id="input-email-error"></div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Contact Number</label>
+                <input type="text" id="input-contact" class="premium-input" data-required="Contact is required" data-type="phone" required>
+                <div class="form-error" id="input-contact-error"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="section-title"><span>🌟</span> Professional Details</div>
+            <div class="grid-3" style="grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+              <div class="form-group">
+                <label class="form-label">Years of Experience</label>
+                <input type="number" id="input-experience" class="premium-input" min="0" required>
+              </div>
+              <div class="form-group" style="grid-column: span 2;">
+                <label class="form-label">Languages (comma separated)</label>
+                <input type="text" id="input-languages" class="premium-input" placeholder="English, Spanish, Hindi" required>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="section-title"><span>🔒</span> Security Settings</div>
+            <div class="form-group" style="max-width: 500px;">
+              <label class="form-label">New Password</label>
+              <input type="password" id="input-password" class="premium-input" placeholder="Leave blank to keep current password">
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;">
+            <button type="submit" class="btn btn-primary" style="background:var(--gradient); padding: 12px 24px; font-size: 15px; border-radius: 12px;">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-container"></div>
+<script src="../JS/mockData.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/notifications.js"></script>
+<script src="../JS/api.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  if (!Auth.isLoggedIn() || Auth.getRole() !== 'guide') {
+    window.location.href = '../login.html?role=guide';
+    return;
+  }
+  const user = Auth.getUser();
+  const guideId = getUserId();
+  console.log('[guide-profile] guideId:', guideId, 'user:', user);
+
+  async function loadProfile() {
+    try {
+      // apiGet (not apiGetSnake) so keys stay camelCase — matches guide object fields
+      const guide = await apiGet(`/guides/${guideId}`);
+      console.log('[guide-profile] guide data:', guide);
+      if (!guide) return;
+
+      document.getElementById('p-avatar').textContent = (guide.name || 'G')[0];
+      document.getElementById('p-name').textContent = guide.name || '';
+      document.getElementById('p-email').textContent = guide.email || '';
+      document.getElementById('p-rating').textContent = (guide.rating || 0).toFixed(1);
+
+      document.getElementById('input-name').value = guide.name || '';
+      document.getElementById('input-email').value = guide.email || '';
+      document.getElementById('input-contact').value = guide.contact || '';
+      document.getElementById('input-experience').value = guide.experience || 0;
+      document.getElementById('input-languages').value = Array.isArray(guide.languages)
+        ? guide.languages.join(', ')
+        : (guide.languages || '');
+    } catch (e) {
+      console.error('[guide-profile] Failed to load profile:', e);
+    }
+  }
+
+  async function saveProfile(e) {
+    e.preventDefault();
+    if (!validateForm('profile-form')) return;
+
+    const updateData = {
+      name:       document.getElementById('input-name').value.trim(),
+      email:      document.getElementById('input-email').value.trim(),
+      contact:    document.getElementById('input-contact').value.trim(),
+      experience: parseInt(document.getElementById('input-experience').value, 10),
+      languages:  document.getElementById('input-languages').value.split(',').map(s => s.trim()).filter(Boolean)
+    };
+    const pw = document.getElementById('input-password').value.trim();
+    if (pw) updateData.password = pw;
+
+    try {
+      console.log('[guide-profile] Saving profile:', updateData);
+      await apiPut(`/guides/${guideId}`, updateData);
+
+      // Update session
+      Object.assign(user, updateData);
+      Auth.login('guide', user);
+
+      showToast('Profile updated successfully! ✅');
+      document.getElementById('input-password').value = '';
+      loadProfile();
+    } catch (e) {
+      console.error('[guide-profile] Failed to save profile:', e);
+      showToast('Failed to save profile. Please try again.', 'error');
+    }
+  }
+
+  // Expose saveProfile to the form's onsubmit
+  window.saveProfile = saveProfile;
+
+  loadProfile();
+  setupLiveValidation('profile-form');
+  if (typeof injectNotifBell === 'function') injectNotifBell('guide');
+});
+</script>
+</body>
+</html>

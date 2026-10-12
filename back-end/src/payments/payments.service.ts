@@ -27,6 +27,29 @@ export class PaymentsService {
       throw new BadRequestException('Exactly one of bookingId or tripId must be provided.');
     }
 
+    // Backend rule: Prevent duplicate payment records for the same booking or trip
+    if (dto.bookingId && dto.status === 'Paid') {
+      const existingPaid = payments.find(
+        (p) => p.bookingId === dto.bookingId && p.status === 'Paid',
+      );
+      if (existingPaid) {
+        throw new BadRequestException(
+          `Payment for Booking #${dto.bookingId} has already been recorded (Payment #${existingPaid.paymentId}). Duplicate payment rejected.`,
+        );
+      }
+    }
+
+    if (dto.tripId && dto.status === 'Paid') {
+      const existingPaid = payments.find(
+        (p) => p.tripId === dto.tripId && p.status === 'Paid',
+      );
+      if (existingPaid) {
+        throw new BadRequestException(
+          `Payment for Trip #${dto.tripId} has already been recorded (Payment #${existingPaid.paymentId}). Duplicate payment rejected.`,
+        );
+      }
+    }
+
     const maxId = payments.length > 0 ? Math.max(...payments.map((p) => p.paymentId)) : 0;
     const item: Payment = {
       paymentId: maxId + 1,

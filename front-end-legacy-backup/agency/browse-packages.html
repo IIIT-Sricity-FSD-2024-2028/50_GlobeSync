@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlobeSync — Browse Packages</title>
+<link rel="stylesheet" href="../static/shared.css">
+<style>
+:root{--teal:#19b6a6;--teal-dark:#128b7d;--teal-soft:#f0fdfc;--gradient-agency:linear-gradient(135deg,#19b6a6 0%,#0ea5e9 100%)}
+.sidebar-logo .logo-icon{background:var(--gradient-agency)!important}
+.sidebar-logo .logo-text{background:var(--gradient-agency);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-item.active,.nav-item:hover{background:var(--teal-soft);color:var(--teal)}
+.btn-agency{background:var(--gradient-agency);color:#fff;border:none;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-main);box-shadow:0 4px 12px rgba(25,182,166,0.25);transition:all 0.2s}
+.btn-agency:hover{opacity:0.9;transform:translateY(-1px)}
+.search-bar{display:flex;gap:12px;margin-bottom:24px;align-items:center}
+.search-input{flex:1;padding:11px 16px;border:1.5px solid var(--border-light);border-radius:10px;font-size:14px;font-family:var(--font-main);outline:none}
+.search-input:focus{border-color:var(--teal)}
+.pkg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:20px}
+.pkg-card{background:#fff;border-radius:16px;border:1px solid var(--border-light);overflow:hidden;transition:all 0.25s;cursor:pointer}
+.pkg-card:hover{box-shadow:var(--shadow-md);transform:translateY(-3px)}
+.pkg-img{height:155px;overflow:hidden;background:#f1f5f9;position:relative}
+.pkg-img img{width:100%;height:100%;object-fit:cover;transition:transform 0.3s}
+.pkg-card:hover .pkg-img img{transform:scale(1.04)}
+.pkg-badge{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.95);padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;color:var(--teal);box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.pkg-body{padding:18px}
+.pkg-name{font-size:16px;font-weight:700;margin-bottom:4px;color:var(--text-primary)}
+.pkg-dest{font-size:12px;color:var(--text-muted);margin-bottom:8px}
+.pkg-desc{font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:12px}
+.pkg-highlights{font-size:12px;color:var(--text-muted);background:var(--gradient-soft);padding:8px 10px;border-radius:8px;margin-bottom:14px}
+.pkg-footer{display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border-light)}
+.pkg-price{font-size:20px;font-weight:800;color:var(--teal)}
+.pkg-dur{font-size:12px;color:var(--text-muted);font-weight:600}
+.pkg-action{background:var(--gradient-agency);color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-main);transition:opacity 0.2s}
+.pkg-action:hover{opacity:0.9}
+.commission-note{background:var(--teal-soft);border:1px solid #99f6e4;border-radius:10px;padding:12px 16px;font-size:13px;color:var(--teal-dark);margin-bottom:20px;display:flex;align-items:center;gap:8px}
+.no-results{text-align:center;padding:60px;color:var(--text-muted)}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon" style="font-size:18px">🏢</div>
+      <div><div class="logo-text">GlobeSync</div><div class="logo-sub">Agency Portal</div></div>
+    </div>
+        <nav class="sidebar-nav">
+      <a class="nav-item" href="agency-dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item active" href="browse-packages.html"><span class="nav-icon">📦</span>Browse Packages</a>
+      <a class="nav-item" href="create-itinerary.html"><span class="nav-icon">📅</span>Create Itinerary</a>
+      <a class="nav-item" href="bookings.html"><span class="nav-icon">📋</span>My Bookings</a>
+      <a class="nav-item" href="passengers.html"><span class="nav-icon">👥</span>Passengers</a>
+      <a class="nav-item" href="commission.html"><span class="nav-icon">💰</span>Commission Ledger</a>
+      <a class="nav-item" href="payments.html"><span class="nav-icon">💳</span>Payments</a>
+      <a class="nav-item" href="messages.html"><span class="nav-icon">💬</span>Messages</a>
+      <a class="nav-item" href="profile.html"><span class="nav-icon">🏢</span>Agency Profile</a>
+      <a class="nav-item" data-page="support" href="support.html"><span class="nav-icon">🎧</span>Support</a>
+    </nav>
+    <div style="padding:12px;margin-top:auto">
+      <div style="background:var(--teal-soft);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--teal-dark);border:1px solid #99f6e4">
+        💼 <strong>Agency Role</strong><br>Reseller access only.
+      </div>
+    </div>
+    <div class="sidebar-footer"><button class="logout-btn" onclick="agencyLogout()"><span>🚪</span>Logout</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="page-title">Browse Packages</div>
+        <div class="page-subtitle">Select a package to book for your clients at retail price</div>
+      </div>
+      <span class="badge badge-success" style="padding:6px 14px;font-size:13px" id="pkg-count">10 Packages</span>
+    </div>
+
+    <div class="commission-note" id="commission-note">
+      💰 Your commission rate: <strong id="rate-display">—</strong> &nbsp;·&nbsp; Commissions are credited automatically on each confirmed booking.
+    </div>
+
+    <div class="search-bar">
+      <input class="search-input" id="search-input" placeholder="🔍  Search packages by name or destination…" oninput="filterPkgs()">
+    </div>
+
+    <div class="pkg-grid" id="pkg-grid"></div>
+    <div class="no-results" id="no-results" style="display:none">😕 No packages match your search. <a href="#" onclick="document.getElementById('search-input').value='';filterPkgs();return false" style="color:var(--teal)">Clear filter</a></div>
+  </main>
+</div>
+
+<script src="../JS/mockData.js"></script>
+<script src="../JS/api.js"></script>
+<script src="../JS/helpers.js"></script>
+<script src="../JS/agency.js"></script>
+<script>
+requireAgency();
+const agency = getAgency();
+const agencyId = agency.agency_id || agency.agencyId;
+const commRate = agency.commission_rate != null ? agency.commission_rate : agency.commissionRate;
+document.getElementById('rate-display').textContent = commRate != null ? commRate + '%' : 'Not assigned yet';
+
+let allPackages = [];
+
+async function init() {
+  allPackages = await apiGetSnake('/packages').catch(() => []);
+  renderPkgs(allPackages);
+}
+
+function renderPkgs(list) {
+  const grid = document.getElementById('pkg-grid');
+  document.getElementById('no-results').style.display = list.length ? 'none' : 'block';
+  document.getElementById('pkg-count').textContent    = list.length + ' Package' + (list.length !== 1 ? 's' : '');
+  if (!list.length) { grid.innerHTML = ''; return; }
+  grid.innerHTML = list.map(p => {
+    const commEst = commRate != null
+      ? `<div style="font-size:12px;color:var(--teal);font-weight:600;margin-top:4px">Your commission: ${formatCurrency(p.budget * commRate / 100)} (${commRate}%)</div>`
+      : '';
+    return `<div class="pkg-card">
+      <div class="pkg-img">
+        <img src="${p.image}" alt="${p.name}" onerror="this.style.display='none'">
+        <div class="pkg-badge">${p.duration} days</div>
+      </div>
+      <div class="pkg-body">
+        <div class="pkg-name">${p.name}</div>
+        <div class="pkg-dest">📍 ${p.destinations}</div>
+        <div class="pkg-desc">${p.description}</div>
+        <div class="pkg-highlights">✨ <strong>Highlights:</strong> ${p.highlights}</div>
+        ${commEst}
+        <div class="pkg-footer">
+          <div>
+            <div class="pkg-price">${formatCurrency(p.budget)}</div>
+            <div class="pkg-dur">Retail price · ${p.duration} days</div>
+          </div>
+          <button class="pkg-action" onclick="bookThis(${p.package_id})">Book for Client →</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterPkgs() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  renderPkgs(allPackages.filter(p =>
+    p.name.toLowerCase().includes(q) || p.destinations.toLowerCase().includes(q)
+  ));
+}
+
+function bookThis(pkg_id) {
+  localStorage.setItem('agency_preselect_pkg', pkg_id);
+  window.location.href = 'book-package.html';
+}
+
+init();
+</script>
+</body>
+</html>
