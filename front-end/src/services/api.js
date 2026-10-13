@@ -222,6 +222,11 @@ export const travelersApi = {
 };
 
 export const agenciesApi = {
+  getAll: (options) => apiGet('/agencies', options),
+  create: (data, options) => apiPost('/agencies', data, options),
+  update: (id, data, options) => apiPatch(`/agencies/${id}`, data, options),
+  updateStatus: (id, data, options) => apiPatch(`/agencies/${id}/status`, data, options),
+  delete: (id, options) => apiDelete(`/agencies/${id}`, options),
   getLookup: (options) =>
     apiGet('/agencies/lookup', options),
 
@@ -471,4 +476,19 @@ export const dashboardApi = {
 export const healthApi = {
   check: (options) =>
     apiGet('/health', options),
+};
+
+export const adminsApi = {
+  getById: (id, options) => apiGet(`/admins/${id}`, options),
+  update: (id, data, options) => apiPut(`/admins/${id}`, data, options),
+};
+
+// Revenue is mounted at /api; tolerate a configured base ending in /api.
+const revenuePath = (suffix) =>
+  `${API_BASE_URL.endsWith('/') ? '' : '/'}${/\/api\/?$/.test(API_BASE_URL) ? '' : 'api/'}admin/revenue/${suffix}`;
+export const revenueApi = {
+  getOverview: (options) => apiGet(revenuePath('overview'), options),
+  getBreakdown: (options) => apiGet(revenuePath('breakdown'), options),
+  getTransactions: (options) => apiGet(revenuePath('transactions'), options),
+  getConfig: (options) => apiGet(revenuePath('config'), options),
 };
