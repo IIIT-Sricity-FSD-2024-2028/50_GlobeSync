@@ -19,6 +19,13 @@ import GuideMessagesPage from './pages/guide/GuideMessagesPage';
 import GuideProfilePage from './pages/guide/GuideProfilePage';
 import SupportDashboardPage from './pages/support/SupportDashboardPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import AdminBookingsPage from './pages/admin/AdminBookingsPage';
+import AdminTripsPage from './pages/admin/AdminTripsPage';
+import AdminPackagesPage from './pages/admin/AdminPackagesPage';
+import AdminAgenciesPage from './pages/admin/AdminAgenciesPage';
+import AdminReviewsPage from './pages/admin/AdminReviewsPage';
+import AdminReportsPage from './pages/admin/AdminReportsPage';
+import AdminProfilePage from './pages/admin/AdminProfilePage';
 import SuperDashboardPage from './pages/super/SuperDashboardPage';
 import AgencyDashboardPage from './pages/agency/AgencyDashboardPage';
 import TravelerPackagesPage from './pages/traveler/TravelerPackagesPage';
@@ -198,6 +205,13 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/admin/bookings" element={<ProtectedRoute allowedRoles={['admin', 'superuser']}><AdminBookingsPage /></ProtectedRoute>} />
+            <Route path="/admin/trips" element={<ProtectedRoute allowedRoles={['admin', 'superuser']}><AdminTripsPage /></ProtectedRoute>} />
+            <Route path="/admin/packages" element={<ProtectedRoute allowedRoles={['admin', 'superuser']}><AdminPackagesPage /></ProtectedRoute>} />
+            <Route path="/admin/agencies" element={<ProtectedRoute allowedRoles={['admin', 'superuser']}><AdminAgenciesPage /></ProtectedRoute>} />
+            <Route path="/admin/reviews" element={<ProtectedRoute allowedRoles={['admin', 'superuser']}><AdminReviewsPage /></ProtectedRoute>} />
+            <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin', 'superuser']}><AdminReportsPage /></ProtectedRoute>} />
+            <Route path="/admin/profile" element={<ProtectedRoute allowedRoles={['admin', 'superuser']}><AdminProfilePage /></ProtectedRoute>} />
             {/* Superuser Dashboard: Strictly superuser (Admin is unauthorized) */}
             <Route
               path="/super/dashboard"

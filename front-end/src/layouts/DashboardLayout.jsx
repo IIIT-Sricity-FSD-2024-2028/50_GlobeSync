@@ -39,6 +39,7 @@ const ROLE_MENU_CONFIG = {
     { label: 'Agencies', path: '/admin/agencies', icon: '🏢' },
     { label: 'Reviews', path: '/admin/reviews', icon: '⭐' },
     { label: 'Reports', path: '/admin/reports', icon: '📈' },
+    { label: 'Profile', path: '/admin/profile', icon: '👤' },
   ],
   superuser: [
     { label: 'Dashboard', path: '/super/dashboard', icon: '📊' },
