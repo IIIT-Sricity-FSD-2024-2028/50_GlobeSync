@@ -12,6 +12,11 @@ import TravelerSignupPage from './pages/public/TravelerSignupPage';
 import UnauthorizedPage from './pages/public/UnauthorizedPage';
 import TravelerDashboardPage from './pages/traveler/TravelerDashboardPage';
 import GuideDashboardPage from './pages/guide/GuideDashboardPage';
+import GuideRequestsPage from './pages/guide/GuideRequestsPage';
+import GuideTravelersPage from './pages/guide/GuideTravelersPage';
+import GuideCompletedTripsPage from './pages/guide/GuideCompletedTripsPage';
+import GuideMessagesPage from './pages/guide/GuideMessagesPage';
+import GuideProfilePage from './pages/guide/GuideProfilePage';
 import SupportDashboardPage from './pages/support/SupportDashboardPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import SuperDashboardPage from './pages/super/SuperDashboardPage';
@@ -134,6 +139,46 @@ export default function App() {
               element={
                 <ProtectedRoute allowedRoles={['guide', 'superuser']}>
                   <GuideDashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/guide/requests"
+              element={
+                <ProtectedRoute allowedRoles={['guide', 'superuser']}>
+                  <GuideRequestsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/guide/travelers"
+              element={
+                <ProtectedRoute allowedRoles={['guide', 'superuser']}>
+                  <GuideTravelersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/guide/completed-trips"
+              element={
+                <ProtectedRoute allowedRoles={['guide', 'superuser']}>
+                  <GuideCompletedTripsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/guide/messages"
+              element={
+                <ProtectedRoute allowedRoles={['guide', 'superuser']}>
+                  <GuideMessagesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/guide/profile"
+              element={
+                <ProtectedRoute allowedRoles={['guide', 'superuser']}>
+                  <GuideProfilePage />
                 </ProtectedRoute>
               }
             />

@@ -48,6 +48,16 @@ export class BookingsController {
     return this.bookingsService.findByAgency(agencyId);
   }
 
+  @Get('guide/:guideId')
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.GUIDE)
+  @ApiUserHeaders()
+  @ApiOperation({ summary: 'Get bookings for guide assigned trips' })
+  @ApiParam({ name: 'guideId', type: Number })
+  @ApiResponse({ status: 200, description: 'Bookings for guide trips' })
+  findByGuide(@Param('guideId', ParseIntPipe) guideId: number) {
+    return this.bookingsService.findByGuide(guideId);
+  }
+
   @Post()
   @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.AGENCY)
   @ApiUserHeaders()

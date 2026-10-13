@@ -117,7 +117,8 @@ Do not create duplicate API fetchers. The central service already exports:
 * `expensesApi`: `getByTrip`, `create`, `update`, `delete`.
 * `paymentsApi`: `getAll`, `getById`, `getByBooking`, `getByAgency`, `create`.
 * `refundsApi`: `getAll`, `getById`, `getByAgency`, `create`, `updateStatus`.
-* `guidesApi`: `getAll`, `getById`.
+* `guidesApi`: `getAll`, `getById`, `update`.
+* `reviewsApi`: `getAll`, `getById`, `getByTrip`, `create`, `delete`.
 * `supportTicketsApi`: `getAll`, `getByTraveler`, `getByAgency`, `create`, `updateStatus`.
 * `messagesApi`: `getAll`, `getByUser`, `getConversation`, `create`.
 * `dashboardApi`: `getAdmin`, `getSuperuser`, `getTraveler`, `getGuide`, `getSupport`, `getAgency`.
@@ -155,9 +156,9 @@ To avoid runtime validation rejections (`ValidationPipe`), frontend requests mus
 
 | Entity | DTO Name | Required Fields | Optional Fields | Allowed Status / Enum Values |
 | :--- | :--- | :--- | :--- | :--- |
-| **Trip** | `CreateTripDto` | `destination` (str), `startDate` (str: YYYY-MM-DD), `endDate` (str: YYYY-MM-DD), `budget` (num >= 0) | `travelerId` (int), `agencyId` (int), `guideId` (int), `packageId` (int), `status` (str) | **Status**: `'Planning'`, `'Pending'`, `'Confirmed'`, `'Completed'`, `'Cancelled'` |
+| **Trip** | `CreateTripDto`, `UpdateTripDto`, `UpdateTripStatusDto` | `destination` (str), `startDate` (str: YYYY-MM-DD), `endDate` (str: YYYY-MM-DD), `budget` (num >= 0) | `travelerId` (int), `agencyId` (int), `guideId` (int), `packageId` (int), `status` (str), `guideStatus` (str) | **Status**: `'Planning'`, `'Pending'`, `'Confirmed'`, `'Active'`, `'Completed'`, `'Cancelled'` *(Includes 'Active' for guide starting tour)*<br>**Guide Status**: `'Pending'`, `'Accepted'`, `'Declined'` *(Resolves guide acceptance vs payment confirmation)* |
 | **Itinerary** | `CreateItineraryDto` | `tripId` (int), `city` (str), `dayNumber` (int >= 1), `activity` (str), `time` (str: HH:mm) | `activityStatus` (str) | **Activity Status**: `'Pending'`, `'Confirmed'`, `'Completed'` |
-| **Booking** | `CreateBookingDto` | `bookingDate` (str), `tripId` (num), `service` (str), `type` (str), `amount` (num >= 0) | `travelerId` (num), `agencyId` (num), `status` (str), `insuranceSelected` (bool), `transportMode` (str), `cancellationProtectionSelected` (bool) | **Type**: `'Flight'`, `'Hotel'`, `'Transport'`, `'Activity'`<br>**Status**: `'Pending'`, `'Confirmed'`, `'Cancelled'` |
+| **Booking** | `CreateBookingDto` | `bookingDate` (str), `tripId` (num), `service` (str), `type` (str), `amount` (num >= 0) | `travelerId` (num), `agencyId` (num), `status` (str), `insuranceSelected` (bool), `transportMode` (str), `cancellationProtectionSelected` (bool) | **Type**: `'Flight'`, `'Hotel'`, `'Transport'`, `'Activity'`<br>**Status**: `'Pending'`, `'Confirmed'`, `'Cancelled'`<br>*Note: Guides access bookings strictly via scoped `GET /bookings/guide/:guideId` without accessing global bookings or violating authorization.* |
 | **Payment** | `CreatePaymentDto` | `amount` (num >= 0), `paymentDate` (str: YYYY-MM-DD), `method` (str) | `status` (str), `bookingId` (num), `tripId` (num), `agencyId` (num) | **Method**: `'Card'`, `'UPI'`, `'Cash'`<br>**Status**: `'Paid'`, `'Pending'` |
 | **Expense** | `CreateExpenseDto` | `amount` (num >= 0), `type` (str), `tripId` (int), `description` (str) | None | **Type**: `'Hotel'`, `'Flight'`, `'Transport'`, `'Food'`, `'Activity'`, `'Shopping'` |
 | **Refund** | `CreateRefundDto` | `paymentId` (num), `refundDate` (str) | `refundTime` (str), `refundStatus` (str), `agencyId` (num) | **Refund Status**: `'Processing'`, `'Completed'`, `'Rejected'` |
@@ -201,6 +202,7 @@ All routes are registered in [`front-end/src/App.jsx`](file:///c:/Users/aasht/50
   /guide/travelers             -> Assigned travelers
   /guide/completed-trips       -> Completed tours history
   /guide/messages              -> Coordination chat
+  /guide/profile               -> Guide profile & settings
 
 /support/*                     -> Support Portal (DashboardLayout, protected: support, superuser)
   /support/dashboard           -> Support metrics

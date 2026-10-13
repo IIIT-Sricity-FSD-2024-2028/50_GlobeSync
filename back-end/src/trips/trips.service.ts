@@ -90,6 +90,7 @@ export class TripsService {
       ...(dto.guideId !== undefined && { guideId: dto.guideId }),
       ...(dto.packageId !== undefined && { packageId: dto.packageId }),
       ...(dto.status !== undefined && { status: dto.status as Trip['status'] }),
+      ...(dto.guideStatus !== undefined && { guideStatus: dto.guideStatus as Trip['guideStatus'] }),
     };
     trips[idx] = updated;
 

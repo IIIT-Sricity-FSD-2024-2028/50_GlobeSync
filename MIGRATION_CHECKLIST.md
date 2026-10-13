@@ -72,13 +72,13 @@
 * **Ownership Enforcement**: `RolesGuard` strictly validates that `:guideId` equals `x-user-id`. Guides can only view trips assigned to their `guideId`, update their assigned trip statuses, view their assigned travelers, and edit their own profile.
 
 | # | Current File | Target React Route | Existing Functionality | Relevant Backend Endpoints | Data Source | Ownership Restriction | Status |
-| :-: | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 10 | `front-end/guide/guide-dashboard.html` | `/guide/dashboard` | Guide metrics (assigned trips, active travelers, pending requests, rating), recent trips preview, quick message list | `GET /dashboard/guide/:guideId`<br>`GET /trips/guide/:guideId`<br>`GET /messages/user/guide/:userId` | 🟢 API | Self-scoped: `:guideId` must equal `x-user-id`. Notifications bell simulated. | ⬜ |
-| 11 | `front-end/guide/requests.html` | `/guide/requests` | List of requested trips awaiting guide action; accept or reject with automated notification message to traveler | `GET /trips/guide/:guideId`<br>`GET /travelers`<br>`GET /agencies/lookup`<br>`PATCH /trips/:id/status`<br>`PUT /trips/:id`<br>`POST /messages` | 🟢 API | Guide ownership: trip must be assigned to `guideId` matching `x-user-id`. | ⬜ |
-| 12 | `front-end/guide/completed-trips.html` | `/guide/completed-trips` | Archive of past completed trips with traveler details, duration, destinations, and feedback | `GET /trips/guide/:guideId`<br>`GET /travelers`<br>`GET /reviews` | 🟢 API | Self-scoped: only trips where `trip.guideId == x-user-id` and `status == 'Completed'`. | ⬜ |
-| 13 | `front-end/guide/travelers.html` | `/guide/travelers` | Directory of travelers assigned to upcoming and active guided tours with contact info | `GET /trips/guide/:guideId`<br>`GET /travelers`<br>`GET /agencies/lookup` | 🟢 API | Guide ownership: travelers resolved from trips assigned to calling guide. | ⬜ |
-| 14 | `front-end/guide/messages.html` | `/guide/messages` | Messaging center with travelers and booking agencies regarding tour logistics | `GET /messages/user/guide/:userId`<br>`GET /messages/conversation`<br>`POST /messages`<br>`GET /travelers`<br>`GET /agencies/lookup` | 🟢 API | Participant check: `senderId` or `receiverId` must equal `x-user-id`. | ⬜ |
-| 15 | `front-end/guide/profile.html` | `/guide/profile` | View and edit guide professional bio, languages, specializations, daily rate, contact details | `GET /guides/:id`<br>`PUT /guides/:id` | 🟢 API | Self-scoped: `:id` in `PUT /guides/:id` must equal `x-user-id`. | ⬜ |
+| :-: | :--- | :--- | :--- | :--- | :--- | :--- | :---: |
+| 10 | `front-end/guide/guide-dashboard.html` | `/guide/dashboard` | Guide metrics (assigned trips, active travelers, pending requests, rating), recent trips preview, quick message list, honest price labeling | `GET /dashboard/guide/:guideId`<br>`GET /trips/guide/:guideId`<br>`GET /messages/user/guide/:userId` | 🟢 API | Self-scoped: `:guideId` must equal `x-user-id`. Verified against NestJS backend. | ✅ |
+| 11 | `front-end/guide/requests.html` | `/guide/requests` | List of requested trips awaiting guide action; accept (guideStatus: Accepted) or decline (guideId: null, guideStatus: Declined, status: Planning) with decoupled notification messages and isolated retry | `GET /trips/guide/:guideId`<br>`GET /travelers`<br>`GET /agencies/lookup`<br>`PATCH /trips/:id/status`<br>`PUT /trips/:id`<br>`POST /messages` | 🟢 API | Guide ownership: trip must be assigned to `guideId` matching `x-user-id`. Verified against NestJS backend. | ✅ |
+| 12 | `front-end/guide/completed-trips.html` | `/guide/completed-trips` | Archive of past completed trips with traveler details, duration, destinations, real feedback strictly matched by tripId and guideId, no invented ratings or earnings | `GET /trips/guide/:guideId`<br>`GET /travelers`<br>`GET /reviews` | 🟢 API | Self-scoped: only trips where `trip.guideId == x-user-id` and `status == 'Completed'`. Verified against NestJS backend. | ✅ |
+| 13 | `front-end/guide/travelers.html` | `/guide/travelers` | Directory of travelers and agencies assigned to guided tours with contact info, multi-trip selector, daily itinerary schedule management, activity progress progression, tour start/complete lifecycle | `GET /trips/guide/:guideId`<br>`GET /travelers`<br>`GET /agencies/lookup`<br>`GET /bookings/guide/:guideId`<br>`GET /itineraries/trip/:tripId`<br>`POST /itineraries`<br>`PUT /itineraries/:id`<br>`PATCH /trips/:id/status` | 🟢 API | Guide ownership: travelers resolved from trips assigned to calling guide. Bookings via scoped `GET /bookings/guide/:guideId`. Verified against backend. | ✅ |
+| 14 | `front-end/guide/messages.html` | `/guide/messages` | Two-pane messaging center with travelers, agencies, and support; canonical conversation keys, per-conversation draft isolation, race-condition protected send, whitespace validation, manual refresh | `GET /messages/user/guide/:userId`<br>`GET /messages/conversation`<br>`POST /messages`<br>`GET /travelers`<br>`GET /agencies/lookup` | 🟢 API | Participant check: `senderId` or `receiverId` must equal `x-user-id`. Verified against NestJS backend. | ✅ |
+| 15 | `front-end/guide/profile.html` | `/guide/profile` | View and edit guide professional bio, trimmed language array, experience, fee per trip, password updates; session sync via updateUser; rating and adminId protected | `GET /guides/:id`<br>`PUT /guides/:id` | 🟢 API | Self-scoped: `:id` in `PUT /guides/:id` must equal `x-user-id`. Password stripped from session. Verified against backend. | ✅ |
 
 ---
 
@@ -271,10 +271,10 @@ src/
 | Section | Total HTML Pages | Migrated (✅) | Remaining (⬜) | Conversion Status |
 | :--- | :---: | :---: | :---: | :---: |
 | **Traveler (Completed Workflow)** | 9 | 9 | 0 | 100% Completed & Verified ✅ |
-| **Guide (Teammate Actor)** | 6 | 0 | 6 | ⬜ Separate Teammate Device |
+| **Guide (Completed Workflow)** | 6 | 6 | 0 | 100% Completed & Verified ✅ |
 | **Support (Teammate Actor)** | 5 | 0 | 5 | ⬜ Separate Teammate Device |
 | **Admin (Teammate Actor)** | 8 | 0 | 8 | ⬜ Separate Teammate Device |
 | **Superuser (Teammate Actor)** | 8 | 0 | 8 | ⬜ Separate Teammate Device |
 | **Agency (Teammate Actor)** | 14 | 0 | 14 | ⬜ Separate Teammate Device |
 | **Public & Auth (Traveler Signup Done)** | 10 | 2 | 8 | 🔄 Traveler Signup & RoleSelect Active |
-| **Total** | **60 views / 59 files** | **11** | **49** | **Traveler 100% Verified** |
+| **Total** | **60 views / 59 files** | **17** | **43** | **Traveler & Guide 100% Verified** |

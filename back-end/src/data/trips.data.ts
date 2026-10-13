@@ -18,6 +18,7 @@ export interface Trip {
   guideId: number | null;
   packageId?: number;
   status: 'Planning' | 'Pending' | 'Confirmed' | 'Active' | 'Completed' | 'Cancelled';
+  guideStatus?: 'Pending' | 'Accepted' | 'Declined';
 }
 
 export const trips: Trip[] = [

@@ -155,6 +155,9 @@ export class RolesGuard implements CanActivate {
         if (userRole === Role.AGENCY) {
           this.enforceAgencyBookingOwnership(handlerName, request, userId);
         }
+        if (userRole === Role.GUIDE && handlerName === 'findByGuide') {
+          this.ensureParamMatchesUser(request.params?.guideId, userId);
+        }
         return;
 
       case 'SupportTicketsController':

@@ -1645,6 +1645,56 @@
         ]
       }
     },
+    "/bookings/guide/{guideId}": {
+      "get": {
+        "operationId": "BookingsController_findByGuide",
+        "parameters": [
+          {
+            "name": "guideId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bookings for guide trips"
+          }
+        },
+        "summary": "Get bookings for guide assigned trips",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
     "/itineraries/trip/{tripId}": {
       "get": {
         "description": "Returns all itinerary items for a trip.",
@@ -6155,8 +6205,18 @@
               "Planning",
               "Pending",
               "Confirmed",
+              "Active",
               "Completed",
               "Cancelled"
+            ]
+          },
+          "guideStatus": {
+            "type": "string",
+            "example": "Accepted",
+            "enum": [
+              "Pending",
+              "Accepted",
+              "Declined"
             ]
           }
         }
@@ -6171,6 +6231,7 @@
               "Planning",
               "Pending",
               "Confirmed",
+              "Active",
               "Completed",
               "Cancelled"
             ]

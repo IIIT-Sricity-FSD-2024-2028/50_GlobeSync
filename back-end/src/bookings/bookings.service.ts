@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { bookings, Booking } from '../data';
+import { bookings, Booking, trips } from '../data';
 import { CreateBookingDto, UpdateBookingDto } from './dto';
 
 @Injectable()
@@ -18,6 +18,11 @@ export class BookingsService {
 
   findByAgency(agencyId: number): Booking[] {
     return bookings.filter((b) => b.agencyId === agencyId);
+  }
+
+  findByGuide(guideId: number): Booking[] {
+    const guideTripIds = new Set(trips.filter((t) => t.guideId === guideId).map((t) => t.tripId));
+    return bookings.filter((b) => b.tripId !== undefined && guideTripIds.has(b.tripId));
   }
 
   create(dto: CreateBookingDto): Booking {

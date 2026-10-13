@@ -208,6 +208,9 @@ export const authApi = {
 };
 
 export const travelersApi = {
+  getAll: (options) =>
+    apiGet('/travelers', options),
+
   getById: (id, options) =>
     apiGet(`/travelers/${id}`, options),
 
@@ -216,6 +219,14 @@ export const travelersApi = {
 
   delete: (id, options) =>
     apiDelete(`/travelers/${id}`, options),
+};
+
+export const agenciesApi = {
+  getLookup: (options) =>
+    apiGet('/agencies/lookup', options),
+
+  getById: (id, options) =>
+    apiGet(`/agencies/${id}`, options),
 };
 
 export const passengersApi = {
@@ -314,6 +325,9 @@ export const bookingsApi = {
   getByAgency: (agencyId, options) =>
     apiGet(`/bookings/agency/${agencyId}`, options),
 
+  getByGuide: (guideId, options) =>
+    apiGet(`/bookings/guide/${guideId}`, options),
+
   create: (bookingData, options) =>
     apiPost('/bookings', bookingData, options),
 
@@ -378,6 +392,26 @@ export const guidesApi = {
 
   getById: (id, options) =>
     apiGet(`/guides/${id}`, options),
+
+  update: (id, guideData, options) =>
+    apiPut(`/guides/${id}`, guideData, options),
+};
+
+export const reviewsApi = {
+  getAll: (options) =>
+    apiGet('/reviews', options),
+
+  getById: (id, options) =>
+    apiGet(`/reviews/${id}`, options),
+
+  getByTrip: (tripId, options) =>
+    apiGet(`/reviews/trip/${tripId}`, options),
+
+  create: (reviewData, options) =>
+    apiPost('/reviews', reviewData, options),
+
+  delete: (id, options) =>
+    apiDelete(`/reviews/${id}`, options),
 };
 
 export const supportTicketsApi = {

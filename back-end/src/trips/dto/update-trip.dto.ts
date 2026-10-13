@@ -10,6 +10,8 @@ export class UpdateTripDto {
   @ApiPropertyOptional({ example: 1 }) @IsOptional() @IsNumber() agencyId?: number;
   @ApiPropertyOptional({ example: 1 }) @IsOptional() @IsNumber() guideId?: number;
   @ApiPropertyOptional({ example: 1 }) @IsOptional() @IsNumber() packageId?: number;
-  @ApiPropertyOptional({ example: 'Confirmed', enum: ['Planning', 'Pending', 'Confirmed', 'Completed', 'Cancelled'] })
-  @IsOptional() @IsString() @IsIn(['Planning', 'Pending', 'Confirmed', 'Completed', 'Cancelled']) status?: string;
+  @ApiPropertyOptional({ example: 'Confirmed', enum: ['Planning', 'Pending', 'Confirmed', 'Active', 'Completed', 'Cancelled'] })
+  @IsOptional() @IsString() @IsIn(['Planning', 'Pending', 'Confirmed', 'Active', 'Completed', 'Cancelled']) status?: string;
+  @ApiPropertyOptional({ example: 'Accepted', enum: ['Pending', 'Accepted', 'Declined'] })
+  @IsOptional() @IsString() @IsIn(['Pending', 'Accepted', 'Declined']) guideStatus?: string;
 }
