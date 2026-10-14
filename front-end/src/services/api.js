@@ -398,8 +398,14 @@ export const guidesApi = {
   getById: (id, options) =>
     apiGet(`/guides/${id}`, options),
 
+  create: (guideData, options) =>
+    apiPost('/guides', guideData, options),
+
   update: (id, guideData, options) =>
     apiPut(`/guides/${id}`, guideData, options),
+
+  delete: (id, options) =>
+    apiDelete(`/guides/${id}`, options),
 };
 
 export const reviewsApi = {
@@ -422,6 +428,9 @@ export const reviewsApi = {
 export const supportTicketsApi = {
   getAll: (options) =>
     apiGet('/support-tickets', options),
+
+  getById: (id, options) =>
+    apiGet(`/support-tickets/${id}`, options),
 
   getByTraveler: (travelerId, options) =>
     apiGet(`/support-tickets/traveler/${travelerId}`, options),
@@ -494,3 +503,52 @@ export const revenueApi = {
   updateConfig: (key, data, options) =>
     apiPut(revenuePath(`config/${key}`), data, options),
 };
+
+export const systemConfigApi = {
+  getRules: (options) => apiGet('/system-config/rules', options),
+  updateRules: (rulesData, options) => apiPut('/system-config/rules', rulesData, options),
+  getPaymentMethods: (options) => apiGet('/system-config/payment-methods', options),
+  updatePaymentMethod: (id, data, options) => apiPut(`/system-config/payment-methods/${id}`, data, options),
+  getIntegrations: (options) => apiGet('/system-config/integrations', options),
+  updateIntegration: (id, data, options) => apiPut(`/system-config/integrations/${id}`, data, options),
+  getAuditLogs: (options) => apiGet('/system-config/audit-logs', options),
+};
+
+export const superUsersApi = {
+  getAdmins: (options) => apiGet('/super/admins', options),
+  createAdmin: (data, options) => apiPost('/super/admins', data, options),
+  deleteAdmin: (id, options) => apiDelete(`/super/admins/${id}`, options),
+  getSupportUsers: (options) => apiGet('/super/support-users', options),
+  createSupportUser: (data, options) => apiPost('/super/support-users', data, options),
+  deleteSupportUser: (id, options) => apiDelete(`/super/support-users/${id}`, options),
+};
+
+export const supportUsersApi = {
+  getById: (id, options) => apiGet(`/support-users/${id}`, options),
+  update: (id, data, options) => apiPut(`/support-users/${id}`, data, options),
+};
+
+export const agencyRevenueApi = {
+  getRevenue: (agencyId, options) =>
+    apiGet(`/api/agencies/${agencyId}/revenue`, options),
+};
+
+export const subscriptionsApi = {
+  getPlans: (options) =>
+    apiGet('/api/subscriptions/plans', options),
+
+  getAgencySubscription: (agencyId, options) =>
+    apiGet(`/api/agencies/${agencyId}/subscription`, options),
+
+  subscribe: (data, options) =>
+    apiPost('/api/subscriptions', data, options),
+};
+
+export const promotionsApi = {
+  getAll: (options) =>
+    apiGet('/api/promotions', options),
+
+  create: (data, options) =>
+    apiPost('/api/promotions', data, options),
+};
+

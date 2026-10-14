@@ -169,7 +169,13 @@ export class DashboardService {
     const assignedTrips = trips.filter((t) => t.guideId === guideId);
     const completedTrips = assignedTrips.filter((t) => t.status === 'Completed');
     const pendingRequests = assignedTrips.filter(
-      (t) => (t.status === 'Pending' || t.status === 'Planning') && t.guideStatus !== 'Accepted',
+      (t) =>
+        t.guideStatus === 'Pending' ||
+        (!t.guideStatus &&
+          t.status !== 'Completed' &&
+          t.status !== 'Cancelled' &&
+          t.guideStatus !== 'Accepted' &&
+          t.guideStatus !== 'Declined'),
     );
     const guideMessages = messages.filter(
       (m) =>

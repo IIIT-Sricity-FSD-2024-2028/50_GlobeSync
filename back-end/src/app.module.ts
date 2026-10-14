@@ -26,6 +26,7 @@ import { UploadsModule } from './uploads/uploads.module';
 import { RevenueModule } from './revenue/revenue.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { PromotionsModule } from './promotions/promotions.module';
+import { SystemConfigModule } from './system-config/system-config.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { PromotionsModule } from './promotions/promotions.module';
     RevenueModule,
     SubscriptionsModule,
     PromotionsModule,
+    SystemConfigModule,
   ],
   providers: [
     // APP_FILTER registers GlobalExceptionFilter as a DI-managed global exception filter.

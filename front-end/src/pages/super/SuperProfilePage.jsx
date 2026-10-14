@@ -8,6 +8,16 @@ import {
   useAdminData,
 } from '../../components/admin/AdminUI';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * SuperProfilePage
+ * Primary route: /super/profile
+ *
+ * Manages master superuser identity credentials.
+ * In accordance with backend UpdateAdminDto, only name and email may be modified.
+ * Unsupported password modification has been removed to align with backend capabilities.
+ */
 export default function SuperProfilePage() {
   const { user, updateUser } = useSession();
   const id = user?.adminId ?? user?.admin_id ?? user?.id;
@@ -25,34 +35,63 @@ export default function SuperProfilePage() {
   );
 
   const resource = useAdminData(load);
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [form, setForm] = useState({ name: '', email: '' });
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     if (resource.data) {
       setForm({
         name: resource.data.name || '',
         email: resource.data.email || '',
-        password: '',
       });
+      setFieldErrors({});
     }
   }, [resource.data]);
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
+    }
+  };
+
+  const validate = () => {
+    const errors = {};
+    if (!form.name.trim()) {
+      errors.name = 'Full administrative name is required.';
+    } else if (form.name.trim().length < 2) {
+      errors.name = 'Name must be at least 2 characters.';
+    }
+
+    if (!form.email.trim()) {
+      errors.email = 'Primary email address is required.';
+    } else if (!EMAIL_REGEX.test(form.email.trim())) {
+      errors.email = 'Please provide a valid email address.';
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!validate()) return;
+
     const payload = {
       name: form.name.trim(),
       email: form.email.trim(),
     };
-    if (form.password.trim()) {
-      payload.password = form.password.trim();
-    }
 
     resource.run(
       () => adminsApi.update(id, payload),
       'Superuser profile credentials updated successfully! ✅',
       (updated) => {
         updateUser(updated || payload);
-        setForm((prev) => ({ ...prev, password: '' }));
       }
     );
   };
@@ -71,7 +110,7 @@ export default function SuperProfilePage() {
             alignItems: 'start',
           }}
         >
-          {/* Identity Card matching super/profile.html */}
+          {/* Identity Card */}
           <div
             className="card"
             style={{
@@ -156,49 +195,53 @@ export default function SuperProfilePage() {
               Update Master Credentials
             </h2>
             <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '20px' }}>
-              Modify your administrative display identity and master authentication password.
+              Modify your administrative display identity and communication email address.
             </p>
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
               <Field
+                id="super-name"
                 label="Full Administrative Name"
                 name="name"
                 value={form.name}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, name: e.target.value }))
-                }
+                onChange={handleChange}
                 required
-                pattern=".*\\S.*"
                 disabled={resource.busy}
+                error={fieldErrors.name}
                 autoComplete="name"
+                helperText="Official display name for administrative logging."
               />
 
               <Field
+                id="super-email"
                 label="Primary Email Address"
                 name="email"
                 type="email"
                 value={form.email}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, email: e.target.value }))
-                }
+                onChange={handleChange}
                 required
                 disabled={resource.busy}
+                error={fieldErrors.email}
                 autoComplete="email"
+                helperText="Primary email used for alerts and escalation notices."
               />
 
-              <Field
-                label="New Password (leave blank to keep current)"
-                name="password"
-                type="password"
-                placeholder="Enter at least 6 characters"
-                minLength="6"
-                value={form.password}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, password: e.target.value }))
-                }
-                disabled={resource.busy}
-                autoComplete="new-password"
-              />
+              <div
+                className="admin-status-note"
+                style={{
+                  backgroundColor: '#f8fafc',
+                  borderLeft: '4px solid #6366f1',
+                  fontSize: '0.85rem',
+                  color: '#475569',
+                  padding: '10px 14px',
+                  borderRadius: '4px',
+                  marginBottom: '16px',
+                }}
+              >
+                <strong>Security Policy:</strong> In compliance with the backend security policy,
+                administrative accounts support name and email updates. Password changes must be
+                provisioned directly through secure server infrastructure.
+              </div>
 
               {resource.error && (
                 <p className="admin-error" role="alert" style={{ marginTop: '12px' }}>

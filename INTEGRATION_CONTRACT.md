@@ -166,6 +166,7 @@ To avoid runtime validation rejections (`ValidationPipe`), frontend requests mus
 | **Message** | `CreateMessageDto` | `sender` (str), `senderId` (int), `receiver` (str), `receiverId` (int), `content` (str) | None | **Actor Types**: `'traveler'`, `'guide'`, `'support'`, `'agency'` |
 | **Passenger** | `CreatePassengerDto` | `name` (str), `age` (num), `gender` (str) | `travelerId` (num), `agencyId` (num) | **Gender**: `'Male'`, `'Female'`, `'Other'` |
 | **Agency** | `UpdateAgencyStatusDto` | `status` (str) | `commissionRate` (num: 1.0 to 1.5) | **Status**: `'pending'`, `'approved'`, `'rejected'` *(Note: lowercase)* |
+| **Revenue Config** | `UpdateRevenueConfigDto` | `value` (num: 0 to 100) | None | Universal bounded percentage rate (0–100%). Strictly rejects non-numeric types, NaN, negative values, and values > 100 with HTTP 400. |
 
 ---
 
@@ -329,3 +330,150 @@ To test cross-actor interactions (e.g. Traveler creates a trip $\rightarrow$ Gui
    * Pull the latest `main`: `git pull origin main --rebase`
    * Resolve any conflicts in shared files (`App.jsx`, `DashboardLayout.jsx`) by keeping both actors' additions.
    * Push your verified branch: `git push origin feat/<name>`.
+
+---
+
+## 9. Backend Referential Integrity, Status Transitions & Revenue Contracts
+
+### 9.1 Safe Deletion & Referential Integrity Policy
+To protect relational consistency and historical reporting:
+* **Package Safe Deletion (`DELETE /packages/:id`)**:
+  * A package **cannot** be deleted if referenced by any dependent records:
+    * Trips referencing `packageId`
+    * Package bookings referencing `packageId`
+    * Indirect dependents through associated trips: Bookings, Itineraries, Expenses, Payments, and Commission Ledger entries
+  * When references exist, the backend rejects deletion with **`HTTP 409 ConflictException`** and returns a descriptive list of all referencing entities.
+  * Only completely unreferenced packages can be deleted.
+
+* **Trip Safe Deletion (`DELETE /trips/:id`)**:
+  * A trip **cannot** be deleted if referenced by:
+    * Dependent Bookings
+    * Itinerary items
+    * Expenses
+    * Direct Payments (`payment.tripId === tripId`)
+    * Payments tied to the trip's bookings (`payment.bookingId === booking.bookingId`)
+    * Commission Ledger entries
+  * When references exist, the backend rejects deletion with **`HTTP 409 ConflictException`**.
+  * **No Silent Cascade-Deletions**: Financial history (payments, commissions, expenses) is never silently deleted. Referenced trips must have dependent records removed or reassigned explicitly before deletion.
+
+### 9.2 Trip Status Transition Finite State Machine (FSM)
+Trip status updates on both `PUT /trips/:id` and `PATCH /trips/:id/status` must follow strict transition rules. Arbitrary jumps (e.g. `Planning` directly to `Active`) are rejected with **`HTTP 400 BadRequestException`**.
+
+```text
+                  ┌──────────────────────┐
+                  │       Planning       │
+                  └──────────┬───────────┘
+                             │
+                             ▼
+                  ┌──────────────────────┐
+                  │       Pending        │
+                  └──────────┬───────────┘
+                             │
+                             ▼
+                  ┌──────────────────────┐
+                  │      Confirmed       │
+                  └──────────┬───────────┘
+                             │
+                             ▼
+                  ┌──────────────────────┐
+                  │        Active        │
+                  └──────────┬───────────┘
+                             │
+                             ▼
+                  ┌──────────────────────┐
+                  │      Completed       │ (Terminal)
+                  └──────────────────────┘
+                             ▲
+                             │ (Any non-terminal status can transition to Cancelled)
+                  ┌──────────┴───────────┐
+                  │      Cancelled       │ (Terminal)
+                  └──────────────────────┘
+```
+
+* **Valid Transitions**:
+  * `Planning` $\rightarrow$ `Pending` | `Cancelled`
+  * `Pending` $\rightarrow$ `Confirmed` | `Cancelled`
+  * `Confirmed` $\rightarrow$ `Active` | `Cancelled`
+  * `Active` $\rightarrow$ `Completed` | `Cancelled`
+  * `Completed` $\rightarrow$ *(None — terminal)*
+  * `Cancelled` $\rightarrow$ *(None — terminal)*
+* **Idempotency**: Providing the same status that the trip already possesses is accepted as a valid, idempotent operation.
+* **Side Effects**: When a trip status transitions to `Completed`, all pending commission entries for that trip in `commissionLedger` are automatically settled (`status: 'settled'`).
+
+### 9.3 Guide Status & Assignment Lifecycle
+* **Independent Status**: `guideStatus` (`'Pending'` | `'Accepted'` | `'Declined'`) tracks guide response and is decoupled from trip status and payment status.
+* **Initialization on Assignment**:
+  * When a trip is created with `guideId` assigned, `guideStatus` is automatically initialized to `'Pending'`.
+  * When a trip is created without a guide (`guideId: null`), `guideStatus` is `undefined`.
+* **Reassignment Reset**:
+  * If a trip's `guideId` is updated to a new guide ID, `guideStatus` automatically resets to `'Pending'`.
+  * If a trip's guide is unassigned (`guideId: null`), `guideStatus` is cleared (`undefined`).
+* **Explicit Seed Fixtures**: Seed fixtures in `trips.data.ts` explicitly declare `guideStatus` for all trips with guides rather than requiring frontend code to infer acceptance from payment confirmation.
+
+### 9.4 Revenue Configuration Updates (`PUT /api/admin/revenue/config/:key`)
+* **Role Requirement**: Superuser only (`Role.SUPERUSER`).
+* **Validation**: Request body must conform to `UpdateRevenueConfigDto`:
+  * `value`: Required numeric value between `0` and `100` inclusive.
+  * Rejects strings, non-finite values, `NaN`, negative numbers, or numbers exceeding 100 with **`HTTP 400 BadRequestException`**.
+  * Unknown configuration keys return **`HTTP 404 NotFoundException`**.
+
+### 9.5 Genuine Revenue & Financial Calculation
+* All dashboard and revenue reporting endpoints (`/api/admin/revenue/overview`, `/api/admin/revenue/breakdown`, `/api/agencies/:id/revenue`, `/dashboard/*`) calculate totals strictly from genuine transaction data (`payments`, `commissionLedger`, `revenueTransactions`).
+* No synthetic or dynamic mock data is injected into empty months. Unsettled or empty months naturally reflect `0` revenue with zeroed category breakdowns.
+
+---
+
+## 10. Single Shared Backend & Cross-Actor Verification Model
+
+### 10.1 In-Memory Architecture Principle
+The NestJS backend runs strictly in memory (`back-end/src/*/data/*.ts`). There is no persistent external SQL or NoSQL database.
+* **Single Instance Requirement**: Cross-actor workflows (e.g. Traveler plans trip $\rightarrow$ Admin assigns guide $\rightarrow$ Guide accepts $\rightarrow$ Support inspects linked refund) depend on shared in-memory records. Running independent local backends on separate laptops isolates memory spaces: changes made on Laptop A are invisible to Laptop B.
+* **Shared Host**: For team integration, one designated machine hosts the backend (`http://localhost:3000` or LAN IP), and all actor portals connect to this single origin.
+
+### 10.2 Automated Cross-Actor Verification Test Matrix
+The platform includes automated end-to-end integration suites executed against the shared backend:
+
+| Test Suite File | Workflows Verified | Pass Rate |
+| :--- | :--- | :---: |
+| `verify_traveler_e2e_recovery.js` | Traveler trip recovery, duplicate payment rejection, status FSM progression | 100% (4/4 passed) |
+| `test_traveler_payment_recovery.js` | Booking payment recovery, card validation, ledger immutability | 100% (9/9 passed) |
+| `verify_guide_shared_contracts.js` | Guide accept/decline decoupling, reassignment reset rule, itinerary lifecycle | 100% (42/42 passed) |
+| `scratch/verify_admin_e2e.js` | Package safe deletion 409 conflict, trip guide reassignment, agency approval gating | 100% (All passed) |
+| `scratch/verify_super_workflows.js` | Guide `pricePerTrip` preservation, agency commission contract, super profile | 100% (All passed) |
+| `scratch/verify_super_controls_e2e.js` | System rules ceiling enforcement, payment gateway toggle, audit trail persistence | 100% (24/24 passed) |
+| `scratch/verify_support_e2e.js` | Support ticket queue triage, refund audit verification, messaging threads | 100% (40/40 passed) |
+| `scratch/verify_agency_e2e.js` | Agency signup gating, passenger CRUD, package booking recovery, commission ledger | 100% (33/33 passed) |
+
+---
+
+## 11. Multi-Actor Workflow Contracts & Error Policies
+
+### 11.1 Traveler-to-Guide Lifecycle
+1. **Assignment**: Traveler or Admin assigns `guideId` to a trip $\rightarrow$ backend sets `guideStatus: 'Pending'`.
+2. **Acceptance**: Guide calls `PATCH /trips/:id/status` with `{ guideStatus: 'Accepted' }` $\rightarrow$ trip status remains unperturbed while guide status becomes active.
+3. **Reassignment**: If Admin updates trip with a different `guideId` $\rightarrow$ backend automatically resets `guideStatus: 'Pending'`. If guide is removed (`guideId: null`), `guideStatus` is cleared.
+
+### 11.2 Payment Recovery & Idempotency
+1. **Single Payment Rule**: Only one completed payment may exist per booking. A subsequent `POST /payments` for an already-paid booking is rejected with `HTTP 400 BadRequestException`.
+2. **Session Recovery**: In `TravelerBookingsPage` and `AgencyBookingsPage`, existing payment records are fetched directly from `GET /payments/booking/:bookingId`. Bookings marked `Paid` in the ledger display confirmed status and lock out duplicate payment buttons.
+
+### 11.3 Agency Reseller Lifecycle & Login Gating
+1. **Registration**: Reseller registers at `/signup/agency` (`POST /agencies/register`). Account is created with `status: 'Pending'`.
+2. **Login Gating**: `POST /auth/agency-login` strictly rejects pending or rejected agencies with `HTTP 401 UnauthorizedException` ("Agency account is pending approval").
+3. **Approval**: Admin or Superuser reviews agency and calls `PATCH /agencies/:id/status` with `{ status: 'Approved', commissionRate: 0.01 }`. Agency login now succeeds.
+
+### 11.4 Safe Entity Deletion & Conflict Integrity (HTTP 409)
+* **Packages**: `DELETE /packages/:id` checks if any trips or bookings reference the package ID. If active references exist, returns `HTTP 409 ConflictException`.
+* **Trips**: `DELETE /trips/:id` checks for dependent bookings, itineraries, payments, and commission entries. Deletion is blocked if financial records exist.
+* **Guides & Travelers**: `DELETE /guides/:id` and `DELETE /travelers/:id` are blocked if assigned to active or upcoming trips.
+
+### 11.5 Commission Representation & Formatting
+* Stored database rates are stored as raw fractional decimals: `0.01` represents `1.0%`.
+* Display layers across Agency Commission Page and Admin Agency Page format this as `(rate * 100).toFixed(1) + '%'`.
+* DTO validation on `PATCH /agencies/:id/status` requires `commissionRate` between `0.005` and `0.015` (0.5% to 1.5%).
+
+### 11.6 Superuser System-Wide Controls & Enforcement
+* **Rules Endpoint**: `GET /system-config/rules` and `PUT /system-config/rules` store platform policies (`maxSinglePaymentCeiling`, `autoConfirmBookings`, `allowCancellations`).
+* **Enforcement**: In `PaymentsService.create()`, transactions with `amount > rules.maxSinglePaymentCeiling` are rejected with `HTTP 400 BadRequestException` ("Payment amount exceeds maximum system limit").
+* **Audit Trail**: Every update to rules or payment methods logs an entry to `/system-config/audit-logs` recording timestamp, actor, and old/new values.
+

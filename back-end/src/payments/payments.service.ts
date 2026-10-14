@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { payments, Payment } from '../data';
+import { payments, Payment, bookings } from '../data';
 import { CreatePaymentDto } from './dto';
 import { RevenueService } from '../revenue/revenue.service';
+import { SystemConfigService } from '../system-config/system-config.service';
 
 @Injectable()
 export class PaymentsService {
-  constructor(private readonly revenueService: RevenueService) {}
+  constructor(
+    private readonly revenueService: RevenueService,
+    private readonly systemConfigService: SystemConfigService,
+  ) {}
   findAll(): Payment[] { return payments; }
 
   findOne(id: number): Payment {
@@ -25,6 +29,21 @@ export class PaymentsService {
   create(dto: CreatePaymentDto): Payment {
     if (!!dto.bookingId === !!dto.tripId) {
       throw new BadRequestException('Exactly one of bookingId or tripId must be provided.');
+    }
+
+    // Backend rule: Verify payment method is currently active in platform configuration
+    if (!this.systemConfigService.isPaymentMethodActive(dto.method)) {
+      throw new BadRequestException(
+        `Payment method '${dto.method}' is currently disabled by platform administrator.`,
+      );
+    }
+
+    // Backend rule: Enforce platform single booking transaction ceiling
+    const rules = this.systemConfigService.getRules();
+    if (dto.amount > rules.bookingLimit) {
+      throw new BadRequestException(
+        `Transaction amount ₹${dto.amount.toLocaleString('en-IN')} exceeds the platform single booking ceiling of ₹${rules.bookingLimit.toLocaleString('en-IN')}.`,
+      );
     }
 
     // Backend rule: Prevent duplicate payment records for the same booking or trip
@@ -69,6 +88,14 @@ export class PaymentsService {
         this.revenueService.calculateAgencyCommission(item.bookingId || item.tripId || 0, item.amount, item.agencyId);
       } else {
         this.revenueService.calculateBookingCommission(item.bookingId || item.tripId || 0, item.amount);
+      }
+
+      // Operational Rule: Auto-confirm booking upon successful payment if enabled
+      if (dto.bookingId && rules.autoConfirm) {
+        const booking = bookings.find((b) => b.bookingId === dto.bookingId);
+        if (booking && booking.status === 'Pending') {
+          booking.status = 'Confirmed';
+        }
       }
     }
     

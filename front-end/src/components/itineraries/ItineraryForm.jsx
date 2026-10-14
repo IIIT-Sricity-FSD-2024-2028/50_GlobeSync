@@ -153,6 +153,14 @@ export default function ItineraryForm({
         };
 
         const created = await itinerariesApi.create(payload);
+        setFormData({
+          dayNumber: 1,
+          city: selectedTrip?.destination || '',
+          activity: '',
+          time: '09:00',
+          activityStatus: 'Pending',
+        });
+        setErrors({});
         onSave(created, false);
       }
     } catch (err) {

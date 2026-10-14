@@ -2,6 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useSession } from '../../context/SessionContext';
 import { tripsApi, travelersApi, agenciesApi, messagesApi } from '../../services/api';
 import GuideRequestList from '../../components/guide/GuideRequestList';
+import {
+  isGuideAccepted,
+  isGuidePending,
+  isGuideDeclined,
+  getAgencyDisplayName,
+  getTravelerDisplayName,
+} from '../../components/guide/guideStateHelpers';
 import './guide.css';
 
 /**
@@ -10,17 +17,18 @@ import './guide.css';
  * 
  * Features:
  * - Fetches trips assigned to the logged-in guide via GET /trips/guide/:guideId
- * - Resolves requestor names via GET /travelers and GET /agencies/lookup
+ * - Resolves requestor names via GET /travelers and GET /agencies/lookup (using businessName)
  * - Handles both traveler-owned and agency-owned trips
  * - Coherent Guide Acceptance vs Payment: Guide accepting sets guideStatus = 'Accepted'
  *   without prematurely marking trip payment as confirmed.
- * - Decline behavior: Clears guideId (null), sets guideStatus = 'Declined', status = 'Planning'
- *   without deleting the trip or unrelated bookings.
+ * - Decline behavior: Sets guideStatus = 'Declined' without invalid FSM status transitions
+ *   or deleting the trip or unrelated bookings.
  * - Decoupled decisions and notifications: If notification fails, trip decision is saved
  *   and an isolated 'Retry Notification' action is offered. Retrying only sends the message.
+ * - Displays secondary data warnings when travelers or agencies lookups fail.
  * - Rapid-click prevention with loading state flags per trip.
  * - Search by destination, requestor name, trip ID, or code.
- * - Filter tabs (Pending, Accepted, All) with live badges.
+ * - Filter tabs (Pending, Accepted, All) with live badges based on guideStatus.
  * - Sorting by Newest, Oldest, Budget (High to Low), Budget (Low to High).
  */
 export default function GuideRequestsPage() {
@@ -31,6 +39,7 @@ export default function GuideRequestsPage() {
   const [trips, setTrips] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
+  const [secondaryWarnings, setSecondaryWarnings] = useState([]);
 
   // Filter & Search & Sort state
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,20 +65,29 @@ export default function GuideRequestsPage() {
 
     setIsLoading(true);
     setFetchError(null);
+    setSecondaryWarnings([]);
 
     try {
+      const warnings = [];
+
       // Concurrently fetch guide trips, travelers, and agencies lookup
       const [tripsData, travelersData, agenciesData] = await Promise.all([
         tripsApi.getByGuide(guideId, { signal }),
         travelersApi.getAll({ signal }).catch((err) => {
+          if (err.isCancelled || signal?.aborted) throw err;
           console.warn('[GuideRequestsPage] Could not fetch travelers list:', err);
+          warnings.push('Traveler directory could not be reached; traveler client names are displayed with fallback IDs.');
           return [];
         }),
         agenciesApi.getLookup({ signal }).catch((err) => {
+          if (err.isCancelled || signal?.aborted) throw err;
           console.warn('[GuideRequestsPage] Could not fetch agencies lookup:', err);
+          warnings.push('Agency directory could not be reached; partner agency business names are displayed with fallback IDs.');
           return [];
         }),
       ]);
+
+      setSecondaryWarnings(warnings);
 
       const rawTrips = Array.isArray(tripsData) ? tripsData : [];
       const travelersList = Array.isArray(travelersData) ? travelersData : (travelersData?.value || []);
@@ -88,15 +106,15 @@ export default function GuideRequestsPage() {
         if (id) agencyMap.set(Number(id), a);
       });
 
-      // Enrich trips with resolved requestor names
+      // Enrich trips with resolved requestor names using businessName
       const enrichedTrips = rawTrips.map((trip) => {
         let requestorName = 'Direct Traveler';
         if (trip.agencyId) {
           const agency = agencyMap.get(Number(trip.agencyId));
-          requestorName = agency?.agencyName || agency?.name || `Partner Agency #${trip.agencyId}`;
+          requestorName = getAgencyDisplayName(agency, trip.agencyId);
         } else if (trip.travelerId) {
           const traveler = travelerMap.get(Number(trip.travelerId));
-          requestorName = traveler?.name || `Traveler #${trip.travelerId}`;
+          requestorName = getTravelerDisplayName(traveler, trip.travelerId);
         }
 
         return {
@@ -131,11 +149,9 @@ export default function GuideRequestsPage() {
     let accepted = 0;
 
     trips.forEach((t) => {
-      const isAcc = t.guideStatus === 'Accepted' || (t.status === 'Confirmed' && t.guideStatus !== 'Declined');
-      const isDec = t.guideStatus === 'Declined' || t.guideId === null;
-      if (isAcc) {
+      if (isGuideAccepted(t)) {
         accepted += 1;
-      } else if (!isDec) {
+      } else if (isGuidePending(t)) {
         pending += 1;
       }
     });
@@ -151,14 +167,11 @@ export default function GuideRequestsPage() {
   const filteredTrips = useMemo(() => {
     return trips
       .filter((t) => {
-        // Tab filtering
-        const isAcc = t.guideStatus === 'Accepted' || (t.status === 'Confirmed' && t.guideStatus !== 'Declined');
-        const isDec = t.guideStatus === 'Declined' || t.guideId === null;
-
+        // Tab filtering using canonical guide request state
         if (activeTab === 'pending') {
-          if (isAcc || isDec) return false;
+          if (!isGuidePending(t)) return false;
         } else if (activeTab === 'accepted') {
-          if (!isAcc) return false;
+          if (!isGuideAccepted(t)) return false;
         }
 
         // Search query matching
@@ -267,7 +280,7 @@ export default function GuideRequestsPage() {
     if (actionLoading[tripId]) return; // Prevent double-clicks
 
     const confirmed = window.confirm(
-      `Are you sure you want to decline the request for ${trip.destination} (Trip #${tripId})?\n\nThis will remove your guide assignment and reset the trip to Planning without deleting the trip or any bookings.`
+      `Are you sure you want to decline the request for ${trip.destination} (Trip #${tripId})?\n\nThis will decline the request without modifying trip payment or booking status.`
     );
     if (!confirmed) return;
 
@@ -275,18 +288,17 @@ export default function GuideRequestsPage() {
     setFeedback(null);
 
     try {
-      // 1. Perform backend trip update to clear assignment and reset status to Planning
+      // 1. Perform backend trip update to mark guideStatus as Declined
+      // Does NOT force status: 'Planning' to avoid invalid FSM transitions on Confirmed/Pending trips
       await tripsApi.update(tripId, {
-        guideId: null,
         guideStatus: 'Declined',
-        status: 'Planning',
       });
 
       // Update state locally immediately
       setTrips((prev) =>
         prev.map((t) =>
           t.tripId === tripId
-            ? { ...t, guideId: null, guideStatus: 'Declined', status: 'Planning' }
+            ? { ...t, guideStatus: 'Declined' }
             : t
         )
       );
@@ -298,7 +310,7 @@ export default function GuideRequestsPage() {
         senderId: Number(guideId),
         receiver: trip.agencyId ? 'agency' : 'traveler',
         receiverId: Number(trip.agencyId || trip.travelerId),
-        content: `Guide assignment for ${trip.destination} (Trip #${tripId}) was declined by ${user?.name || 'the guide'}. The trip has been reset to Planning.`,
+        content: `Guide assignment for ${trip.destination} (Trip #${tripId}) was declined by ${user?.name || 'the guide'}.`,
       };
 
       try {
@@ -485,6 +497,33 @@ export default function GuideRequestsPage() {
           <button type="button" onClick={handleRefresh} className="guide-retry-btn">
             Retry Loading
           </button>
+        </div>
+      )}
+
+      {/* Secondary data warning banner */}
+      {secondaryWarnings.length > 0 && (
+        <div
+          role="alert"
+          style={{
+            padding: '12px 18px',
+            borderRadius: '12px',
+            fontSize: '13px',
+            fontWeight: 500,
+            background: '#fffbeb',
+            color: '#92400e',
+            border: '1px solid #fde68a',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            marginBottom: '16px',
+          }}
+        >
+          {secondaryWarnings.map((warning, idx) => (
+            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>⚠️</span>
+              <span>{warning}</span>
+            </div>
+          ))}
         </div>
       )}
 

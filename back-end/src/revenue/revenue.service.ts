@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { 
   revenueTransactions, 
   RevenueTransaction,
@@ -15,6 +15,12 @@ export class RevenueService {
   }
 
   updateConfig(key_name: string, value: number) {
+    if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
+      throw new BadRequestException('Config value must be a valid finite number');
+    }
+    if (value < 0 || value > 100) {
+      throw new BadRequestException('Config value must be between 0 and 100');
+    }
     const config = revenueConfig.find(c => c.key_name === key_name);
     if (!config) {
       throw new NotFoundException(`Config key ${key_name} not found`);
@@ -285,20 +291,6 @@ export class RevenueService {
     });
 
     const netProfitMargin = grossBookingValue > 0 ? (totalRevenue / grossBookingValue) * 100 : 0;
-
-    // Fulfill user request: "FILL WITH SOME BARGRAPHS THAT CAN BE DYNAMIC AND CHANGE FROM TIME TO TIME AND DIFFERENCE FROM DIFFERENT REVENUE TYPES"
-    // Inject dynamic realistic demo data for empty months to make chart look alive
-    monthlyTrend.forEach((m, idx) => {
-      if (m.revenue === 0) {
-        // Random multiplier based on month index to make it "change from time to time" and look dynamic
-        const seed = (now.getDate() + idx) % 5 + 1;
-        m.breakdown.BOOKING_COMMISSION = 20000 + (seed * 15000);
-        m.breakdown.AGENCY_COMMISSION = 5000 + (seed * 4000);
-        m.breakdown.SUBSCRIPTION = 10000 + (seed * 2000);
-        m.breakdown.FEATURED_LISTING = 3000 + (seed * 1000);
-        m.revenue = m.breakdown.BOOKING_COMMISSION + m.breakdown.AGENCY_COMMISSION + m.breakdown.SUBSCRIPTION + m.breakdown.FEATURED_LISTING;
-      }
-    });
 
     return {
       totalRevenue,

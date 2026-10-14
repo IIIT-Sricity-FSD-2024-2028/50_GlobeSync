@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useSession } from '../../context/SessionContext';
 import { tripsApi, travelersApi, agenciesApi, reviewsApi } from '../../services/api';
 import GuideCompletedTripCard from '../../components/guide/GuideCompletedTripCard';
+import { getAgencyDisplayName, getTravelerDisplayName } from '../../components/guide/guideStateHelpers';
 import './guide.css';
 
 /**
@@ -10,12 +11,12 @@ import './guide.css';
  * 
  * Features:
  * - Shows current guide's Completed trips history via GET /trips/guide/:guideId
- * - Resolves client names across direct travelers and partner agencies
+ * - Resolves client names across direct travelers and partner agencies (using businessName)
  * - Loads reviews only where permitted and strictly matches them to the corresponding trip and guide
  * - Does not invent missing ratings or earnings
  * - Real search and sorting (Newest, Oldest, Highest Rated, Lowest Rated)
  * - Review status filter tabs (All, Reviewed, Pending Review)
- * - Loading, error, and empty states
+ * - Loading, error, secondary-data warnings, and empty states
  */
 export default function GuideCompletedTripsPage() {
   const { user } = useSession();
@@ -25,6 +26,7 @@ export default function GuideCompletedTripsPage() {
   const [reviewsMap, setReviewsMap] = useState(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [secondaryWarnings, setSecondaryWarnings] = useState([]);
 
   // Search, filter & sort controls
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,23 +43,34 @@ export default function GuideCompletedTripsPage() {
 
     setIsLoading(true);
     setErrorMessage(null);
+    setSecondaryWarnings([]);
 
     try {
+      const warnings = [];
+
       const [tripsData, travelersData, agenciesData, reviewsData] = await Promise.all([
         tripsApi.getByGuide(guideId, { signal }),
         travelersApi.getAll({ signal }).catch((err) => {
+          if (err.isCancelled || signal?.aborted) throw err;
           console.warn('[GuideCompletedTrips] Could not fetch travelers:', err);
+          warnings.push('Traveler directory could not be reached; traveler client names are displayed with fallback IDs.');
           return [];
         }),
         agenciesApi.getLookup({ signal }).catch((err) => {
+          if (err.isCancelled || signal?.aborted) throw err;
           console.warn('[GuideCompletedTrips] Could not fetch agencies:', err);
+          warnings.push('Agency directory could not be reached; partner agency business names are displayed with fallback IDs.');
           return [];
         }),
         reviewsApi.getAll({ signal }).catch((err) => {
+          if (err.isCancelled || signal?.aborted) throw err;
           console.warn('[GuideCompletedTrips] Could not fetch reviews:', err);
+          warnings.push('Client tour reviews could not be retrieved.');
           return [];
         }),
       ]);
+
+      setSecondaryWarnings(warnings);
 
       const rawTrips = Array.isArray(tripsData) ? tripsData : [];
       const travelersList = Array.isArray(travelersData) ? travelersData : (travelersData?.value || []);
@@ -89,15 +102,15 @@ export default function GuideCompletedTripsPage() {
       });
       setReviewsMap(revMap);
 
-      // Enrich completed trips with client names
+      // Enrich completed trips with client names using businessName
       const enriched = completedOnly.map((trip) => {
         let clientName = 'Direct Client';
         if (trip.agencyId) {
           const ag = agencyMap.get(Number(trip.agencyId));
-          clientName = ag?.agencyName || ag?.name || `Partner Agency #${trip.agencyId}`;
+          clientName = getAgencyDisplayName(ag, trip.agencyId);
         } else if (trip.travelerId) {
           const tr = travelerMap.get(Number(trip.travelerId));
-          clientName = tr?.name || `Traveler #${trip.travelerId}`;
+          clientName = getTravelerDisplayName(tr, trip.travelerId);
         }
 
         return {
@@ -257,6 +270,33 @@ export default function GuideCompletedTripsPage() {
           <button type="button" onClick={handleRefresh} className="guide-retry-btn">
             Retry Connection
           </button>
+        </div>
+      )}
+
+      {/* Secondary Data Warnings Banner */}
+      {secondaryWarnings.length > 0 && (
+        <div
+          role="alert"
+          style={{
+            padding: '12px 18px',
+            borderRadius: '12px',
+            fontSize: '13px',
+            fontWeight: 500,
+            background: '#fffbeb',
+            color: '#92400e',
+            border: '1px solid #fde68a',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            marginBottom: '16px',
+          }}
+        >
+          {secondaryWarnings.map((warning, idx) => (
+            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>⚠️</span>
+              <span>{warning}</span>
+            </div>
+          ))}
         </div>
       )}
 

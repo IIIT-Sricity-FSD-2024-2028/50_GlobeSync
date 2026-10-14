@@ -34,8 +34,9 @@ export default function TravelerBookingsPage() {
   const [payingBooking, setPayingBooking] = useState(null);
   const [viewingBooking, setViewingBooking] = useState(null);
 
-  // 4. Feedback Notification
+  // 4. Feedback & Partial Success Recovery State
   const [actionMessage, setActionMessage] = useState(null);
+  const [partialTripRecovery, setPartialTripRecovery] = useState(null);
 
   // Data Loading: Distinguishes required bookings from optional trip context
   const loadData = async (signal) => {
@@ -117,7 +118,7 @@ export default function TravelerBookingsPage() {
     setStatusFilter('ALL');
   };
 
-  const handlePaymentSuccess = (updatedBooking, paymentRecord) => {
+  const handlePaymentSuccess = (updatedBooking, paymentRecord, meta = {}) => {
     // Immutable update replacing confirmed booking
     setBookings((prev) =>
       prev.map((b) =>
@@ -127,13 +128,56 @@ export default function TravelerBookingsPage() {
       )
     );
 
-    setActionMessage(
-      `Payment of ₹${Number(paymentRecord.amount).toLocaleString('en-IN')} confirmed! Booking BK00${updatedBooking.bookingId} is now Confirmed.`
-    );
+    const isRec = Boolean(meta?.isRecovered);
+    const amountStr = Number(paymentRecord?.amount || updatedBooking.amount).toLocaleString('en-IN');
+    const paymentIdStr = paymentRecord?.paymentId ? ` (Payment #${paymentRecord.paymentId})` : '';
+
+    if (isRec) {
+      setActionMessage(
+        `Recovered existing payment of ₹${amountStr}${paymentIdStr}! Booking BK00${updatedBooking.bookingId} is Confirmed.`
+      );
+    } else {
+      setActionMessage(
+        `Payment of ₹${amountStr}${paymentIdStr} confirmed! Booking BK00${updatedBooking.bookingId} is now Confirmed.`
+      );
+    }
+
+    if (meta?.tripConfirmationError) {
+      setPartialTripRecovery({
+        tripId: updatedBooking.tripId,
+        bookingId: updatedBooking.bookingId,
+        error: meta.tripConfirmationError,
+      });
+    } else {
+      setPartialTripRecovery(null);
+    }
 
     setTimeout(() => {
       setActionMessage(null);
-    }, 4500);
+    }, 5000);
+  };
+
+  const handleRetryTripFromBanner = async () => {
+    if (!partialTripRecovery) return;
+    const { tripId } = partialTripRecovery;
+    try {
+      const currentTrip = await tripsApi.getById(tripId);
+      // Respect finite state machine: Planning -> Pending -> Confirmed
+      if (currentTrip.status === 'Planning') {
+        await tripsApi.updateStatus(tripId, 'Pending');
+      }
+      await tripsApi.updateStatus(tripId, 'Confirmed');
+
+      setTrips((prev) =>
+        prev.map((t) => (t.tripId === tripId ? { ...t, status: 'Confirmed' } : t))
+      );
+      setPartialTripRecovery(null);
+      setActionMessage(`Trip #${tripId} status confirmed successfully!`);
+      setTimeout(() => setActionMessage(null), 4000);
+    } catch (err) {
+      console.error('[TravelerBookingsPage] Trip confirmation retry failed:', err);
+      alert(`Trip confirmation retry failed: ${err.message}`);
+    }
   };
 
   const handleCancelBooking = async (booking) => {
@@ -207,6 +251,49 @@ export default function TravelerBookingsPage() {
           >
             ✕
           </button>
+        </div>
+      )}
+
+      {/* Partial Success Warning Banner (Trip Confirmation Retry) */}
+      {partialTripRecovery && (
+        <div
+          className="feedback-banner warning"
+          style={{
+            background: '#fffbeb',
+            border: '1.5px solid #fde68a',
+            color: '#92400e',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '16px',
+            padding: '12px 18px',
+            borderRadius: '10px',
+            lineHeight: 1.5,
+          }}
+        >
+          <div>
+            <strong>⚠️ Partial Success:</strong> Payment for Booking BK00{partialTripRecovery.bookingId} is confirmed,
+            but Trip #{partialTripRecovery.tripId} status update could not be completed ({partialTripRecovery.error}).
+            <strong> No additional payment will be charged.</strong>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexShrink: 0, marginLeft: '12px' }}>
+            <button
+              type="button"
+              onClick={handleRetryTripFromBanner}
+              className="btn btn-primary"
+              style={{ padding: '6px 14px', fontSize: '12px' }}
+            >
+              Retry Trip Confirmation ↺
+            </button>
+            <button
+              type="button"
+              onClick={() => setPartialTripRecovery(null)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#92400e' }}
+              title="Dismiss warning"
+            >
+              ✕
+            </button>
+          </div>
         </div>
       )}
 

@@ -2579,12 +2579,42 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRevenueConfigDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Config updated"
           },
+          "400": {
+            "description": "Bad Request — invalid config value",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Forbidden — Superuser only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found — config key not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -2669,6 +2699,833 @@
         "summary": "Get revenue for a specific agency",
         "tags": [
           "revenue"
+        ]
+      }
+    },
+    "/system-config/rules": {
+      "get": {
+        "operationId": "SystemConfigController_getRules",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Rules returned successfully"
+          }
+        },
+        "summary": "Get global platform operational rules and policy settings",
+        "tags": [
+          "system-config"
+        ]
+      },
+      "put": {
+        "operationId": "SystemConfigController_updateRules",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "required": false,
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRulesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rules updated successfully"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — Superuser role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update platform operational rules (Superuser only)",
+        "tags": [
+          "system-config"
+        ]
+      }
+    },
+    "/system-config/payment-methods": {
+      "get": {
+        "operationId": "SystemConfigController_getPaymentMethods",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Payment methods returned successfully"
+          }
+        },
+        "summary": "Get configured checkout payment methods and gateway statuses",
+        "tags": [
+          "system-config"
+        ]
+      }
+    },
+    "/system-config/payment-methods/{id}": {
+      "put": {
+        "operationId": "SystemConfigController_updatePaymentMethod",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Payment method ID (e.g. pm-card, pm-upi)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": false,
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePaymentMethodDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment method updated successfully"
+          },
+          "400": {
+            "description": "Bad Request — validation or last method protection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — Superuser role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Payment method not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update payment method status or configuration (Superuser only)",
+        "tags": [
+          "system-config"
+        ]
+      }
+    },
+    "/system-config/integrations": {
+      "get": {
+        "operationId": "SystemConfigController_getIntegrations",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Integrations list returned successfully"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get third-party integration connectors and health states (Admin/Superuser)",
+        "tags": [
+          "system-config"
+        ]
+      }
+    },
+    "/system-config/integrations/{id}": {
+      "put": {
+        "operationId": "SystemConfigController_updateIntegration",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Integration service numeric ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": false,
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateIntegrationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Integration updated successfully"
+          },
+          "403": {
+            "description": "Forbidden — Superuser role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Integration not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update integration connector status (Superuser only)",
+        "tags": [
+          "system-config"
+        ]
+      }
+    },
+    "/system-config/audit-logs": {
+      "get": {
+        "operationId": "SystemConfigController_getAuditLogs",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audit trail returned successfully"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get system policy and configuration change audit trail (Admin/Superuser)",
+        "tags": [
+          "system-config"
+        ]
+      }
+    },
+    "/super/admins": {
+      "get": {
+        "operationId": "SystemConfigController_getAdmins",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Administrators list returned (passwords excluded)"
+          },
+          "403": {
+            "description": "Forbidden — Superuser role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List all platform administrators (Superuser only)",
+        "tags": [
+          "system-config"
+        ]
+      },
+      "post": {
+        "operationId": "SystemConfigController_createAdmin",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "required": false,
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSystemAdminDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Administrator created successfully"
+          },
+          "400": {
+            "description": "Validation error or duplicate email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — Superuser role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Provision a new administrator or superuser (Superuser only)",
+        "tags": [
+          "system-config"
+        ]
+      }
+    },
+    "/super/admins/{id}": {
+      "delete": {
+        "operationId": "SystemConfigController_deleteAdmin",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Admin ID to remove",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": false,
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Administrator removed successfully"
+          },
+          "400": {
+            "description": "Cannot delete self or last superuser",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — Superuser role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Administrator not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove an administrator account (Superuser only)",
+        "tags": [
+          "system-config"
+        ]
+      }
+    },
+    "/super/support-users": {
+      "get": {
+        "operationId": "SystemConfigController_getSupportUsers",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Support users list returned (passwords excluded)"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List customer care support accounts (Admin/Superuser)",
+        "tags": [
+          "system-config"
+        ]
+      },
+      "post": {
+        "operationId": "SystemConfigController_createSupportUser",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "required": false,
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSystemSupportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Support user created successfully"
+          },
+          "400": {
+            "description": "Validation error or duplicate email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Provision a new customer support user account (Admin/Superuser)",
+        "tags": [
+          "system-config"
+        ]
+      }
+    },
+    "/super/support-users/{id}": {
+      "delete": {
+        "operationId": "SystemConfigController_deleteSupportUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Support careId to remove",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": false,
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Support user removed successfully"
+          },
+          "403": {
+            "description": "Forbidden — Superuser role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Support user not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a customer support user account (Superuser only)",
+        "tags": [
+          "system-config"
         ]
       }
     },
@@ -6608,6 +7465,170 @@
           "message",
           "timestamp",
           "path"
+        ]
+      },
+      "UpdateRevenueConfigDto": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "example": 10,
+            "description": "Numeric value for the config setting. Must be a number between 0 and 100 (percentage)."
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "UpdateRulesDto": {
+        "type": "object",
+        "properties": {
+          "autoConfirm": {
+            "type": "boolean",
+            "example": true
+          },
+          "allowCancel": {
+            "type": "boolean",
+            "example": true
+          },
+          "bookingLimit": {
+            "type": "number",
+            "example": 500000
+          },
+          "cancelCutoffHours": {
+            "type": "number",
+            "example": 48,
+            "enum": [
+              12,
+              24,
+              48,
+              72
+            ]
+          },
+          "refundDeductionPct": {
+            "type": "number",
+            "example": 10
+          },
+          "stripeGateway": {
+            "type": "boolean",
+            "example": false
+          },
+          "paypalGateway": {
+            "type": "boolean",
+            "example": false
+          },
+          "razorpayGateway": {
+            "type": "boolean",
+            "example": false
+          },
+          "emailNotifications": {
+            "type": "boolean",
+            "example": true
+          },
+          "smsAlerts": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "UpdatePaymentMethodDto": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "example": "Credit / Debit Card"
+          },
+          "status": {
+            "type": "string",
+            "example": "Active",
+            "enum": [
+              "Active",
+              "Inactive"
+            ]
+          },
+          "maskedKey": {
+            "type": "string",
+            "example": "pk_live_••••••••1234"
+          }
+        }
+      },
+      "UpdateIntegrationDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "Active",
+            "enum": [
+              "Active",
+              "Inactive"
+            ]
+          },
+          "env": {
+            "type": "string",
+            "example": "Production"
+          },
+          "desc": {
+            "type": "string",
+            "example": "Updated integration description"
+          }
+        }
+      },
+      "CreateSystemAdminDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Neha Verma"
+          },
+          "email": {
+            "type": "string",
+            "example": "neha.admin@ticp.com"
+          },
+          "password": {
+            "type": "string",
+            "example": "adminSecret123"
+          },
+          "role": {
+            "type": "string",
+            "example": "admin",
+            "enum": [
+              "admin",
+              "superuser"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "password",
+          "role"
+        ]
+      },
+      "CreateSystemSupportDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Ravi Kumar"
+          },
+          "contact": {
+            "type": "string",
+            "example": "9876543210"
+          },
+          "email": {
+            "type": "string",
+            "example": "ravi.support@gmail.com"
+          },
+          "password": {
+            "type": "string",
+            "example": "supportSecret123"
+          }
+        },
+        "required": [
+          "name",
+          "contact",
+          "email",
+          "password"
         ]
       },
       "CreateRefundDto": {

@@ -7,23 +7,19 @@
 
 ---
 
-## 📌 Scope Specification: Traveler Conversion Subset
+## 📌 Scope Specification: Complete Multi-Actor Platform Migration
 
 > [!IMPORTANT]
-> **College Evaluation Requirement**: Only a selected subset of the **Traveler** workflow is targeted for conversion to React in this phase. The rest of the platform remains documented in this checklist for architectural completeness.
+> **Complete Platform Scope**: All 6 actor portals (**Traveler**, **Guide**, **Customer Support**, **Admin**, **Superuser**, and **Agency**) plus **Public & Authentication** workflows have been sequentially converted to React functional components and verified against the single shared NestJS backend instance (`http://localhost:3000`).
 >
-> * **In-Scope Traveler Features for React Conversion**:
->   1. **Package Catalog Browsing** (`/traveler/packages`): Search, filter, duration/budget parameters, modal view.
->   2. **My Travel Itineraries** (`/traveler/trips`): List trips, status filters (Planning, Pending, Confirmed, Completed, Cancelled), timeline expansion, and daily itinerary CRUD.
->   3. **Multi-Step Trip Planner** (`/traveler/plan`): Step-by-step itinerary creation, transport/stay/guide selection, live cost summary, submission to backend.
->   4. **Bookings & Payments** (`/traveler/bookings`): Bookings display, card payment simulation with ledger persistence, and refund requests.
->   5. **Expense Tracking** (`/traveler/expenses`): Controlled expense forms, trip expense breakdown, CSV export, and RBAC enforcement.
->   6. **Profile & Saved Passengers** (`/traveler/profile`): Traveler personal details, password change, session sync, and saved co-traveler CRUD.
->   7. **Customer Support** (`/traveler/support`): Controlled ticket creation, status tracking, booking linking, and FAQ helpdesk.
->   8. **Direct Messaging** (`/traveler/messages`): Multi-channel coordination with tour guides and customer care desk with live message dispatch.
->   9. **Traveler Dashboard** (`/traveler/dashboard`): Metric cards and gateway tying the active traveler modules together.
-> * **All Other Portals** (Guide, Support, Admin, Superuser, Agency, Public):
->   * Fully cataloged below with exact controller mappings and guard requirements; marked as ⬜ Not Migrated.
+> * **Actor Portals Fully Migrated & Verified**:
+>   1. **Traveler Portal** (9 Views): Dashboard, Package Catalog, Multi-Step Planner, Itineraries/Trips, Bookings & Payment Recovery, Expenses, Profile & Passengers, Support Tickets, Direct Messages.
+>   2. **Guide Portal** (6 Views): Dashboard, Trip Requests (Accept/Decline with notification decoupling), Assigned Travelers & Itinerary Execution, Completed Trips Archive, Messages, Profile.
+>   3. **Customer Support Portal** (5 Views): Dashboard KPI stream, Support Ticket Queue (Status triage Open -> In Progress -> Resolved), Refund Requests Processing (Linked payment audit), Direct Messages, Profile.
+>   4. **Admin Portal** (8 Views): Operational Dashboard, Master Bookings Roster, Trip Oversight (Guide reassignment with status reset), Package CRUD (Safe deletion checks), Agency Partner Approval & Commission Tiers, Guide Directory & CRUD, Review Moderation, Platform Reports.
+>   5. **Superuser Portal** (9 Views): Root Platform Command Center, Financial Intelligence & Margin Breakdown, User Directory CRUD (PricePerTrip preservation), Agency Lifecycle, Rules Config (Enforced in PaymentsService), Payment Methods Toggle, External API Health & Demonstration Disclosures, System Telemetry, Profile.
+>   6. **Agency Portal** (14 Views): Agency Dashboard, Package Catalog, Passenger Roster CRUD, Client Booking Creation & Recovery, Itinerary Builder, Booking Operations, Commission Ledger, Payments, Trip Expenses, Subscriptions, Promotions, Messaging, Profile, Support Desk.
+>   7. **Public & Auth** (10 Views): Landing Page, About, Contact, Central Portal Selector, Traveler Login, Staff Login, Superuser Login, Agency Login, Agency Registration, Traveler Signup.
 
 ---
 
@@ -89,12 +85,12 @@
 * **Ownership Enforcement**: Support staff have global read/update access to support tickets, refund requests, and traveler directories to resolve customer issues, but profile modification is strictly self-scoped (`careId == x-user-id`).
 
 | # | Current File | Target React Route | Existing Functionality | Relevant Backend Endpoints | Data Source | Ownership Restriction | Status |
-| :-: | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 16 | `front-end/support/support-dashboard.html` | `/support/dashboard` | Support team KPI dashboard (open tickets, resolved tickets, pending refunds, average response time), recent tickets queue | `GET /dashboard/support`<br>`GET /support-tickets`<br>`GET /refunds` | 🟢 API | Global support read access. Notifications simulated. | ⬜ |
-| 17 | `front-end/support/tickets.html` | `/support/tickets` | Complete ticket management queue: search/filter by status/priority, view traveler details, update status (Open, In Progress, Resolved, Closed) | `GET /support-tickets`<br>`GET /travelers`<br>`PATCH /support-tickets/:id/status` | 🟢 API | Role-level access: all support users can manage all tickets. | ⬜ |
-| 18 | `front-end/support/refunds.html` | `/support/refunds` | Refund processing table: review refund claims, verify linked booking/payment, approve or reject refund status | `GET /refunds`<br>`GET /payments`<br>`GET /bookings`<br>`PATCH /refunds/:id/status` | 🟢 API | Role-level access: support staff can transition refund status. | ⬜ |
-| 19 | `front-end/support/messages.html` | `/support/messages` | Direct support communication channel with travelers and agencies | `GET /messages/user/support/:userId`<br>`GET /messages/conversation`<br>`POST /messages`<br>`GET /travelers` | 🟢 API | Participant check: support user participates in support chat threads. | ⬜ |
-| 20 | `front-end/support/profile.html` | `/support/profile` | View and update customer support agent profile (name, email, department, phone) | `GET /support-users/:id`<br>`PUT /support-users/:id` | 🟢 API | Self-scoped: `:id` parameter must match `x-user-id` (`careId`). | ⬜ |
+| :-: | :--- | :--- | :--- | :--- | :--- | :--- | :---: |
+| 16 | `front-end/support/support-dashboard.html` | `/support/dashboard` | Support team KPI dashboard (open tickets, resolved tickets, pending refunds, average response time), recent tickets queue | `GET /dashboard/support`<br>`GET /support-tickets`<br>`GET /refunds` | 🟢 API | Global support read access. Verified against NestJS backend. | ✅ |
+| 17 | `front-end/support/tickets.html` | `/support/tickets` | Complete ticket management queue: search/filter by status/priority, view traveler details, update status (Open, In Progress, Resolved, Closed) | `GET /support-tickets`<br>`GET /travelers`<br>`PATCH /support-tickets/:id/status` | 🟢 API | Role-level access: all support users can manage all tickets. Verified against NestJS backend. | ✅ |
+| 18 | `front-end/support/refunds.html` | `/support/refunds` | Refund processing table: review refund claims, verify linked booking/payment, approve or reject refund status | `GET /refunds`<br>`GET /payments`<br>`GET /bookings`<br>`PATCH /refunds/:id/status` | 🟢 API | Role-level access: support staff can transition refund status. Verified against NestJS backend. | ✅ |
+| 19 | `front-end/support/messages.html` | `/support/messages` | Direct support communication channel with travelers and agencies | `GET /messages/user/support/:userId`<br>`GET /messages/conversation`<br>`POST /messages`<br>`GET /travelers` | 🟢 API | Participant check: support user participates in support chat threads. Verified against NestJS backend. | ✅ |
+| 20 | `front-end/support/profile.html` | `/support/profile` | View and update customer support agent profile (name, email, department, phone) | `GET /support-users/:id`<br>`PUT /support-users/:id` | 🟢 API | Self-scoped: `:id` parameter must match `x-user-id` (`careId`). Verified against NestJS backend. | ✅ |
 
 ---
 
@@ -105,15 +101,15 @@
 * **Ownership Enforcement**: Admins bypass ownership checks on operational business entities (trips, packages, bookings, reviews, agencies), but `AdminsController` enforces that `PUT /admins/:id` must match `x-user-id`.
 
 | # | Current File | Target React Route | Existing Functionality | Relevant Backend Endpoints | Data Source | Ownership Restriction | Status |
-| :-: | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 21 | `front-end/admin/admin-dashboard.html` | `/admin/dashboard` | Operational overview: platform bookings, trip counts, active packages, recent reviews stream, mini bookings table | `GET /dashboard/admin`<br>`GET /bookings`<br>`GET /trips`<br>`GET /reviews`<br>`GET /travelers` | 🟢 API | Admin role check; global system read permissions. | ⬜ |
-| 22 | `front-end/admin/packages.html` | `/admin/packages` | Full package CRUD: package grid, destination tags, price/duration, modal for create, edit, and delete | `GET /packages`<br>`POST /packages`<br>`PUT /packages/:id`<br>`DELETE /packages/:id` | 🟢 API | Admin role check; full CRUD permission. | ⬜ |
-| 23 | `front-end/admin/trips.html` | `/admin/trips` | Platform-wide trip oversight: table of all trips across all travelers and guides, status overrides, trip deletion | `GET /trips`<br>`GET /travelers`<br>`GET /guides`<br>`PATCH /trips/:id/status`<br>`DELETE /trips/:id` | 🟢 API | Admin role check; global trip control. | ⬜ |
-| 24 | `front-end/admin/bookings.html` | `/admin/bookings` | Master bookings roster: traveler name, trip reference, total price, booking dates, payment status | `GET /bookings`<br>`GET /travelers`<br>`GET /trips`<br>`PUT /bookings/:id`<br>`DELETE /bookings/:id` | 🟢 API | Admin role check; global booking inspection. | ⬜ |
-| 25 | `front-end/admin/reviews.html` | `/admin/reviews` | Moderation table for all traveler reviews, star ratings, comments, and admin deletion action | `GET /reviews`<br>`GET /travelers`<br>`GET /trips`<br>`DELETE /reviews/:id` | 🟢 API | Admin role check; moderation deletion allowed. | ⬜ |
-| 26 | `front-end/admin/reports.html` | `/admin/reports` | Analytics and operational metrics: booking volume, destination popularity, revenue aggregates, review ratings breakdown | `GET /dashboard/admin`<br>`GET /bookings`<br>`GET /trips`<br>`GET /travelers`<br>`GET /reviews` | 🟢 API | Admin role check; read-only analytics. | ⬜ |
-| 27 | `front-end/admin/agencies.html` | `/admin/agencies` | B2B Partner management: review pending reseller applications, approve/reject, set agency commission percentage | `GET /agencies`<br>`PATCH /agencies/:id/status` | 🟢 API | Admin role check; agency approval & commission update. | ⬜ |
-| 28 | `front-end/admin/profile.html` | `/admin/profile` | View and edit admin personal credentials, department, and notification settings | `GET /admins/:id`<br>`PUT /admins/:id` | 🟢 API | Self-scoped: `:id` parameter must match `x-user-id` (`adminId`). | ⬜ |
+| :-: | :--- | :--- | :--- | :--- | :--- | :--- | :---: |
+| 21 | `front-end/admin/admin-dashboard.html` | `/admin/dashboard` | Operational overview: platform bookings, trip counts, active packages, recent reviews stream, mini bookings table | `GET /dashboard/admin`<br>`GET /bookings`<br>`GET /trips`<br>`GET /reviews`<br>`GET /travelers` | 🟢 API | Admin role check; global system read permissions. Verified against NestJS backend. | ✅ |
+| 22 | `front-end/admin/packages.html` | `/admin/packages` | Full package CRUD: package grid, destination tags, price/duration, modal for create, edit, safe deletion with 409 conflict checks | `GET /packages`<br>`POST /packages`<br>`PUT /packages/:id`<br>`DELETE /packages/:id` | 🟢 API | Admin role check; full CRUD permission. Safe deletion blocks packages with active bookings/trips. | ✅ |
+| 23 | `front-end/admin/trips.html` | `/admin/trips` | Platform-wide trip oversight: table of all trips across all travelers and guides, guide reassignment resetting guideStatus, trip deletion | `GET /trips`<br>`GET /travelers`<br>`GET /guides`<br>`PUT /trips/:id`<br>`PATCH /trips/:id/status`<br>`DELETE /trips/:id` | 🟢 API | Admin role check; global trip control. Reassignment automatically resets guideStatus to 'Pending'. | ✅ |
+| 24 | `front-end/admin/bookings.html` | `/admin/bookings` | Master bookings roster: traveler name, trip reference, total price, booking dates, operational status vs payment status separation | `GET /bookings`<br>`GET /travelers`<br>`GET /trips`<br>`PUT /bookings/:id`<br>`DELETE /bookings/:id` | 🟢 API | Admin role check; global booking inspection. Displays insurance rate accurately (0.07 -> 7%). | ✅ |
+| 25 | `front-end/admin/reviews.html` | `/admin/reviews` | Moderation table for all traveler reviews, star ratings, comments, and admin deletion action | `GET /reviews`<br>`GET /travelers`<br>`GET /trips`<br>`DELETE /reviews/:id` | 🟢 API | Admin role check; moderation deletion allowed. Verified against NestJS backend. | ✅ |
+| 26 | `front-end/admin/reports.html` | `/admin/reports` | Analytics and operational metrics: booking volume, destination popularity, revenue aggregates, review ratings breakdown | `GET /dashboard/admin`<br>`GET /bookings`<br>`GET /trips`<br>`GET /travelers`<br>`GET /reviews` | 🟢 API | Admin role check; read-only analytics calculated from genuine records. | ✅ |
+| 27 | `front-end/admin/agencies.html` | `/admin/agencies` | B2B Partner management: review pending reseller applications, approve/reject, set agency commission percentage (0.5% - 1.5%) | `GET /agencies`<br>`PATCH /agencies/:id/status` | 🟢 API | Admin role check; agency approval gating login, commission bounds strictly enforced. | ✅ |
+| 28 | `front-end/admin/profile.html` | `/admin/profile` | View and edit admin personal credentials, department, and notification settings | `GET /admins/:id`<br>`PUT /admins/:id` | 🟢 API | Self-scoped: `:id` parameter must match `x-user-id` (`adminId`). Verified against NestJS backend. | ✅ |
 
 ---
 
@@ -124,15 +120,16 @@
 * **Ownership Enforcement**: Superuser has root system permissions across all modules, bypassing ownership for all entities except profile (`AdminsController`), where `:id` must equal `x-user-id`.
 
 | # | Current File | Target React Route | Existing Functionality | Relevant Backend Endpoints | Data Source | Ownership Restriction | Status |
-| :-: | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 29 | `front-end/super/super-dashboard.html` | `/super/dashboard` | Root platform command center: total users, system health, revenue snapshot, global entity breakdown | `GET /dashboard/superuser`<br>`GET /travelers`<br>`GET /guides`<br>`GET /trips`<br>`GET /bookings` | 🟢 API | Superuser role check; unrestricted read. | ⬜ |
-| 30 | `front-end/super/users.html` | `/super/users` | Master user management: list travelers and guides, toggle account status, edit records, register new guides, delete accounts | `GET /travelers`<br>`GET /guides`<br>`POST /guides`<br>`PUT /travelers/:id`<br>`PUT /guides/:id`<br>`DELETE /travelers/:id`<br>`DELETE /guides/:id` | 🟢 API | Superuser role check; full user CRUD. | ⬜ |
-| 31 | `front-end/super/agencies.html` | `/super/agencies` | Reseller ecosystem administration: approve/reject, edit commission tiers, create enterprise agency accounts, terminate partnerships | `GET /agencies`<br>`PATCH /agencies/:id/status`<br>`POST /agencies`<br>`DELETE /agencies/:id` | 🟢 API | Superuser role check; complete agency lifecycle control. | ⬜ |
-| 32 | `front-end/super/revenue.html` | `/super/revenue` | Financial intelligence: total gross revenue, net platform margin, agency commissions, category breakdown, monetization config editor | `GET /api/admin/revenue/overview`<br>`GET /api/admin/revenue/breakdown`<br>`GET /api/admin/revenue/transactions`<br>`GET /api/admin/revenue/config`<br>`PUT /api/admin/revenue/config/:key` | 🟢 API | Superuser role check (`PUT /api/admin/revenue/config/:key` is superuser exclusive). | ⬜ |
-| 33 | `front-end/super/reports.html` | `/super/reports` | System-wide analytical reports: monthly transaction trends, user acquisition graphs, platform health indicators | `GET /dashboard/superuser`<br>`GET /trips`<br>`GET /bookings`<br>`GET /reviews` | 🟢 API | Superuser role check; global system telemetry. | ⬜ |
-| 34 | `front-end/super/rules-config.html` | `/super/rules-config` | Global business rules editor: booking limits slider, auto-confirm thresholds, cancellation policies, gateway toggles | *None* (⚠️ Simulated in frontend UI) | 🟣 SIM | Frontend only simulation (no backend endpoint exists). | ⬜ |
-| 35 | `front-end/super/api-management.html` | `/super/api-management` | Third-party API dashboard: view API status, mock health monitor, toggle keys for external services (Amadeus, Stripe, Google Maps) | *None* (⚠️ Hardcoded array in `api-management.js`) | 🟣 SIM | Frontend only simulation (no backend endpoint exists). | ⬜ |
-| 36 | `front-end/super/profile.html` | `/super/profile` | Superuser master account profile and credentials update | `GET /admins/:id`<br>`PUT /admins/:id` | 🟢 API | Self-scoped: `:id` parameter must match `x-user-id`. | ⬜ |
+| :-: | :--- | :--- | :--- | :--- | :--- | :--- | :---: |
+| 29 | `front-end/super/super-dashboard.html` | `/super/dashboard` | Root platform command center: total users, measured service latency, genuine revenue snapshot, global entity breakdown | `GET /dashboard/superuser`<br>`GET /travelers`<br>`GET /guides`<br>`GET /trips`<br>`GET /bookings` | 🟢 API | Superuser role check; unrestricted read. No fabricated latency or availability. | ✅ |
+| 30 | `front-end/super/users.html` | `/super/users` | Master user management: list travelers and guides, toggle account status, edit records, register new guides preserving pricePerTrip, delete accounts | `GET /travelers`<br>`GET /guides`<br>`POST /guides`<br>`PUT /travelers/:id`<br>`PUT /guides/:id`<br>`DELETE /travelers/:id`<br>`DELETE /guides/:id` | 🟢 API | Superuser role check; full user CRUD. Consistent pricePerTrip field naming without zero loss. | ✅ |
+| 31 | `front-end/super/agencies.html` | `/super/agencies` | Reseller ecosystem administration: approve/reject, edit commission tiers (0.5% - 1.5%), create enterprise agency accounts, terminate partnerships | `GET /agencies`<br>`PATCH /agencies/:id/status`<br>`POST /agencies`<br>`DELETE /agencies/:id` | 🟢 API | Superuser role check; complete agency lifecycle control. No defaulting to 10%. | ✅ |
+| 32 | `front-end/super/revenue.html` | `/super/revenue` | Financial intelligence: total gross revenue, net platform margin, agency commissions, category breakdown, monetization config editor | `GET /api/admin/revenue/overview`<br>`GET /api/admin/revenue/breakdown`<br>`GET /api/admin/revenue/transactions`<br>`GET /api/admin/revenue/config`<br>`PUT /api/admin/revenue/config/:key` | 🟢 API | Superuser role check (`PUT /api/admin/revenue/config/:key` is superuser exclusive). Real zero months. | ✅ |
+| 33 | `front-end/super/reports.html` | `/super/reports` | System-wide analytical reports: monthly transaction trends, user acquisition graphs, platform health indicators | `GET /dashboard/superuser`<br>`GET /trips`<br>`GET /bookings`<br>`GET /reviews` | 🟢 API | Superuser role check; genuine review metrics and transaction trends. | ✅ |
+| 34 | `front-end/super/rules-config.html` | `/super/rules-config` | Global business rules editor: booking limits, max single payment ceiling (enforced in PaymentsService), auto-confirm toggles, audit logs | `GET /system-config/rules`<br>`PUT /system-config/rules`<br>`GET /system-config/audit-logs` | 🟢 API | Superuser exclusive. Enforced in real backend payment processing. | ✅ |
+| 35 | `front-end/super/api-management.html` | `/super/api-management` | Third-party API dashboard: measured internal health latency, clear sandbox/demonstration disclosures for unsupported external gateways | `GET /system-config/integrations`<br>`GET /health` | 🟢 API | Superuser exclusive. Honest labeling of external services without simulated active connections. | ✅ |
+| 36 | `front-end/super/profile.html` | `/super/profile` | Superuser master account profile and credentials update (name & email supported, no unsupported password mutation) | `GET /admins/:id`<br>`PUT /admins/:id` | 🟢 API | Self-scoped: `:id` parameter must match `x-user-id`. Verified against NestJS backend. | ✅ |
+| 36b | *(New)* | `/super/payment-methods` | System payment gateway configuration: active toggles (card, upi, bank_transfer, wallet), superuser audit logging | `GET /system-config/payment-methods`<br>`PUT /system-config/payment-methods` | 🟢 API | Superuser exclusive. Real backend persistence and refresh survival. | ✅ |
 
 ---
 
@@ -142,22 +139,29 @@
 * **Required User Header**: `x-user-id: <agencyId>` (numeric string)
 * **Ownership Enforcement**: `RolesGuard` strictly validates that `:agencyId` equals `x-user-id`. Agencies can only manage their own client passengers, book trips on behalf of their passengers, view their own commission ledger, and update their own agency profile.
 
+## 6. Agency Pages
+
+* **Required Role Header**: `x-user-role: agency`
+* **Required User Header**: `x-user-id: <agencyId>` (numeric string)
+* **Ownership Enforcement**: `RolesGuard` strictly validates that `:agencyId` equals `x-user-id`. Agencies can only manage their own client passengers, book trips on behalf of their passengers, view their own commission ledger, and update their own agency profile.
+
 | # | Current File | Target React Route | Existing Functionality | Relevant Backend Endpoints | Data Source | Ownership Restriction | Status |
-| :-: | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 37 | `front-end/agency/agency-dashboard.html` | `/agency/dashboard` | Agency summary KPIs: total agency bookings, active passengers, total commission earned, monthly revenue card | `GET /dashboard/agency/:agencyId`<br>`GET /bookings/agency/:agencyId`<br>`GET /passengers/agency/:agencyId` | 🟢 API | Self-scoped: `:agencyId` must match `x-user-id`. | ⬜ |
-| 38 | `front-end/agency/browse-packages.html` | `/agency/packages` | Catalog of retail travel packages available for agency client bookings | `GET /packages` | 🟢 API | Authenticated agency read permission. | ⬜ |
-| 39 | `front-end/agency/book-package.html` | `/agency/book` | Booking wizard: select catalog package, assign offline passenger, choose guide, submit booking at retail price | `GET /packages`<br>`GET /passengers/agency/:agencyId`<br>`GET /guides`<br>`POST /trips`<br>`POST /bookings` | 🟢 API | Agency must own passenger; trip and booking created with `agencyId = x-user-id`. | ⬜ |
-| 40 | `front-end/agency/bookings.html` | `/agency/bookings` | Table of all client bookings placed by the agency with commission calculations and booking status | `GET /bookings/agency/:agencyId` | 🟢 API | Self-scoped: `:agencyId` must match `x-user-id`. | ⬜ |
-| 41 | `front-end/agency/passengers.html` | `/agency/passengers` | Full CRUD for agency offline clients (passengers without system accounts): list, add, edit, delete | `GET /passengers/agency/:agencyId`<br>`POST /passengers`<br>`PATCH /passengers/:id`<br>`DELETE /passengers/:id` | 🟢 API | Self-scoped: agency can only read and mutate passengers where `passenger.agencyId == x-user-id`. | ⬜ |
-| 42 | `front-end/agency/commission.html` | `/agency/commission` | Commission statement: breakdown of earned commission percentages per completed booking | `GET /api/agencies/:id/revenue` | 🟢 API | Self-scoped: `:id` in revenue route must match `x-user-id`. | ⬜ |
-| 43 | `front-end/agency/agency-revenue.html` | `/agency/revenue` | Financial statement: gross booking volume, commission payouts, pending reconciliations | `GET /api/agencies/:id/revenue` | 🟢 API | Self-scoped: `:id` must match `x-user-id`. | ⬜ |
-| 44 | `front-end/agency/payments.html` | `/agency/payments` | Payment history for agency client bookings and transaction references | `GET /payments/agency/:agencyId` | 🟢 API | Self-scoped: `:agencyId` must match `x-user-id`. | ⬜ |
-| 45 | `front-end/agency/itinerary.html` | `/agency/itinerary` | View timeline itineraries for agency client trips | `GET /trips/agency/:agencyId`<br>`GET /itineraries/trip/:tripId` | 🟢 API | Trip owner check: agency must own the underlying trip. | ⬜ |
-| 46 | `front-end/agency/create-itinerary.html` | `/agency/create-itinerary` | Itinerary builder for agency client custom trips | `POST /trips`<br>`POST /itineraries`<br>`POST /bookings`<br>`GET /packages`<br>`GET /guides`<br>`GET /passengers/agency/:agencyId` | 🟢 API | Agency ownership enforced across trip, itinerary, and passenger IDs. | ⬜ |
-| 47 | `front-end/agency/expenses.html` | `/agency/expenses` | Record and track agency operational expenses attached to client trips | `GET /trips/agency/:agencyId`<br>`GET /expenses/trip/:tripId`<br>`POST /expenses` | 🟢 API | Trip owner check: agency must own `:tripId`. | ⬜ |
-| 48 | `front-end/agency/messages.html` | `/agency/messages` | Coordination chat with assigned tour guides regarding client itinerary details | `GET /messages/user/agency/:userId`<br>`GET /trips/agency/:agencyId`<br>`GET /guides`<br>`POST /messages` | 🟢 API | Participant check: agency user ID matches sender/receiver. | ⬜ |
-| 49 | `front-end/agency/support.html` | `/agency/support` | Ticket submission and tracking on behalf of offline clients | `GET /support-tickets/agency/:agencyId`<br>`POST /support-tickets` | 🟢 API | Self-scoped: `:agencyId` must match `x-user-id`. | ⬜ |
-| 50 | `front-end/agency/profile.html` | `/agency/profile` | View and edit agency company profile (name, license number, contact email, phone, commission rate display) | `GET /agencies/:id`<br>`PATCH /agencies/:id` | 🟢 API | Self-scoped: `:id` must match `x-user-id`. | ⬜ |
+| :-: | :--- | :--- | :--- | :--- | :--- | :--- | :---: |
+| 37 | `front-end/agency/agency-dashboard.html` | `/agency/dashboard` | Agency summary KPIs: total agency bookings, active passengers, total commission earned, monthly revenue card | `GET /dashboard/agency/:agencyId`<br>`GET /bookings/agency/:agencyId`<br>`GET /passengers/agency/:agencyId` | 🟢 API | Self-scoped: `:agencyId` must match `x-user-id`. Verified against NestJS backend. | ✅ |
+| 38 | `front-end/agency/browse-packages.html` | `/agency/packages` | Catalog of retail travel packages available for agency client bookings | `GET /packages` | 🟢 API | Authenticated agency read permission. Verified against NestJS backend. | ✅ |
+| 39 | `front-end/agency/book-package.html` | `/agency/book` / `/agency/book-package` | Booking wizard: select catalog package, assign offline passenger, choose guide, submit booking with step recovery | `GET /packages`<br>`GET /passengers/agency/:agencyId`<br>`GET /guides`<br>`POST /trips`<br>`POST /bookings` | 🟢 API | Agency must own passenger; trip and booking created with `agencyId = x-user-id`. Non-duplicating recovery verified. | ✅ |
+| 40 | `front-end/agency/bookings.html` | `/agency/bookings` | Table of all client bookings placed by the agency with commission calculations and booking status | `GET /bookings/agency/:agencyId` | 🟢 API | Self-scoped: `:agencyId` must match `x-user-id`. Verified against NestJS backend. | ✅ |
+| 41 | `front-end/agency/passengers.html` | `/agency/passengers` | Full CRUD for agency offline clients (passengers without system accounts): list, add, edit, delete | `GET /passengers/agency/:agencyId`<br>`POST /passengers`<br>`PATCH /passengers/:id`<br>`DELETE /passengers/:id` | 🟢 API | Self-scoped: agency can only read and mutate passengers where `passenger.agencyId == x-user-id`. Verified against NestJS backend. | ✅ |
+| 42 | `front-end/agency/commission.html` | `/agency/commission` | Commission statement: breakdown of earned commission percentages per completed booking | `GET /api/agencies/:id/revenue` | 🟢 API | Self-scoped: `:id` in revenue route must match `x-user-id`. Strict percentage representation. | ✅ |
+| 43 | `front-end/agency/agency-revenue.html` | `/agency/revenue` | Financial statement: gross booking volume, commission payouts, pending reconciliations | `GET /api/agencies/:id/revenue` | 🟢 API | Self-scoped: `:id` must match `x-user-id`. Verified against NestJS backend. | ✅ |
+| 44 | `front-end/agency/payments.html` | `/agency/payments` | Payment history for agency client bookings and transaction references | `GET /payments/agency/:agencyId` | 🟢 API | Self-scoped: `:agencyId` must match `x-user-id`. Verified against NestJS backend. | ✅ |
+| 45 | `front-end/agency/itinerary.html` | `/agency/itinerary` | View timeline itineraries for agency client trips | `GET /trips/agency/:agencyId`<br>`GET /itineraries/trip/:tripId` | 🟢 API | Trip owner check: agency must own the underlying trip. Verified against NestJS backend. | ✅ |
+| 46 | `front-end/agency/create-itinerary.html` | `/agency/create-itinerary` | Itinerary builder for agency client custom trips | `POST /trips`<br>`POST /itineraries`<br>`POST /bookings`<br>`GET /packages`<br>`GET /guides`<br>`GET /passengers/agency/:agencyId` | 🟢 API | Agency ownership enforced across trip, itinerary, and passenger IDs. | ✅ |
+| 47 | `front-end/agency/expenses.html` | `/agency/expenses` | Record and track agency operational expenses attached to client trips | `GET /trips/agency/:agencyId`<br>`GET /expenses/trip/:tripId`<br>`POST /expenses` | 🟢 API | Trip owner check: agency must own `:tripId`. Verified against NestJS backend. | ✅ |
+| 48 | `front-end/agency/messages.html` | `/agency/messages` | Coordination chat with assigned tour guides regarding client itinerary details | `GET /messages/user/agency/:userId`<br>`GET /trips/agency/:agencyId`<br>`GET /guides`<br>`POST /messages` | 🟢 API | Participant check: agency user ID matches sender/receiver. Verified against NestJS backend. | ✅ |
+| 49 | `front-end/agency/support.html` | `/agency/support` | Ticket submission and tracking on behalf of offline clients | `GET /support-tickets/agency/:agencyId`<br>`POST /support-tickets` | 🟢 API | Self-scoped: `:agencyId` must match `x-user-id`. Verified against NestJS backend. | ✅ |
+| 50 | `front-end/agency/profile.html` | `/agency/profile` | View and edit agency company profile (name, license number, contact email, phone, commission rate display) | `GET /agencies/:id`<br>`PATCH /agencies/:id` | 🟢 API | Self-scoped: `:id` must match `x-user-id`. Verified against NestJS backend. | ✅ |
+| 50b | *(New)* | `/agency/subscription` | Agency monetization subscriptions & promotional campaigns | `GET /api/subscriptions/plans`<br>`GET /api/agencies/:id/subscription`<br>`POST /api/subscriptions`<br>`GET /api/promotions`<br>`POST /api/promotions` | 🟢 API | Self-scoped: agency can subscribe to plans and launch marketing promotions. | ✅ |
 
 ---
 
@@ -166,17 +170,17 @@
 Public routes require no authentication headers (`x-user-role` / `x-user-id`). Unauthenticated users can access them freely.
 
 | # | Current File | Target React Route | Existing Functionality | Relevant Backend Endpoints | Data Source | Required Headers & Ownership | Status |
-| :-: | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 51 | `front-end/index.html` (legacy) | `/` | Landing page: hero banner, package search preview, popular destinations, key statistics, testimonial showcase, footer | *None (static marketing content)* | 🔴 MOCK | None (Public) | ⬜ |
-| 52 | `front-end/about.html` | `/about` | Company background, mission, platform features overview, core values | *None (static content)* | 🔴 MOCK | None (Public) | ⬜ |
-| 53 | `front-end/contact.html` | `/contact` | Contact form (name, email, subject, message), office details, embedded map placeholder | *None* (⚠️ No `POST /contact` endpoint) | 🟣 SIM | None (Public) | ⬜ |
-| 54 | `front-end/role-select.html` | `/portal-select` | Central login gateway directing users to role-specific login routes | *None (navigational links)* | 🔴 MOCK | None (Public) | ⬜ |
-| 55 | `front-end/traveler-login.html` | `/login/traveler` | Traveler authentication by email and password, stores session in `localStorage` | `POST /auth/traveler-login` (`TravelerLoginDto`) | 🟢 API | None (Public) | ⬜ |
-| 56 | `front-end/login.html` | `/login/staff` | Staff login for Admin, Superuser, Guide, and Support via role tabs and client access codes | `POST /auth/staff-login` (`StaffLoginDto`) | 🟢 API | None (Public; ⚠️ access code checked client-side) | ⬜ |
-| 57 | `front-end/super-login.html` | `/login/superuser` | Dedicated Superuser credentials login form | `POST /auth/staff-login` (`StaffLoginDto`) | 🟢 API | None (Public) | ⬜ |
-| 58 | `front-end/agency-login.html` | `/login/agency` | Travel Agency authentication by email and password | `POST /auth/agency-login` (`AgencyLoginDto`) | 🟢 API | None (Public; fails if agency status ≠ Approved) | ⬜ |
-| 59 | `front-end/agency-signup.html` | `/signup/agency` | Reseller agency registration form; creates agency with `Pending` status | `POST /agencies/register` (`CreateAgencyDto`) | 🟢 API | None (Public) | ⬜ |
-| 60 | `front-end/Traveler/signup.html` | `/signup/traveler` | Traveler account self-registration form (name, email, phone, password) | `POST /travelers` (`CreateTravelerDto`) | 🟡 MIXED | None (Public; ⚠️ legacy pushes to `DB.travelers` fallback) | ⬜ |
+| :-: | :--- | :--- | :--- | :--- | :--- | :--- | :---: |
+| 51 | `front-end/index.html` (legacy) | `/` | Landing page: hero banner, package search preview, popular destinations, key statistics, testimonial showcase, footer | *None (presentation)* | 🟢 API / Presentational | None (Public) | ✅ |
+| 52 | `front-end/about.html` | `/about` | Company background, mission, platform features overview, core values | *None (presentation)* | Presentational | None (Public) | ✅ |
+| 53 | `front-end/contact.html` | `/contact` | Contact form (name, email, subject, message), honest confirmation toast without simulated fake HTTP call | *None* | Controlled UI | None (Public) | ✅ |
+| 54 | `front-end/role-select.html` | `/portal-select` | Central login gateway directing users to role-specific login routes | *None (navigational links)* | Navigational | None (Public) | ✅ |
+| 55 | `front-end/traveler-login.html` | `/login/traveler` | Traveler authentication by email and password, stores session in `localStorage` | `POST /auth/traveler-login` (`TravelerLoginDto`) | 🟢 API | None (Public). Verified against NestJS backend. | ✅ |
+| 56 | `front-end/login.html` | `/login/staff` | Staff login for Admin, Superuser, Guide, and Support via role tabs and client access codes | `POST /auth/staff-login` (`StaffLoginDto`) | 🟢 API | None (Public). Verified against NestJS backend. | ✅ |
+| 57 | `front-end/super-login.html` | `/login/superuser` | Dedicated Superuser credentials login form | `POST /auth/staff-login` (`StaffLoginDto`) | 🟢 API | None (Public). Verified against NestJS backend. | ✅ |
+| 58 | `front-end/agency-login.html` | `/login/agency` | Travel Agency authentication by email and password; gates pending/rejected accounts | `POST /auth/agency-login` (`AgencyLoginDto`) | 🟢 API | None (Public; fails if agency status ≠ Approved). | ✅ |
+| 59 | `front-end/agency-signup.html` | `/signup/agency` | Reseller agency registration form; creates agency with `Pending` status | `POST /agencies/register` (`CreateAgencyDto`) | 🟢 API | None (Public). Verified against NestJS backend. | ✅ |
+| 60 | `front-end/Traveler/signup.html` | `/signup/traveler` | Traveler account self-registration form (name, email, phone, password) | `POST /travelers` (`CreateTravelerDto`) | 🟢 API | None (Public). Duplicate email validation verified. | ✅ |
 
 ---
 
@@ -219,23 +223,23 @@ Verified by source inspection of all 23 backend controller files in `back-end/sr
 | 1 | **Notifications System** | No backend notification controller or entity exists in NestJS. | Simulated client-side notification bell in React. Do not fabricate fake endpoints. |
 | 2 | **Public Contact Form** | No `POST /contact` endpoint exists in backend. | Show immediate client-side success message/toast on submission without network call. |
 | 3 | **Staff Login Access Codes** | Backend `POST /auth/staff-login` only validates `email` and `password`. Access codes (`ADMIN-TICP`, `GUIDE-2026`, `SUPP-2026`) are validated client-side only. | Preserve client-side access code validation before sending credentials to backend. |
-| 4 | **Superuser Rules Config** | No backend configuration controller or persistence for system booking limits or auto-confirm toggles. | Maintain local UI state simulation with toast confirmation. |
-| 5 | **Superuser API Management** | No backend service for external API keys (Amadeus, Stripe, Google Maps). Hardcoded list in frontend JS. | Render clean dashboard from local constant dataset with interactive status toggle. |
-| 6 | **Mock Data Fallbacks in Legacy JS** | Legacy pages fallback to `DB.savedPassengers` or `DB.travelers.push()`. | In React, interact purely with backend REST endpoints (`/passengers`, `/travelers`) and surface actual network errors. |
-| 7 | **Subscriptions & Promotions Endpoints** | Backend exposes `GET /api/subscriptions/plans` and `GET /api/promotions`, but legacy frontend pages never connected to them. | Ready for integration if monetization or promotional banners are added to agency portal. |
+| 4 | **Superuser Rules Config** | Resolved | Implemented genuine NestJS `/system-config/rules` endpoints with superuser RBAC guard and persistent audit logging (`/system-config/audit-logs`). System-wide payment limits are enforced directly in `PaymentsService.create()`. |
+| 5 | **Superuser API Management** | Resolved | Implemented genuine NestJS `/system-config/integrations` endpoint with measured latency via internal `/health` ping. Unsupported external gateways (Amadeus, Stripe, Google Maps) are explicitly disclosed as demonstrations with sandbox status. |
+| 6 | **Mock Data Fallbacks in Legacy JS** | Resolved | Eliminated all mock fallbacks in React. All data is fetched and mutated via genuine REST endpoints with real error reporting. |
+| 7 | **Subscriptions & Promotions Endpoints** | Resolved | Fully integrated in Agency portal (`/agency/subscription`) with `GET /api/subscriptions/plans`, `POST /api/subscriptions`, `GET /api/promotions`, and `POST /api/promotions`. |
 
 ---
 
-## 10. Proposed Simple Component & Layout Architecture
+## 10. Simple Component & Layout Architecture
 
 Keep components focused, clean, and directly understandable for student evaluation:
 
 ```text
 src/
 ├── context/
-│   └── SessionContext.jsx       # Small session context (user, role, isAuthenticated, login, logout)
+│   └── SessionContext.jsx       # Small session context (user, role, isAuthenticated, login, logout, updateUser)
 ├── layouts/
-│   ├── PublicLayout.jsx         # Simple layout with Navbar + Page Content + Footer
+│   ├── PublicLayout.jsx         # Public layout with Navbar + Page Content + Footer
 │   └── DashboardLayout.jsx      # Portal layout with Sidebar + Header + Page Content
 ├── components/
 │   ├── common/
@@ -246,20 +250,21 @@ src/
 │   │   ├── Toast.jsx            # Lightweight notification alert
 │   │   ├── Modal.jsx            # Accessible popup dialog wrapper
 │   │   └── ProtectedRoute.jsx   # Role guard wrapping protected routes
-│   ├── trips/
-│   │   ├── TripCard.jsx         # Card presenting an individual trip summary
-│   │   ├── TripCostSummary.jsx  # Live calculation breakdown widget
-│   │   ├── TripForm.jsx         # Step-by-step controlled form for trip planning
-│   │   ├── TransportSelectStep.jsx # Carrier / mode selector
-│   │   ├── HotelSelectStep.jsx  # Hotel / accommodation selector
-│   │   ├── GuideSelectStep.jsx  # Guide assignment selector
-│   │   └── PlanningModeSelect.jsx # Package vs custom itinerary chooser
-│   └── packages/
-│       ├── PackageCard.jsx      # Presentation card for tour package
-│       └── PackageDetailsModal.jsx # Detail popup for package overview & booking CTA
+│   ├── trips/                   # Traveler trip presentation & wizard components
+│   ├── packages/                # Package cards, search, filters & details modal
+│   ├── guide/                   # Guide request cards, status dialogs, itinerary progress
+│   ├── support/                 # Support ticket queue, status dropdowns, refund review modals
+│   ├── admin/                   # Admin booking tables, trip edit/reassign modal, package CRUD modal
+│   ├── super/                   # Superuser user directory, rules sliders, revenue margin calculators
+│   └── agency/                  # Agency passenger roster CRUD, package booking wizard, commission statements
 ├── pages/
-│   ├── public/                  # Public & authentication pages
-│   └── traveler/                # Converted traveler pages (Dashboard, Packages, Trips, Plan)
+│   ├── public/                  # Public & authentication pages (Landing, About, Contact, Logins, Signups)
+│   ├── traveler/                # Traveler pages (Dashboard, Packages, Plan, Trips, Bookings, Expenses, etc.)
+│   ├── guide/                   # Guide pages (Dashboard, Requests, Travelers, Completed Trips, Messages, Profile)
+│   ├── support/                 # Customer Support pages (Dashboard, Tickets, Refunds, Messages, Profile)
+│   ├── admin/                   # Admin pages (Dashboard, Bookings, Trips, Packages, Agencies, Guides, Reviews, etc.)
+│   ├── super/                   # Superuser pages (Dashboard, Revenue, Users, Agencies, Rules, APIs, Payment Methods)
+│   └── agency/                  # Agency pages (Dashboard, Packages, Book, Bookings, Passengers, Commission, etc.)
 └── services/
     └── api.js                   # Fetch wrapper injecting x-user-role and x-user-id headers
 ```
@@ -272,9 +277,9 @@ src/
 | :--- | :---: | :---: | :---: | :---: |
 | **Traveler (Completed Workflow)** | 9 | 9 | 0 | 100% Completed & Verified ✅ |
 | **Guide (Completed Workflow)** | 6 | 6 | 0 | 100% Completed & Verified ✅ |
-| **Support (Teammate Actor)** | 5 | 0 | 5 | ⬜ Separate Teammate Device |
-| **Admin (Teammate Actor)** | 8 | 0 | 8 | ⬜ Separate Teammate Device |
-| **Superuser (Teammate Actor)** | 8 | 0 | 8 | ⬜ Separate Teammate Device |
-| **Agency (Teammate Actor)** | 14 | 0 | 14 | ⬜ Separate Teammate Device |
-| **Public & Auth (Traveler Signup Done)** | 10 | 2 | 8 | 🔄 Traveler Signup & RoleSelect Active |
-| **Total** | **60 views / 59 files** | **17** | **43** | **Traveler & Guide 100% Verified** |
+| **Support (Completed Workflow)** | 5 | 5 | 0 | 100% Completed & Verified ✅ |
+| **Admin (Completed Workflow)** | 8 | 8 | 0 | 100% Completed & Verified ✅ |
+| **Superuser (Completed Workflow)** | 9 | 9 | 0 | 100% Completed & Verified ✅ |
+| **Agency (Completed Workflow)** | 14 | 14 | 0 | 100% Completed & Verified ✅ |
+| **Public & Auth (Completed Workflow)** | 10 | 10 | 0 | 100% Completed & Verified ✅ |
+| **Total** | **61 views / 59 files** | **61** | **0** | **100% Full-Platform Verified ✅** |

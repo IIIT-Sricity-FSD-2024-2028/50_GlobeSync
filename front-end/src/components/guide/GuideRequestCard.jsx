@@ -1,4 +1,5 @@
 import React from 'react';
+import { isGuideAccepted, isGuideDeclined } from './guideStateHelpers';
 
 /**
  * GuideRequestCard Component
@@ -22,8 +23,8 @@ export default function GuideRequestCard({
   const isNotifying = actionState === 'notifying';
   const isSubmitting = isAccepting || isDeclining || isNotifying;
 
-  const isAccepted = trip.guideStatus === 'Accepted' || (trip.status === 'Confirmed' && trip.guideStatus !== 'Declined');
-  const isDeclined = trip.guideStatus === 'Declined' || trip.guideId === null;
+  const isAccepted = isGuideAccepted(trip);
+  const isDeclined = isGuideDeclined(trip);
 
   const requestorName = trip.requestorName || 'Unknown Requestor';
   const isAgency = Boolean(trip.agencyId);

@@ -13,6 +13,7 @@ import { ApiRoleHeader } from '../common/decorators/api-role-header.decorator';
 import { ApiUserHeaders } from '../common/decorators/api-user-headers.decorator';
 import { Role } from '../common/enums/role.enum';
 import { ErrorResponseDto } from '../common/dto/error-response.dto';
+import { UpdateRevenueConfigDto } from './dto/update-revenue-config.dto';
 
 @ApiTags('revenue')
 @Controller('api')
@@ -73,12 +74,14 @@ export class RevenueController {
   @ApiOperation({ summary: 'Update a revenue config value (Superuser only)' })
   @ApiParam({ name: 'key', type: String, description: 'Config key to update' })
   @ApiResponse({ status: 200, description: 'Config updated' })
+  @ApiResponse({ status: 400, description: 'Bad Request — invalid config value', type: ErrorResponseDto })
   @ApiResponse({ status: 403, description: 'Forbidden — Superuser only', type: ErrorResponseDto })
+  @ApiResponse({ status: 404, description: 'Not Found — config key not found', type: ErrorResponseDto })
   updateConfig(
     @Param('key') key: string,
-    @Body('value') value: number,
+    @Body() dto: UpdateRevenueConfigDto,
   ) {
-    return this.revenueService.updateConfig(key, value);
+    return this.revenueService.updateConfig(key, dto.value);
   }
 
   // ================= AGENCY ROUTES =================

@@ -141,12 +141,31 @@ front-end/src/
 ### Workflow A: Package Selection → Trip Creation → Bookings & Payment
 1. **Selection**: User clicks "Select Package" in `/traveler/packages`. The router navigates to `/traveler/plan?packageId=1`.
 2. **Pre-population**: `TravelerCreateTripPage` reads the URL parameter, pre-fills package destination, dates, hotel, and calculated rates.
-3. **Step Tracking**:
+3. **Step Tracking & Trip-Creation Recovery**:
    - The user advances through wizard steps.
    - On final submit (`handleSubmit`), the page creates the trip (`POST /trips`), then creates transport & hotel bookings (`POST /bookings`), and sends a message to the assigned guide (`POST /messages`).
-   - If an intermediate booking fails, the trip ID is already persisted in `sessionStorage` (`globesync_pending_trip_submission`) so the user can retry without creating duplicate trips.
-4. **Checkout**: The user goes to `/traveler/bookings`. They click "Pay Now" on a pending booking.
-5. **Ledger Commitment**: `PaymentModal` executes `POST /payments` and updates `PUT /bookings/:id` to `Confirmed`. The backend duplicate check blocks double charges. If all bookings for the trip are confirmed, the trip status transitions from `Pending` to `Confirmed`.
+   - Transport booking amount is persisted as `Math.round(costData.totalTransportBooking)` (including base fare, compulsory travel insurance, and optional cancellation protection).
+   - If an intermediate booking fails, the trip ID and state are persisted in `sessionStorage` (`globesync_pending_trip_submission`) and a `TripSubmissionRecoveryBanner` appears, allowing the traveler to retry missing bookings without re-creating the trip.
+4. **Checkout (`PaymentModal`)**: The user navigates to `/traveler/bookings` and clicks "Pay Now" on a pending booking.
+5. **Gateway Simulation & Card Validation**:
+   - Card authorization is explicitly simulated (demo card: `4532 0123 4567 8910`, `12/28`, `123` with "Use Demo Card Details" quick-fill).
+   - `validateExpiryDate()` validates real `MM/YY` structure, month range (`01`–`12`), and verifies that the card has not expired relative to the current month/year.
+   - Closing or switching the modal (via backdrop, '✕' button, cancel, or Escape key) is strictly blocked while `isProcessing` is active to prevent misleading partial states.
+6. **Paid Record Recovery vs. New Payment**:
+   - On opening and before creating a payment, `PaymentModal` queries `GET /payments/booking/:id` to check if a `Paid` record already exists in the backend ledger.
+   - **Recovery Rule**: If an existing `Paid` record is found, the modal enters **Recovery Mode**:
+     - It uses the recorded payment's amount and details rather than re-charging.
+     - The cancellation protection toggle is locked to match the recorded transaction, preventing silent modifications to booking amount or protection selection.
+     - Submitting recovers the payment and confirms the booking (`PUT /bookings/:id`).
+   - **Duplicate Prevention**: If a new payment is submitted concurrently or already exists, the backend duplicate check rejects double charges, and `PaymentModal` recovers the existing record.
+7. **Trip Status FSM Synchronization & Partial Success State**:
+   - Only when **all** bookings for the trip are confirmed does the trip transition to `Confirmed`.
+   - Adheres to the backend Finite State Machine: If the trip is in `Planning`, it transitions `Planning` $\rightarrow$ `Pending` $\rightarrow$ `Confirmed`.
+   - `guideStatus` is kept separate and untouched.
+   - **Partial Success Recovery**: If payment and booking are confirmed but trip status update encounters a failure, the modal enters a **Partial Success** view:
+     - Clear warning explaining the trip status issue.
+     - Guarantees that payment is safe and no repeat payment will be made.
+     - Offers a "Retry Trip Confirmation" button (both in `PaymentModal` and on `TravelerBookingsPage`) that re-attempts trip confirmation *without ever re-recording payment*.
 
 ### Workflow B: Managing Daily Itineraries
 1. In `/traveler/trips`, clicking a trip updates the URL to `?tripId=1`.

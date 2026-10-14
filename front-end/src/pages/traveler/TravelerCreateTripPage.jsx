@@ -428,7 +428,7 @@ export default function TravelerCreateTripPage() {
             travelerId: travelerId,
             service: formData.transportName,
             type: formData.transportType === 'Flight' ? 'Flight' : 'Transport',
-            amount: Math.round(costData.transportCost),
+            amount: Math.round(costData.totalTransportBooking),
             status: 'Pending',
             insuranceSelected: true,
             transportMode: formData.transportType,

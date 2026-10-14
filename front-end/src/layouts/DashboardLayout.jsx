@@ -30,6 +30,7 @@ const ROLE_MENU_CONFIG = {
     { label: 'Tickets Queue', path: '/support/tickets', icon: '🎫' },
     { label: 'Refund Requests', path: '/support/refunds', icon: '💰' },
     { label: 'Messages', path: '/support/messages', icon: '💬' },
+    { label: 'Profile', path: '/support/profile', icon: '👤' },
   ],
   admin: [
     { label: 'Dashboard', path: '/admin/dashboard', icon: '📊' },
@@ -37,6 +38,7 @@ const ROLE_MENU_CONFIG = {
     { label: 'Trips Oversight', path: '/admin/trips', icon: '📍' },
     { label: 'Packages', path: '/admin/packages', icon: '📦' },
     { label: 'Agencies', path: '/admin/agencies', icon: '🏢' },
+    { label: 'Guides', path: '/admin/guides', icon: '🧭' },
     { label: 'Reviews', path: '/admin/reviews', icon: '⭐' },
     { label: 'Reports', path: '/admin/reports', icon: '📈' },
     { label: 'Profile', path: '/admin/profile', icon: '👤' },
@@ -55,9 +57,16 @@ const ROLE_MENU_CONFIG = {
   agency: [
     { label: 'Dashboard', path: '/agency/dashboard', icon: '📊' },
     { label: 'Browse Packages', path: '/agency/packages', icon: '📦' },
+    { label: 'Create Itinerary', path: '/agency/create-itinerary', icon: '🗺️' },
     { label: 'Client Bookings', path: '/agency/bookings', icon: '🎫' },
     { label: 'Passenger Roster', path: '/agency/passengers', icon: '👥' },
-    { label: 'Commission Statement', path: '/agency/commission', icon: '💰' },
+    { label: 'Trip Expenses', path: '/agency/expenses', icon: '🧾' },
+    { label: 'Commission Ledger', path: '/agency/commission', icon: '💰' },
+    { label: 'Payments', path: '/agency/payments', icon: '💳' },
+    { label: 'Subscriptions', path: '/agency/subscription', icon: '⭐' },
+    { label: 'Messages', path: '/agency/messages', icon: '💬' },
+    { label: 'Agency Profile', path: '/agency/profile', icon: '🏢' },
+    { label: 'Support Desk', path: '/agency/support', icon: '🎧' },
   ],
 };
 

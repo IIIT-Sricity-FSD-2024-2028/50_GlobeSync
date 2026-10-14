@@ -5,6 +5,7 @@ import GuideTravelerRoster from '../../components/guide/GuideTravelerRoster';
 import GuideTravelerProfile from '../../components/guide/GuideTravelerProfile';
 import GuideActivityModal from '../../components/guide/GuideActivityModal';
 import GuideSuggestItineraryModal from '../../components/guide/GuideSuggestItineraryModal';
+import { getAgencyDisplayName, getTravelerDisplayName } from '../../components/guide/guideStateHelpers';
 import './guide.css';
 
 /**
@@ -15,7 +16,7 @@ import './guide.css';
  * - Derives visible roster from trips assigned to current guide
  * - Handles travelers with multiple trips without dropping any
  * - Clearly distinguishes agency contacts from individual travelers
- * - Handles missing related records gracefully with safe fallbacks
+ * - Handles missing related records gracefully with safe fallbacks and warnings
  * - Uses permitted scoped GET /bookings/guide/:guideId without forbidden global GET /bookings calls
  * - Loads and manages daily itineraries for selected trip with controlled forms
  * - Resets form states when changing trip or activity
@@ -40,6 +41,7 @@ export default function GuideTravelersPage() {
   // UI / Async action states
   const [isLoadingPage, setIsLoadingPage] = useState(true);
   const [pageError, setPageError] = useState(null);
+  const [secondaryWarnings, setSecondaryWarnings] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [feedback, setFeedback] = useState(null); // { type: 'success' | 'warning' | 'error', text: string }
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
@@ -64,23 +66,34 @@ export default function GuideTravelersPage() {
 
     setIsLoadingPage(true);
     setPageError(null);
+    setSecondaryWarnings([]);
 
     try {
+      const warnings = [];
+
       const [tripsData, travelersData, agenciesData, bookingsData] = await Promise.all([
         tripsApi.getByGuide(guideId, { signal }),
         travelersApi.getAll({ signal }).catch((err) => {
+          if (err.isCancelled || signal?.aborted) throw err;
           console.warn('[GuideTravelersPage] Could not fetch travelers:', err);
+          warnings.push('Traveler directory could not be reached; traveler client names are displayed with fallback IDs.');
           return [];
         }),
         agenciesApi.getLookup({ signal }).catch((err) => {
+          if (err.isCancelled || signal?.aborted) throw err;
           console.warn('[GuideTravelersPage] Could not fetch agencies:', err);
+          warnings.push('Agency directory could not be reached; partner agency business names are displayed with fallback IDs.');
           return [];
         }),
         bookingsApi.getByGuide(guideId, { signal }).catch((err) => {
+          if (err.isCancelled || signal?.aborted) throw err;
           console.warn('[GuideTravelersPage] Could not fetch scoped bookings:', err);
+          warnings.push('Scoped booking accommodations could not be retrieved.');
           return [];
         }),
       ]);
+
+      setSecondaryWarnings(warnings);
 
       const rawTrips = Array.isArray(tripsData) ? tripsData : [];
       const travelersList = Array.isArray(travelersData) ? travelersData : (travelersData?.value || []);
@@ -115,7 +128,7 @@ export default function GuideTravelersPage() {
               key,
               type: 'agency',
               contactId: Number(trip.agencyId),
-              name: agency?.agencyName || agency?.name || `Partner Agency #${trip.agencyId}`,
+              name: getAgencyDisplayName(agency, trip.agencyId),
               email: agency?.email || agency?.contactEmail || 'N/A',
               phone: agency?.phone || agency?.contactPhone || 'N/A',
               trips: [],
@@ -130,7 +143,7 @@ export default function GuideTravelersPage() {
               key,
               type: 'traveler',
               contactId: Number(trip.travelerId),
-              name: traveler?.name || `Traveler #${trip.travelerId}`,
+              name: getTravelerDisplayName(traveler, trip.travelerId),
               email: traveler?.email || 'N/A',
               phone: traveler?.phone || 'N/A',
               gender: traveler?.gender,
@@ -520,6 +533,33 @@ export default function GuideTravelersPage() {
           <button type="button" onClick={handleRefresh} className="guide-retry-btn">
             Retry Connection
           </button>
+        </div>
+      )}
+
+      {/* Secondary Data Warnings Banner */}
+      {secondaryWarnings.length > 0 && (
+        <div
+          role="alert"
+          style={{
+            padding: '12px 18px',
+            borderRadius: '12px',
+            fontSize: '13px',
+            fontWeight: 500,
+            background: '#fffbeb',
+            color: '#92400e',
+            border: '1px solid #fde68a',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            marginBottom: '16px',
+          }}
+        >
+          {secondaryWarnings.map((warning, idx) => (
+            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>⚠️</span>
+              <span>{warning}</span>
+            </div>
+          ))}
         </div>
       )}
 

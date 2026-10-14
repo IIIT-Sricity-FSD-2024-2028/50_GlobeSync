@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { revenueApi } from '../../services/api';
 import StatusBadge from '../../components/common/StatusBadge';
-import SummaryCard from '../../components/common/SummaryCard';
 import {
   AdminPage,
   AdminTable,
@@ -12,6 +11,26 @@ import {
   matches,
   useAdminData,
 } from '../../components/admin/AdminUI';
+import SuperMetricCard from '../../components/super/SuperMetricCard';
+
+/**
+ * SuperRevenuePage
+ * Primary route: /super/revenue
+ *
+ * Financial Intelligence & Revenue Governance console.
+ *
+ * Pedagogical Architecture & Policy Compliance:
+ * 1. Financial Scope Distinction:
+ *    - Clearly distinguishes Gross Booking Value (GBV), Platform Commission Revenue,
+ *      Partner Payouts, and Net Margin.
+ * 2. Subscription Provenance:
+ *    - Labeled accurately as "Cumulative Subscription Revenue" instead of misrepresenting
+ *      an all-time total as Monthly Recurring Revenue (MRR).
+ * 3. Backend Monthly Trend:
+ *    - Renders the exact 6-month monthly trend from the backend; empty months stay zero.
+ * 4. Provenance Metadata:
+ *    - Documents population, filters, units, and timeframe for all metrics.
+ */
 
 const loadRevenue = async (options) => {
   const [overview, breakdown, transactions, config] = await Promise.all([
@@ -20,6 +39,7 @@ const loadRevenue = async (options) => {
     revenueApi.getTransactions(options),
     revenueApi.getConfig(options),
   ]);
+
   return {
     overview,
     breakdown: breakdown || {},
@@ -40,6 +60,98 @@ const STREAM_TYPES = [
 ];
 
 const TX_STATUSES = ['ALL', 'EARNED', 'SETTLED', 'PENDING', 'REFUNDED'];
+
+/**
+ * Presentational component rendering the authentic backend monthly trend.
+ * Preserves zero values for months without transactions without interpolation.
+ */
+function MonthlyTrendSection({ monthlyTrend = [] }) {
+  if (!Array.isArray(monthlyTrend) || monthlyTrend.length === 0) {
+    return null;
+  }
+
+  const maxRevenue = Math.max(...monthlyTrend.map((m) => m.revenue || 0), 1);
+
+  return (
+    <div className="card" style={{ padding: '24px', borderRadius: '16px', marginBottom: '24px' }}>
+      <div style={{ marginBottom: '16px' }}>
+        <h2 style={{ fontSize: '16px', fontWeight: 700, margin: 0 }}>
+          6-Month Revenue Settlement Trend
+        </h2>
+        <p style={{ fontSize: '13px', color: 'var(--muted)', margin: '4px 0 0' }}>
+          Derived from the backend monthly ledger. Empty months remain ₹0 without interpolation.
+        </p>
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${monthlyTrend.length}, 1fr)`,
+          gap: '12px',
+          alignItems: 'end',
+          height: '180px',
+          padding: '16px 8px 8px',
+          background: '#f8fafc',
+          borderRadius: '12px',
+          border: '1px solid #f1f5f9',
+        }}
+      >
+        {monthlyTrend.map((item, idx) => {
+          const heightPct = Math.round(((item.revenue || 0) / maxRevenue) * 100);
+          const isZero = (item.revenue || 0) === 0;
+
+          return (
+            <div
+              key={`${item.month}-${item.year}-${idx}`}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                height: '100%',
+                justifyContent: 'flex-end',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: isZero ? '#94a3b8' : '#059669',
+                  marginBottom: '6px',
+                  textAlign: 'center',
+                }}
+              >
+                {money(item.revenue)}
+              </div>
+              <div
+                style={{
+                  width: '100%',
+                  maxWidth: '48px',
+                  height: `${Math.max(heightPct, 4)}%`,
+                  background: isZero
+                    ? '#e2e8f0'
+                    : 'linear-gradient(180deg, #6366f1 0%, #4338ca 100%)',
+                  borderRadius: '6px 6px 0 0',
+                  transition: 'height 0.3s ease',
+                }}
+              />
+              <div
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#475569',
+                  marginTop: '8px',
+                }}
+              >
+                {item.month}
+              </div>
+              <div style={{ fontSize: '10px', color: '#94a3b8' }}>{item.year}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function SuperRevenuePage() {
   const resource = useAdminData(loadRevenue);
@@ -79,8 +191,7 @@ export default function SuperRevenuePage() {
     e.preventDefault();
     const val = Number(configValue);
     resource.run(
-      () =>
-        revenueApi.updateConfig(editingConfig.key_name, { value: val }),
+      () => revenueApi.updateConfig(editingConfig.key_name, { value: val }),
       `Configuration '${editingConfig.key_name}' updated to ${val}.`,
       () => setEditingConfig(null)
     );
@@ -90,60 +201,99 @@ export default function SuperRevenuePage() {
     <AdminPage title="Financial Intelligence & Revenue Governance" resource={resource}>
       {d && (
         <>
-          {/* Top 5 KPI Cards matching super/revenue.html */}
+          {/* Provenance-Backed KPI Grid */}
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
               gap: '16px',
               marginBottom: '24px',
             }}
           >
-            <SummaryCard
-              label="Gross Booking Value"
+            <SuperMetricCard
+              title="Gross Booking Value"
               value={money(overview.grossBookingValue)}
-              style={{ borderRadius: 12 }}
+              population="All Transaction Face Values"
+              statusFilter="status IN ['EARNED', 'SETTLED']"
+              units="INR (₹)"
+              timePeriod="All-time cumulative"
+              accentColor="#0284c7"
+              note="Total volume of travel bookings facilitated across all channels."
             />
-            <SummaryCard
-              label="Platform Revenue"
-              value={
-                <span style={{ color: '#059669', fontWeight: 800 }}>
-                  {money(overview.totalRevenue)}
-                </span>
-              }
-              style={{ borderRadius: 12 }}
+
+            <SuperMetricCard
+              title="Platform Commission"
+              value={money(overview.totalRevenue)}
+              population="Revenue Commission Ledger"
+              statusFilter="status IN ['EARNED', 'SETTLED']"
+              units="INR (₹)"
+              timePeriod="All-time retained"
+              accentColor="#059669"
+              note="Actual platform fee and markup retained by GlobeSync."
             />
-            <SummaryCard
-              label="Total Payouts"
+
+            <SuperMetricCard
+              title="Partner Payouts"
               value={money(overview.totalPayouts)}
-              style={{ borderRadius: 12 }}
+              population="Agency & Guide Allocations"
+              statusFilter="status IN ['EARNED', 'SETTLED']"
+              units="INR (₹)"
+              timePeriod="All-time allocated"
+              accentColor="#7c3aed"
+              note="Portion disbursed to third-party agency and guide operators."
             />
-            <SummaryCard
-              label="Pending Settlement"
-              value={
-                <span style={{ color: '#d97706' }}>
-                  {money(overview.pendingRevenue)}
-                </span>
-              }
-              style={{ borderRadius: 12 }}
+
+            <SuperMetricCard
+              title="Pending Settlement"
+              value={money(overview.pendingRevenue)}
+              population="Active & Planned Tours"
+              statusFilter="status = 'PENDING' / 'EARNED'"
+              units="INR (₹)"
+              timePeriod="In-flight tours"
+              accentColor="#d97706"
+              note="Escrow revenue held until tour reaches Completed lifecycle."
             />
-            <SummaryCard
-              label="Subscription MRR"
-              value={
-                <span style={{ color: '#7c3aed' }}>
-                  {money(overview.breakdown?.SUBSCRIPTION ?? 0)}
-                </span>
-              }
-              style={{ borderRadius: 12 }}
+
+            <SuperMetricCard
+              title="Net Profit Margin"
+              value={`${overview.netProfitMargin ?? '0.00'}%`}
+              population="Platform Revenue / Gross Volume"
+              statusFilter="Settled transactions"
+              units="Percentage (%)"
+              timePeriod="All-time"
+              accentColor="#059669"
+            />
+
+            <SuperMetricCard
+              title="Cumulative Subscriptions"
+              value={money(overview.breakdown?.SUBSCRIPTION ?? 0)}
+              population="Agency Subscription Fees"
+              statusFilter="revenue_type = 'SUBSCRIPTION'"
+              units="INR (₹)"
+              timePeriod="All-time cumulative"
+              accentColor="#7c3aed"
+              note="All-time agency subscriptions. MRR omitted without recurring billing telemetry."
             />
           </div>
 
+          {/* Authentic Backend Monthly Trend */}
+          <MonthlyTrendSection monthlyTrend={overview.monthlyTrend} />
+
           {/* Revenue Category Breakdown Progress */}
-          <div className="card" style={{ padding: '24px', borderRadius: '16px', marginBottom: '24px' }}>
+          <div
+            className="card"
+            style={{ padding: '24px', borderRadius: '16px', marginBottom: '24px' }}
+          >
             <h2 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>
               Revenue Contribution by Stream
             </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                gap: '16px',
+              }}
+            >
               {Object.entries(d.breakdown).map(([stream, amt]) => {
                 const total = overview.totalRevenue || 1;
                 const pct = Math.min(100, Math.round(((amt || 0) / total) * 100));
@@ -157,7 +307,13 @@ export default function SuperRevenuePage() {
                       border: '1px solid #f1f5f9',
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        marginBottom: '8px',
+                      }}
+                    >
                       <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
                         {stream.replace(/_/g, ' ')}
                       </span>
@@ -165,7 +321,15 @@ export default function SuperRevenuePage() {
                         {money(amt)} ({pct}%)
                       </span>
                     </div>
-                    <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '8px',
+                        background: '#e2e8f0',
+                        borderRadius: '4px',
+                        overflow: 'hidden',
+                      }}
+                    >
                       <div
                         style={{
                           width: `${pct}%`,
@@ -182,14 +346,25 @@ export default function SuperRevenuePage() {
           </div>
 
           {/* Monetization Configuration Editor */}
-          <div className="card" style={{ padding: '24px', borderRadius: '16px', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div
+            className="card"
+            style={{ padding: '24px', borderRadius: '16px', marginBottom: '24px' }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '16px',
+              }}
+            >
               <div>
                 <h2 style={{ fontSize: '16px', fontWeight: 700, margin: 0 }}>
                   Monetization & Commission Engine Parameters ⚙️
                 </h2>
                 <p style={{ fontSize: '13px', color: 'var(--muted)', margin: '4px 0 0' }}>
-                  Superuser-exclusive control over platform margins, agency baseline cuts, and cancellation policies.
+                  Superuser-exclusive control over platform margins, agency baseline cuts, and
+                  cancellation policies.
                 </p>
               </div>
             </div>
@@ -233,7 +408,14 @@ export default function SuperRevenuePage() {
 
           {/* Transactions Ledger */}
           <div className="card" style={{ padding: '24px', borderRadius: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '16px',
+              }}
+            >
               <h2 style={{ fontSize: '16px', fontWeight: 700, margin: 0 }}>
                 Audit Transactions Ledger
               </h2>

@@ -1,5 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { packages, Package } from '../data';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  packages, Package,
+  trips,
+  bookings,
+  itineraries,
+  expenses,
+  payments,
+  packageBookings,
+  commissionLedger,
+} from '../data';
 import { CreatePackageDto, UpdatePackageDto } from './dto';
 
 @Injectable()
@@ -58,11 +67,84 @@ export class PackagesService {
     return updated;
   }
 
+  /**
+   * Checks all dependent collections for references to the given packageId.
+   * Returns a list of human-readable dependency descriptions, or empty if none.
+   */
+  private findPackageDependents(packageId: number): string[] {
+    const dependents: string[] = [];
+
+    // Trips referencing this package
+    const dependentTrips = trips.filter((t) => t.packageId === packageId);
+    if (dependentTrips.length > 0) {
+      dependents.push(
+        `${dependentTrips.length} trip(s): IDs [${dependentTrips.map((t) => t.tripId).join(', ')}]`,
+      );
+    }
+
+    // Package bookings referencing this package
+    const dependentPkgBookings = packageBookings.filter((pb) => pb.packageId === packageId);
+    if (dependentPkgBookings.length > 0) {
+      dependents.push(
+        `${dependentPkgBookings.length} package booking(s): IDs [${dependentPkgBookings.map((pb) => pb.packageBookingId).join(', ')}]`,
+      );
+    }
+
+    // Bookings tied to trips that reference this package
+    const tripIds = dependentTrips.map((t) => t.tripId);
+    if (tripIds.length > 0) {
+      const dependentBookings = bookings.filter((b) => tripIds.includes(b.tripId));
+      if (dependentBookings.length > 0) {
+        dependents.push(
+          `${dependentBookings.length} booking(s) via trips`,
+        );
+      }
+
+      const dependentItineraries = itineraries.filter((i) => tripIds.includes(i.tripId));
+      if (dependentItineraries.length > 0) {
+        dependents.push(
+          `${dependentItineraries.length} itinerary item(s) via trips`,
+        );
+      }
+
+      const dependentExpenses = expenses.filter((e) => tripIds.includes(e.tripId));
+      if (dependentExpenses.length > 0) {
+        dependents.push(
+          `${dependentExpenses.length} expense(s) via trips`,
+        );
+      }
+
+      const dependentPayments = payments.filter((p) => p.tripId && tripIds.includes(p.tripId));
+      if (dependentPayments.length > 0) {
+        dependents.push(
+          `${dependentPayments.length} payment(s) via trips`,
+        );
+      }
+
+      const dependentCommissions = commissionLedger.filter((c) => tripIds.includes(c.tripId));
+      if (dependentCommissions.length > 0) {
+        dependents.push(
+          `${dependentCommissions.length} commission ledger entry/entries via trips`,
+        );
+      }
+    }
+
+    return dependents;
+  }
+
   remove(id: number): { message: string } {
     const index = packages.findIndex((p) => p.packageId === id);
     if (index === -1) {
       throw new NotFoundException(`Package with ID ${id} not found`);
     }
+
+    const dependents = this.findPackageDependents(id);
+    if (dependents.length > 0) {
+      throw new ConflictException(
+        `Cannot delete package ${id}: referenced by ${dependents.join('; ')}. Remove or reassign dependent records first.`,
+      );
+    }
+
     packages.splice(index, 1);
     return { message: `Package with ID ${id} deleted successfully` };
   }

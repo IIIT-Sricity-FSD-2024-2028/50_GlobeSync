@@ -1,73 +1,294 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { agenciesApi } from '../../services/api';
 import StatusBadge from '../../components/common/StatusBadge';
-import { AdminPage, AdminTable, Filters, AdminDialog, Field, SelectField, FormActions, DeleteDialog, Details, agencyStatuses, matches, useAdminData } from '../../components/admin/AdminUI';
+import {
+  AdminPage,
+  AdminTable,
+  Filters,
+  DeleteDialog,
+  agencyStatuses,
+  matches,
+  useAdminData,
+} from '../../components/admin/AdminUI';
+import AgencyFormModal from '../../components/admin/AgencyFormModal';
+import AgencyStatusModal from '../../components/admin/AgencyStatusModal';
+import AgencyDetailsModal from '../../components/admin/AgencyDetailsModal';
 
-const blank = { businessName: '', contactEmail: '', contactPhone: '', password: '', status: 'approved', commissionRate: '' };
+/**
+ * AdminAgenciesPage
+ *
+ * Primary administrative coordinator for managing partner travel agencies.
+ *
+ * Pedagogical Architecture:
+ * 1. Page / Coordinator Separation:
+ *    - The page coordinates table presentation, search filters, modal visibility, and API orchestration.
+ *    - Individual form presentation, input state, and field validations are delegated to dedicated
+ *      controlled components: `AgencyFormModal`, `AgencyStatusModal`, and `AgencyDetailsModal`.
+ * 2. Explicit, Named Handlers:
+ *    - Replaces anonymous inline callbacks with named handlers (`handleOpenCreate`, `handleSaveAgency`,
+ *      `handleUpdateStatus`, `handleConfirmDelete`, etc.) making state ownership unambiguous for students.
+ * 3. In-Dialog Error Propagation:
+ *    - When an API mutation fails, the resulting error is passed into the open modal dialog
+ *      (`dialogError={resource.error}`) so the administrator sees actionable feedback inside the dialog.
+ * 4. Safe Deletion & Historical Integrity:
+ *    - Warns the user of the backend policy preventing unsafe removal of agencies with associated packages/trips.
+ */
 export default function AdminAgenciesPage() {
+  // ─── API Resource State ───────────────────────────────────────────────────
   const resource = useAdminData(agenciesApi.getAll);
-  const [query, setQuery] = useState('');
-  const [status, setStatus] = useState('');
-  const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState(blank);
+
+  // ─── Search & Filter State ────────────────────────────────────────────────
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
+
+  // ─── Modal Dialog States ──────────────────────────────────────────────────
+  // Agency under creation (editingAgency === null) or edit (editingAgency === record)
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingAgency, setEditingAgency] = useState(null);
+
+  // Agency under status & commission review
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [statusAgency, setStatusAgency] = useState(null);
-  const [statusForm, setStatusForm] = useState({ status: 'pending', commissionRate: '' });
-  const [deleting, setDeleting] = useState(null);
-  const [viewing, setViewing] = useState(null);
-  const change = e => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  const open = agency => { setEditing(agency || {}); setForm(agency ? { ...blank, ...agency, password: '' } : blank); };
-  const rows = resource.data?.filter(a => (!status || a.status === status) && matches([a.agencyId, a.businessName, a.contactEmail, a.contactPhone], query)) || [];
-  const save = e => {
-    e.preventDefault();
-    const payload = { businessName: form.businessName.trim(), contactEmail: form.contactEmail.trim(), contactPhone: form.contactPhone.trim() };
-    if (!editing.agencyId) {
-      payload.password = form.password;
-      payload.status = form.status;
-      if (form.commissionRate !== '') payload.commissionRate = Number(form.commissionRate);
-    }
-    resource.run(() => editing.agencyId ? agenciesApi.update(editing.agencyId, payload) : agenciesApi.create(payload), 'Agency saved.', () => setEditing(null));
+
+  // Agency under deletion review
+  const [deletingAgency, setDeletingAgency] = useState(null);
+
+  // Agency under detailed inspection
+  const [viewingAgency, setViewingAgency] = useState(null);
+
+  // ─── Filtered Table Rows ──────────────────────────────────────────────────
+  const filteredAgencies = useMemo(() => {
+    if (!resource.data) return [];
+    return resource.data.filter((agency) => {
+      const matchesStatus = !selectedStatus || agency.status === selectedStatus;
+      const matchesSearch = matches(
+        [agency.agencyId, agency.businessName, agency.contactEmail, agency.contactPhone],
+        searchQuery
+      );
+      return matchesStatus && matchesSearch;
+    });
+  }, [resource.data, selectedStatus, searchQuery]);
+
+  // ─── Create & Edit Agency Handlers ────────────────────────────────────────
+  const handleOpenCreate = () => {
+    setEditingAgency(null);
+    setIsFormOpen(true);
   };
-  return <AdminPage title="Agencies" resource={resource} actions={<button className="btn btn-primary" disabled={resource.busy} onClick={() => open(null)}>Create agency</button>}>
-    {resource.data && <><Filters {...{ query, setQuery, status, setStatus }} statuses={agencyStatuses} />
-      <AdminTable rowKey="agencyId" rows={rows} columns={[
-        { label: 'ID', key: 'agencyId' }, { label: 'Business', key: 'businessName' },
-        { label: 'Email', key: 'contactEmail' }, { label: 'Phone', key: 'contactPhone' },
-        { label: 'Status', render: a => <StatusBadge status={a.status} /> },
-        { label: 'Commission', render: a => a.commissionRate == null ? 'Default' : `${a.commissionRate}%` },
-        { label: 'Actions', render: a => <div className="admin-actions">
-          <button className="btn btn-secondary btn-sm" onClick={() => resource.run(() => agenciesApi.getById(a.agencyId), 'Agency details loaded.', setViewing)}>View</button>
-          <button className="btn btn-secondary btn-sm" onClick={() => open(a)}>Edit</button>
-          <button className="btn btn-secondary btn-sm" onClick={() => { setStatusAgency(a); setStatusForm({ status: a.status, commissionRate: a.commissionRate ?? '' }); }}>Status / rate</button>
-          <button className="btn btn-danger btn-sm" onClick={() => setDeleting(a)}>Delete</button>
-        </div> },
-      ]} /></>}
-    {viewing && <AdminDialog title={viewing.businessName} onClose={() => setViewing(null)} busy={false}>
-      <Details entries={[['ID', viewing.agencyId], ['Email', viewing.contactEmail], ['Phone', viewing.contactPhone], ['Status', viewing.status], ['Commission', viewing.commissionRate == null ? 'Default' : `${viewing.commissionRate}%`], ['Created', viewing.createdAt]]} />
-    </AdminDialog>}
-    {editing && <AdminDialog title={editing.agencyId ? 'Edit agency' : 'Create agency'} onClose={() => setEditing(null)} busy={resource.busy}>
-      <form onSubmit={save}>
-        <Field label="Business name" name="businessName" value={form.businessName} onChange={change} required pattern=".*\S.*" disabled={resource.busy} />
-        <Field label="Contact email" name="contactEmail" type="email" value={form.contactEmail} onChange={change} required disabled={resource.busy} />
-        <Field label="Contact phone" name="contactPhone" value={form.contactPhone} onChange={change} required pattern=".*\S.*" disabled={resource.busy} />
-        {!editing.agencyId && <>
-          <Field label="Initial password" name="password" type="password" autoComplete="new-password" minLength="6" value={form.password} onChange={change} required disabled={resource.busy} />
-          <SelectField label="Status" name="status" values={agencyStatuses} value={form.status} onChange={change} disabled={resource.busy} />
-          <Field label="Commission rate (%)" name="commissionRate" type="number" min="1" max="1.5" step="0.01" value={form.commissionRate} onChange={change} disabled={resource.busy} />
-        </>}
-        {resource.error && <p className="admin-error" role="alert">{resource.error}</p>}
-        <FormActions busy={resource.busy} onCancel={() => setEditing(null)} />
-      </form>
-    </AdminDialog>}
-    {statusAgency && <AdminDialog title={`Status: ${statusAgency.businessName}`} onClose={() => setStatusAgency(null)} busy={resource.busy}>
-      <form onSubmit={e => { e.preventDefault(); const payload = { status: statusForm.status }; if (statusForm.commissionRate !== '') payload.commissionRate = Number(statusForm.commissionRate); resource.run(() => agenciesApi.updateStatus(statusAgency.agencyId, payload), 'Agency status and commission updated.', () => setStatusAgency(null)); }}>
-        <SelectField label="Status" values={agencyStatuses} value={statusForm.status} onChange={e => setStatusForm(p => ({ ...p, status: e.target.value }))} disabled={resource.busy} />
-        <Field label="Commission rate (%)" type="number" min="1" max="1.5" step="0.01" value={statusForm.commissionRate} onChange={e => setStatusForm(p => ({ ...p, commissionRate: e.target.value }))} disabled={resource.busy} />
-        <p>Only approved agencies can sign in. Leaving the rate blank preserves the existing rate.</p>
-        {resource.error && <p className="admin-error" role="alert">{resource.error}</p>}
-        <FormActions busy={resource.busy} onCancel={() => setStatusAgency(null)} />
-      </form>
-    </AdminDialog>}
-    {deleting && <DeleteDialog title={`Delete ${deleting.businessName}?`} warning="This permanently removes the agency and its login access. Trips, passengers and financial records remain and may reference the deleted agency." busy={resource.busy} error={resource.error} onClose={() => setDeleting(null)}
-      onConfirm={() => resource.run(() => agenciesApi.delete(deleting.agencyId), 'Agency deleted.', () => setDeleting(null))} />}
-  </AdminPage>;
+
+  const handleOpenEdit = (agency) => {
+    setEditingAgency(agency);
+    setIsFormOpen(true);
+  };
+
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setEditingAgency(null);
+  };
+
+  const handleSaveAgency = (payload) => {
+    const isEditMode = Boolean(editingAgency && editingAgency.agencyId);
+    const action = isEditMode
+      ? () => agenciesApi.update(editingAgency.agencyId, payload)
+      : () => agenciesApi.create(payload);
+
+    const successMessage = isEditMode
+      ? `Agency "${payload.businessName}" updated successfully.`
+      : `Agency "${payload.businessName}" registered successfully.`;
+
+    resource.run(action, successMessage, () => {
+      handleCloseForm();
+    });
+  };
+
+  // ─── Status & Commission Review Handlers ───────────────────────────────────
+  const handleOpenStatus = (agency) => {
+    setStatusAgency(agency);
+    setIsStatusOpen(true);
+  };
+
+  const handleCloseStatus = () => {
+    setIsStatusOpen(false);
+    setStatusAgency(null);
+  };
+
+  const handleUpdateStatus = (payload) => {
+    if (!statusAgency) return;
+
+    resource.run(
+      () => agenciesApi.updateStatus(statusAgency.agencyId, payload),
+      `Updated status for ${statusAgency.businessName}.`,
+      () => {
+        handleCloseStatus();
+      }
+    );
+  };
+
+  // ─── Inspection Handlers ──────────────────────────────────────────────────
+  const handleViewDetails = (agency) => {
+    resource.run(
+      () => agenciesApi.getById(agency.agencyId),
+      'Agency profile details loaded.',
+      (detailedAgency) => {
+        setViewingAgency(detailedAgency);
+      }
+    );
+  };
+
+  const handleCloseDetails = () => {
+    setViewingAgency(null);
+  };
+
+  // ─── Deletion Handlers ────────────────────────────────────────────────────
+  const handleOpenDelete = (agency) => {
+    setDeletingAgency(agency);
+  };
+
+  const handleCloseDelete = () => {
+    setDeletingAgency(null);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deletingAgency) return;
+
+    resource.run(
+      () => agenciesApi.delete(deletingAgency.agencyId),
+      `Agency "${deletingAgency.businessName}" deleted.`,
+      () => {
+        handleCloseDelete();
+      }
+    );
+  };
+
+  // ─── Table Column Definitions ─────────────────────────────────────────────
+  const tableColumns = [
+    { label: 'ID', key: 'agencyId' },
+    { label: 'Business Name', key: 'businessName' },
+    { label: 'Contact Email', key: 'contactEmail' },
+    { label: 'Contact Phone', key: 'contactPhone' },
+    {
+      label: 'Status',
+      render: (agency) => <StatusBadge status={agency.status} />,
+    },
+    {
+      label: 'Commission',
+      render: (agency) =>
+        agency.commissionRate == null ? 'Default' : `${agency.commissionRate}%`,
+    },
+    {
+      label: 'Actions',
+      render: (agency) => (
+        <div className="admin-actions">
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => handleViewDetails(agency)}
+            disabled={resource.busy}
+            title="Inspect agency profile"
+          >
+            View
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => handleOpenEdit(agency)}
+            disabled={resource.busy}
+            title="Edit contact info"
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => handleOpenStatus(agency)}
+            disabled={resource.busy}
+            title="Review approval and commission"
+          >
+            Status / rate
+          </button>
+          <button
+            type="button"
+            className="btn btn-danger btn-sm"
+            onClick={() => handleOpenDelete(agency)}
+            disabled={resource.busy}
+            title="Delete agency record"
+          >
+            Delete
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <AdminPage
+      title="Agencies"
+      resource={resource}
+      actions={
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={resource.busy}
+          onClick={handleOpenCreate}
+        >
+          Create agency
+        </button>
+      }
+    >
+      {resource.data && (
+        <>
+          <Filters
+            query={searchQuery}
+            setQuery={setSearchQuery}
+            status={selectedStatus}
+            setStatus={setSelectedStatus}
+            statuses={agencyStatuses}
+          />
+          <AdminTable
+            rowKey="agencyId"
+            rows={filteredAgencies}
+            columns={tableColumns}
+          />
+        </>
+      )}
+
+      {/* Read-only profile inspection modal */}
+      <AgencyDetailsModal
+        isOpen={Boolean(viewingAgency)}
+        agency={viewingAgency}
+        onClose={handleCloseDetails}
+      />
+
+      {/* Create / Edit Agency controlled form modal */}
+      <AgencyFormModal
+        isOpen={isFormOpen}
+        agency={editingAgency}
+        busy={resource.busy}
+        dialogError={resource.error}
+        onClose={handleCloseForm}
+        onSave={handleSaveAgency}
+      />
+
+      {/* Status & Commission rate configuration modal */}
+      <AgencyStatusModal
+        isOpen={isStatusOpen}
+        agency={statusAgency}
+        busy={resource.busy}
+        dialogError={resource.error}
+        onClose={handleCloseStatus}
+        onUpdate={handleUpdateStatus}
+      />
+
+      {/* Permanent deletion confirmation modal */}
+      {deletingAgency && (
+        <DeleteDialog
+          title={`Delete ${deletingAgency.businessName}?`}
+          warning="This permanently removes the agency and its login credentials. If this agency has associated packages or trips, the backend will prevent deletion to preserve data integrity."
+          busy={resource.busy}
+          error={resource.error}
+          onClose={handleCloseDelete}
+          onConfirm={handleConfirmDelete}
+        />
+      )}
+    </AdminPage>
+  );
 }

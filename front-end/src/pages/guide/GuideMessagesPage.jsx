@@ -4,6 +4,11 @@ import { messagesApi, tripsApi, travelersApi, agenciesApi } from '../../services
 import GuideConversationList from '../../components/guide/GuideConversationList';
 import GuideConversationThread from '../../components/guide/GuideConversationThread';
 import GuideMessageInput from '../../components/guide/GuideMessageInput';
+import {
+  isGuidePending,
+  getAgencyDisplayName,
+  getTravelerDisplayName,
+} from '../../components/guide/guideStateHelpers';
 import './guide.css';
 
 // ---------------------------------------------------------------------------
@@ -52,6 +57,7 @@ export default function GuideMessagesPage() {
   const [contacts, setContacts] = useState([]);         // enriched contact objects
   const [isLoadingContacts, setIsLoadingContacts] = useState(true);
   const [contactsError, setContactsError] = useState(null);
+  const [secondaryWarning, setSecondaryWarning] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   // ------------------------------------------------------------------
@@ -103,6 +109,7 @@ export default function GuideMessagesPage() {
 
     setIsLoadingContacts(true);
     setContactsError(null);
+    setSecondaryWarning(null);
 
     try {
       // Parallel: all guide messages + guide trips
@@ -201,27 +208,34 @@ export default function GuideMessagesPage() {
         try {
           const travelers = await travelersApi.getAll({ signal: controller.signal });
           if (!controller.signal.aborted) {
-            for (const t of travelers) {
-              travelerNamesRef.current[t.travelerId ?? t.id] =
-                [t.firstName, t.lastName].filter(Boolean).join(' ') || `Traveler #${t.travelerId ?? t.id}`;
+            const list = Array.isArray(travelers) ? travelers : travelers?.value || [];
+            for (const t of list) {
+              const id = t.travelerId ?? t.id;
+              if (id) travelerNamesRef.current[id] = getTravelerDisplayName(t, id);
             }
           }
-        } catch {
-          // non-critical — fallback names used below
+        } catch (err) {
+          if (err.isCancelled || controller.signal.aborted) return;
+          console.warn('[GuideMessagesPage] Could not load traveler directory:', err);
+          setSecondaryWarning('Traveler directory could not be reached; traveler client names are displayed with fallback IDs.');
         }
       }
 
-      // Fetch agencies if needed
+      // Fetch agencies if needed (using businessName)
       if (agencyIds.length > 0) {
         try {
           const agencies = await agenciesApi.getLookup({ signal: controller.signal });
           if (!controller.signal.aborted) {
-            for (const a of agencies) {
-              agencyNamesRef.current[a.agencyId ?? a.id] = a.name || `Agency #${a.agencyId ?? a.id}`;
+            const list = Array.isArray(agencies) ? agencies : agencies?.value || [];
+            for (const a of list) {
+              const id = a.agencyId ?? a.id;
+              if (id) agencyNamesRef.current[id] = getAgencyDisplayName(a, id);
             }
           }
-        } catch {
-          // non-critical
+        } catch (err) {
+          if (err.isCancelled || controller.signal.aborted) return;
+          console.warn('[GuideMessagesPage] Could not load agency directory:', err);
+          setSecondaryWarning('Agency directory could not be reached; partner agency business names are displayed with fallback IDs.');
         }
       }
 
@@ -274,6 +288,7 @@ export default function GuideMessagesPage() {
     loadContacts();
     return () => {
       if (contactsAbortRef.current) contactsAbortRef.current.abort();
+      if (threadAbortRef.current) threadAbortRef.current.abort();
     };
   }, [loadContacts]);
 
@@ -414,14 +429,14 @@ export default function GuideMessagesPage() {
   const currentDraft = drafts[selectedConvKey] || '';
   const currentSendError = sendErrors[selectedConvKey] || null;
 
-  // Pending trip requests for current contact (reuses GuideRequestsPage flow)
+  // Pending trip requests for current contact (reuses canonical guideStateHelpers definition)
   const pendingTripsForSelected = useMemo(() => {
     if (!selectedContact) return [];
     return guideTrips.filter((t) => {
       const match = selectedContact.type === 'agency'
         ? Number(t.agencyId) === Number(selectedContact.id)
         : Number(t.travelerId) === Number(selectedContact.id);
-      return match && (t.guideStatus === 'Pending' || t.status === 'Pending');
+      return match && isGuidePending(t);
     });
   }, [guideTrips, selectedContact]);
 
@@ -460,6 +475,29 @@ export default function GuideMessagesPage() {
           <button className="guide-msg-retry-link" onClick={loadContacts}>
             Retry
           </button>
+        </div>
+      )}
+
+      {/* Secondary data warning banner */}
+      {secondaryWarning && (
+        <div
+          role="alert"
+          style={{
+            padding: '10px 16px',
+            borderRadius: '10px',
+            fontSize: '13px',
+            fontWeight: 500,
+            background: '#fffbeb',
+            color: '#92400e',
+            border: '1px solid #fde68a',
+            marginBottom: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <span>⚠️</span>
+          <span>{secondaryWarning}</span>
         </div>
       )}
 

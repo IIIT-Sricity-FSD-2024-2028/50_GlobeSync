@@ -9,6 +9,7 @@ import ContactPage from './pages/public/ContactPage';
 import RoleSelectPage from './pages/public/RoleSelectPage';
 import LoginPage from './pages/public/LoginPage';
 import TravelerSignupPage from './pages/public/TravelerSignupPage';
+import AgencySignupPage from './pages/public/AgencySignupPage';
 import UnauthorizedPage from './pages/public/UnauthorizedPage';
 import TravelerDashboardPage from './pages/traveler/TravelerDashboardPage';
 import GuideDashboardPage from './pages/guide/GuideDashboardPage';
@@ -18,11 +19,16 @@ import GuideCompletedTripsPage from './pages/guide/GuideCompletedTripsPage';
 import GuideMessagesPage from './pages/guide/GuideMessagesPage';
 import GuideProfilePage from './pages/guide/GuideProfilePage';
 import SupportDashboardPage from './pages/support/SupportDashboardPage';
+import SupportTicketsPage from './pages/support/SupportTicketsPage';
+import SupportRefundsPage from './pages/support/SupportRefundsPage';
+import SupportMessagesPage from './pages/support/SupportMessagesPage';
+import SupportProfilePage from './pages/support/SupportProfilePage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminBookingsPage from './pages/admin/AdminBookingsPage';
 import AdminTripsPage from './pages/admin/AdminTripsPage';
 import AdminPackagesPage from './pages/admin/AdminPackagesPage';
 import AdminAgenciesPage from './pages/admin/AdminAgenciesPage';
+import AdminGuidesPage from './pages/admin/AdminGuidesPage';
 import AdminReviewsPage from './pages/admin/AdminReviewsPage';
 import AdminReportsPage from './pages/admin/AdminReportsPage';
 import AdminProfilePage from './pages/admin/AdminProfilePage';
@@ -36,6 +42,18 @@ import SuperApiManagementPage from './pages/super/SuperApiManagementPage';
 import SuperProfilePage from './pages/super/SuperProfilePage';
 import SuperPaymentMethodsPage from './pages/super/SuperPaymentMethodsPage';
 import AgencyDashboardPage from './pages/agency/AgencyDashboardPage';
+import AgencyPackagesPage from './pages/agency/AgencyPackagesPage';
+import AgencyBookPackagePage from './pages/agency/AgencyBookPackagePage';
+import AgencyItineraryPage from './pages/agency/AgencyItineraryPage';
+import AgencyBookingsPage from './pages/agency/AgencyBookingsPage';
+import AgencyPassengersPage from './pages/agency/AgencyPassengersPage';
+import AgencyExpensesPage from './pages/agency/AgencyExpensesPage';
+import AgencyCommissionPage from './pages/agency/AgencyCommissionPage';
+import AgencyPaymentsPage from './pages/agency/AgencyPaymentsPage';
+import AgencySubscriptionPage from './pages/agency/AgencySubscriptionPage';
+import AgencyMessagesPage from './pages/agency/AgencyMessagesPage';
+import AgencyProfilePage from './pages/agency/AgencyProfilePage';
+import AgencySupportPage from './pages/agency/AgencySupportPage';
 import TravelerPackagesPage from './pages/traveler/TravelerPackagesPage';
 import TravelerTripsPage from './pages/traveler/TravelerTripsPage';
 import TravelerCreateTripPage from './pages/traveler/TravelerCreateTripPage';
@@ -63,6 +81,8 @@ export default function App() {
             <Route path="/login/agency" element={<LoginPage initialRole="agency" />} />
             <Route path="/login/superuser" element={<LoginPage initialRole="superuser" />} />
             <Route path="/signup/traveler" element={<TravelerSignupPage />} />
+            <Route path="/signup/agency" element={<AgencySignupPage />} />
+            <Route path="/agency/signup" element={<AgencySignupPage />} />
             <Route path="/register" element={<TravelerSignupPage />} />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
           </Route>
@@ -206,6 +226,38 @@ export default function App() {
               }
             />
             <Route
+              path="/support/tickets"
+              element={
+                <ProtectedRoute allowedRoles={['support', 'superuser']}>
+                  <SupportTicketsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/support/refunds"
+              element={
+                <ProtectedRoute allowedRoles={['support', 'superuser']}>
+                  <SupportRefundsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/support/messages"
+              element={
+                <ProtectedRoute allowedRoles={['support', 'superuser']}>
+                  <SupportMessagesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/support/profile"
+              element={
+                <ProtectedRoute allowedRoles={['support', 'superuser']}>
+                  <SupportProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/admin/dashboard"
               element={
                 <ProtectedRoute allowedRoles={['admin', 'superuser']}>
@@ -217,6 +269,7 @@ export default function App() {
             <Route path="/admin/trips" element={<ProtectedRoute allowedRoles={['admin', 'superuser']}><AdminTripsPage /></ProtectedRoute>} />
             <Route path="/admin/packages" element={<ProtectedRoute allowedRoles={['admin', 'superuser']}><AdminPackagesPage /></ProtectedRoute>} />
             <Route path="/admin/agencies" element={<ProtectedRoute allowedRoles={['admin', 'superuser']}><AdminAgenciesPage /></ProtectedRoute>} />
+            <Route path="/admin/guides" element={<ProtectedRoute allowedRoles={['admin', 'superuser']}><AdminGuidesPage /></ProtectedRoute>} />
             <Route path="/admin/reviews" element={<ProtectedRoute allowedRoles={['admin', 'superuser']}><AdminReviewsPage /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin', 'superuser']}><AdminReportsPage /></ProtectedRoute>} />
             <Route path="/admin/profile" element={<ProtectedRoute allowedRoles={['admin', 'superuser']}><AdminProfilePage /></ProtectedRoute>} />
@@ -298,6 +351,118 @@ export default function App() {
               element={
                 <ProtectedRoute allowedRoles={['agency', 'superuser']}>
                   <AgencyDashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/agency/packages"
+              element={
+                <ProtectedRoute allowedRoles={['agency', 'superuser']}>
+                  <AgencyPackagesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/agency/book-package"
+              element={
+                <ProtectedRoute allowedRoles={['agency', 'superuser']}>
+                  <AgencyBookPackagePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/agency/create-itinerary"
+              element={
+                <ProtectedRoute allowedRoles={['agency', 'superuser']}>
+                  <AgencyItineraryPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/agency/itinerary"
+              element={
+                <ProtectedRoute allowedRoles={['agency', 'superuser']}>
+                  <AgencyItineraryPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/agency/bookings"
+              element={
+                <ProtectedRoute allowedRoles={['agency', 'superuser']}>
+                  <AgencyBookingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/agency/passengers"
+              element={
+                <ProtectedRoute allowedRoles={['agency', 'superuser']}>
+                  <AgencyPassengersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/agency/expenses"
+              element={
+                <ProtectedRoute allowedRoles={['agency', 'superuser']}>
+                  <AgencyExpensesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/agency/commission"
+              element={
+                <ProtectedRoute allowedRoles={['agency', 'superuser']}>
+                  <AgencyCommissionPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/agency/revenue"
+              element={
+                <ProtectedRoute allowedRoles={['agency', 'superuser']}>
+                  <AgencyCommissionPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/agency/payments"
+              element={
+                <ProtectedRoute allowedRoles={['agency', 'superuser']}>
+                  <AgencyPaymentsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/agency/subscription"
+              element={
+                <ProtectedRoute allowedRoles={['agency', 'superuser']}>
+                  <AgencySubscriptionPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/agency/messages"
+              element={
+                <ProtectedRoute allowedRoles={['agency', 'superuser']}>
+                  <AgencyMessagesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/agency/profile"
+              element={
+                <ProtectedRoute allowedRoles={['agency', 'superuser']}>
+                  <AgencyProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/agency/support"
+              element={
+                <ProtectedRoute allowedRoles={['agency', 'superuser']}>
+                  <AgencySupportPage />
                 </ProtectedRoute>
               }
             />
