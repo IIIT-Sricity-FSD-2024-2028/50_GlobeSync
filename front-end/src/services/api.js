@@ -491,4 +491,6 @@ export const revenueApi = {
   getBreakdown: (options) => apiGet(revenuePath('breakdown'), options),
   getTransactions: (options) => apiGet(revenuePath('transactions'), options),
   getConfig: (options) => apiGet(revenuePath('config'), options),
+  updateConfig: (key, data, options) =>
+    apiPut(revenuePath(`config/${key}`), data, options),
 };

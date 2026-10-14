@@ -46,7 +46,11 @@ const ROLE_MENU_CONFIG = {
     { label: 'Revenue & Margins', path: '/super/revenue', icon: '💰' },
     { label: 'User Directory', path: '/super/users', icon: '👥' },
     { label: 'Agencies', path: '/super/agencies', icon: '🏢' },
+    { label: 'Payment Methods', path: '/super/payment-methods', icon: '💳' },
+    { label: 'Rules Config', path: '/super/rules-config', icon: '⚙️' },
+    { label: 'API Management', path: '/super/api-management', icon: '🔌' },
     { label: 'System Reports', path: '/super/reports', icon: '📈' },
+    { label: 'Profile', path: '/super/profile', icon: '👤' },
   ],
   agency: [
     { label: 'Dashboard', path: '/agency/dashboard', icon: '📊' },

@@ -27,6 +27,14 @@ import AdminReviewsPage from './pages/admin/AdminReviewsPage';
 import AdminReportsPage from './pages/admin/AdminReportsPage';
 import AdminProfilePage from './pages/admin/AdminProfilePage';
 import SuperDashboardPage from './pages/super/SuperDashboardPage';
+import SuperUsersPage from './pages/super/SuperUsersPage';
+import SuperAgenciesPage from './pages/super/SuperAgenciesPage';
+import SuperRevenuePage from './pages/super/SuperRevenuePage';
+import SuperReportsPage from './pages/super/SuperReportsPage';
+import SuperRulesConfigPage from './pages/super/SuperRulesConfigPage';
+import SuperApiManagementPage from './pages/super/SuperApiManagementPage';
+import SuperProfilePage from './pages/super/SuperProfilePage';
+import SuperPaymentMethodsPage from './pages/super/SuperPaymentMethodsPage';
 import AgencyDashboardPage from './pages/agency/AgencyDashboardPage';
 import TravelerPackagesPage from './pages/traveler/TravelerPackagesPage';
 import TravelerTripsPage from './pages/traveler/TravelerTripsPage';
@@ -212,12 +220,76 @@ export default function App() {
             <Route path="/admin/reviews" element={<ProtectedRoute allowedRoles={['admin', 'superuser']}><AdminReviewsPage /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin', 'superuser']}><AdminReportsPage /></ProtectedRoute>} />
             <Route path="/admin/profile" element={<ProtectedRoute allowedRoles={['admin', 'superuser']}><AdminProfilePage /></ProtectedRoute>} />
-            {/* Superuser Dashboard: Strictly superuser (Admin is unauthorized) */}
+            {/* Superuser Portal Routes: Strictly superuser (Admin and others are unauthorized) */}
             <Route
               path="/super/dashboard"
               element={
                 <ProtectedRoute allowedRoles={['superuser']}>
                   <SuperDashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/super/revenue"
+              element={
+                <ProtectedRoute allowedRoles={['superuser']}>
+                  <SuperRevenuePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/super/users"
+              element={
+                <ProtectedRoute allowedRoles={['superuser']}>
+                  <SuperUsersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/super/agencies"
+              element={
+                <ProtectedRoute allowedRoles={['superuser']}>
+                  <SuperAgenciesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/super/payment-methods"
+              element={
+                <ProtectedRoute allowedRoles={['superuser']}>
+                  <SuperPaymentMethodsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/super/rules-config"
+              element={
+                <ProtectedRoute allowedRoles={['superuser']}>
+                  <SuperRulesConfigPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/super/api-management"
+              element={
+                <ProtectedRoute allowedRoles={['superuser']}>
+                  <SuperApiManagementPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/super/reports"
+              element={
+                <ProtectedRoute allowedRoles={['superuser']}>
+                  <SuperReportsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/super/profile"
+              element={
+                <ProtectedRoute allowedRoles={['superuser']}>
+                  <SuperProfilePage />
                 </ProtectedRoute>
               }
             />
