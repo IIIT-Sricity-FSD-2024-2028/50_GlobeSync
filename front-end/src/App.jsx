@@ -77,10 +77,16 @@ export default function App() {
             <Route path="/portal-select" element={<RoleSelectPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/login/traveler" element={<LoginPage initialRole="traveler" />} />
+            <Route path="/login/guide" element={<LoginPage initialRole="guide" />} />
+            <Route path="/login/support" element={<LoginPage initialRole="support" />} />
+            <Route path="/login/admin" element={<LoginPage initialRole="admin" />} />
             <Route path="/login/staff" element={<LoginPage initialRole="admin" />} />
             <Route path="/login/agency" element={<LoginPage initialRole="agency" />} />
             <Route path="/login/superuser" element={<LoginPage initialRole="superuser" />} />
+            <Route path="/login/superadmin" element={<LoginPage initialRole="superuser" />} />
+            <Route path="/signup" element={<TravelerSignupPage />} />
             <Route path="/signup/traveler" element={<TravelerSignupPage />} />
+            <Route path="/traveler/signup" element={<TravelerSignupPage />} />
             <Route path="/signup/agency" element={<AgencySignupPage />} />
             <Route path="/agency/signup" element={<AgencySignupPage />} />
             <Route path="/register" element={<TravelerSignupPage />} />

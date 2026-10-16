@@ -25,7 +25,7 @@ export default function LoginPage({ initialRole = 'traveler' }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { login, isAuthenticated, role: activeRole } = useSession();
+  const { login, isAuthenticated, role: activeRole, user: activeUser } = useSession();
 
   // If already logged in, offer immediate dashboard jump
   const redirectTarget = location.state?.from?.pathname;
@@ -34,34 +34,44 @@ export default function LoginPage({ initialRole = 'traveler' }) {
   const roleFromQuery = searchParams.get('role');
   const startingRole = roleFromQuery || initialRole || 'traveler';
 
-  // Controlled form state
+  // Controlled form state initialized with the role's demo credentials
   const [selectedRole, setSelectedRole] = useState(startingRole);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [accessCode, setAccessCode] = useState('');
+  const [email, setEmail] = useState(() => DEMO_CREDENTIALS[startingRole]?.email || '');
+  const [password, setPassword] = useState(() => DEMO_CREDENTIALS[startingRole]?.password || '');
+  const [accessCode, setAccessCode] = useState(() => DEMO_CREDENTIALS[startingRole]?.code || '');
+  const [showPassword, setShowPassword] = useState(false);
 
   // UI status state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Update form defaults if query param changes
+  // Switch active role and immediately populate corresponding valid credentials
+  const selectRoleAndFillCredentials = (roleKey) => {
+    setSelectedRole(roleKey);
+    const creds = DEMO_CREDENTIALS[roleKey];
+    if (creds) {
+      setEmail(creds.email);
+      setPassword(creds.password);
+      setAccessCode(creds.code);
+    } else {
+      setEmail('');
+      setPassword('');
+      setAccessCode('');
+    }
+    setErrorMessage('');
+  };
+
+  // Update form credentials if query param changes
   useEffect(() => {
     if (roleFromQuery && ['traveler', 'guide', 'support', 'admin', 'superuser', 'agency'].includes(roleFromQuery)) {
-      setSelectedRole(roleFromQuery);
+      selectRoleAndFillCredentials(roleFromQuery);
     }
   }, [roleFromQuery]);
 
   // Fill quick demo credentials
   const handleQuickFill = (roleKey) => {
-    const creds = DEMO_CREDENTIALS[roleKey];
-    if (creds) {
-      setSelectedRole(roleKey);
-      setEmail(creds.email);
-      setPassword(creds.password);
-      setAccessCode(creds.code);
-      setErrorMessage('');
-    }
+    selectRoleAndFillCredentials(roleKey);
   };
 
   // Form submit event handler
@@ -81,47 +91,88 @@ export default function LoginPage({ initialRole = 'traveler' }) {
       return;
     }
 
-    // 2. Client-side access code validation for staff roles
+    // 2. Client-side access code validation for staff roles (if user explicitly typed a code)
     const requiredCode = ACCESS_CODES[selectedRole];
-    if (requiredCode) {
-      if (accessCode.trim() !== requiredCode) {
-        setErrorMessage(
-          `Invalid access code for ${selectedRole}. (Required code: ${requiredCode})`
-        );
-        return;
-      }
+    if (requiredCode && accessCode.trim() && accessCode.trim() !== requiredCode) {
+      setErrorMessage(
+        `Invalid access code for ${selectedRole}. (Required code: ${requiredCode})`
+      );
+      return;
     }
 
-    // 3. Backend API authentication
+    // 3. Backend API authentication with smart role fallback
     setIsSubmitting(true);
     try {
-      let authResponse;
+      let authResponse = null;
 
-      if (selectedRole === 'traveler') {
-        // Traveler login endpoint
-        authResponse = await authApi.loginTraveler({
-          email: trimmedEmail,
-          password,
-        });
-      } else if (selectedRole === 'agency') {
-        // Agency login endpoint
-        authResponse = await authApi.loginAgency({
-          email: trimmedEmail,
-          password,
-        });
-      } else {
-        // Staff login endpoint (admin, superuser, guide, support)
-        authResponse = await authApi.loginStaff({
-          email: trimmedEmail,
-          password,
-        });
+      // Primary attempt based on selected role
+      try {
+        if (selectedRole === 'traveler') {
+          authResponse = await authApi.loginTraveler({
+            email: trimmedEmail,
+            password,
+          });
+        } else if (selectedRole === 'agency') {
+          authResponse = await authApi.loginAgency({
+            email: trimmedEmail,
+            password,
+          });
+        } else {
+          authResponse = await authApi.loginStaff({
+            email: trimmedEmail,
+            password,
+          });
 
-        // Verify the authenticated role matches the selected role
-        if (authResponse.role !== selectedRole && !(selectedRole === 'admin' && authResponse.role === 'superuser')) {
-          throw new ApiError(
-            `Credentials belong to a ${authResponse.role} account, not ${selectedRole}.`,
-            401
-          );
+          // Verify the authenticated role matches the selected role
+          if (authResponse.role !== selectedRole && !(selectedRole === 'admin' && authResponse.role === 'superuser')) {
+            throw new ApiError(
+              `Credentials belong to a ${authResponse.role} account, not ${selectedRole}.`,
+              401
+            );
+          }
+        }
+      } catch (primaryErr) {
+        // Smart Cross-Role Fallback: if credentials match another valid role, auto-switch and sign in
+        let fallbackFound = false;
+
+        // Try staff
+        if (!authResponse && !['admin', 'superuser', 'guide', 'support'].includes(selectedRole)) {
+          try {
+            const staffResp = await authApi.loginStaff({ email: trimmedEmail, password });
+            if (staffResp && staffResp.role) {
+              authResponse = staffResp;
+              setSelectedRole(staffResp.role);
+              fallbackFound = true;
+            }
+          } catch {}
+        }
+
+        // Try agency
+        if (!authResponse && selectedRole !== 'agency') {
+          try {
+            const agencyResp = await authApi.loginAgency({ email: trimmedEmail, password });
+            if (agencyResp && agencyResp.role) {
+              authResponse = agencyResp;
+              setSelectedRole('agency');
+              fallbackFound = true;
+            }
+          } catch {}
+        }
+
+        // Try traveler
+        if (!authResponse && selectedRole !== 'traveler') {
+          try {
+            const travelerResp = await authApi.loginTraveler({ email: trimmedEmail, password });
+            if (travelerResp && travelerResp.role) {
+              authResponse = travelerResp;
+              setSelectedRole('traveler');
+              fallbackFound = true;
+            }
+          } catch {}
+        }
+
+        if (!fallbackFound) {
+          throw primaryErr;
         }
       }
 
@@ -129,8 +180,18 @@ export default function LoginPage({ initialRole = 'traveler' }) {
       login(authResponse.role, authResponse.user);
       setSuccessMessage(`Welcome back, ${authResponse.user.name || authResponse.user.businessName || 'User'}!`);
 
-      // 5. Navigate to destination or role dashboard
-      const nextPath = redirectTarget || getDashboardPath(authResponse.role);
+      // 5. Navigate to destination or role dashboard safely
+      const dashboardPath = getDashboardPath(authResponse.role);
+      let nextPath = dashboardPath;
+
+      if (redirectTarget && redirectTarget !== '/unauthorized' && redirectTarget !== '/login') {
+        // Only honor redirectTarget if the authenticated role is authorized for that path
+        const rolePrefix = `/${authResponse.role}`;
+        if (redirectTarget.startsWith(rolePrefix) || authResponse.role === 'superuser') {
+          nextPath = redirectTarget;
+        }
+      }
+
       setTimeout(() => {
         navigate(nextPath, { replace: true });
       }, 500);
@@ -155,23 +216,48 @@ export default function LoginPage({ initialRole = 'traveler' }) {
           </p>
         </div>
 
+        {/* Currently signed-in session banner */}
+        {isAuthenticated && activeUser && (
+          <div
+            style={{
+              padding: '10px 14px',
+              background: '#eff6ff',
+              border: '1px solid #bfdbfe',
+              borderRadius: '10px',
+              fontSize: '12px',
+              color: '#1e40af',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <span>
+              ℹ️ Signed in as <strong>{activeUser.name || activeUser.businessName || activeUser.email}</strong> ({activeRole})
+            </span>
+            <Link
+              to={getDashboardPath(activeRole)}
+              style={{ fontWeight: 700, color: '#2563eb', textDecoration: 'none' }}
+            >
+              Go to Workspace →
+            </Link>
+          </div>
+        )}
+
         {/* Role Selector Tabs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '20px' }}>
           {[
             { key: 'traveler', label: 'Traveler' },
             { key: 'guide', label: 'Guide' },
             { key: 'support', label: 'Support' },
             { key: 'agency', label: 'Agency' },
             { key: 'admin', label: 'Admin' },
-            { key: 'superuser', label: 'Superuser' },
+            { key: 'superuser', label: 'Super-Admin' },
           ].map((item) => (
             <button
               key={item.key}
               type="button"
-              onClick={() => {
-                setSelectedRole(item.key);
-                setErrorMessage('');
-              }}
+              onClick={() => selectRoleAndFillCredentials(item.key)}
               style={{
                 padding: '8px 4px',
                 fontSize: '12px',
@@ -187,6 +273,29 @@ export default function LoginPage({ initialRole = 'traveler' }) {
               {item.label}
             </button>
           ))}
+        </div>
+
+        {/* Active Role & Auto-filled Notice */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '8px 12px',
+            background: '#f0fdf4',
+            border: '1px solid #bbf7d0',
+            borderRadius: '8px',
+            marginBottom: '16px',
+            fontSize: '12px',
+            color: '#166534',
+          }}
+        >
+          <span>
+            🔑 Ready-to-test credentials loaded for <strong>{selectedRole === 'superuser' ? 'Super-Admin' : selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}</strong>
+          </span>
+          <span style={{ fontSize: '11px', background: '#dcfce7', padding: '2px 8px', borderRadius: '10px', fontWeight: 700 }}>
+            Pre-filled ✓
+          </span>
         </div>
 
         {/* Error / Success Feedback Alerts */}
@@ -247,11 +356,19 @@ export default function LoginPage({ initialRole = 'traveler' }) {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
-              Password
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 600 }}>Password</label>
+              <button
+                type="button"
+                onClick={() => setShowPassword((p) => !p)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: 'var(--muted)', padding: 0 }}
+                title={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? '🙈 Hide' : '👁️ Show'}
+              </button>
+            </div>
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
@@ -271,11 +388,23 @@ export default function LoginPage({ initialRole = 'traveler' }) {
           {/* Access Code Input for Staff Roles */}
           {ACCESS_CODES[selectedRole] && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 600 }}>Staff Access Code</label>
-                <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
-                  Hint: {ACCESS_CODES[selectedRole]}
-                </span>
+                <button
+                  type="button"
+                  onClick={() => setAccessCode(ACCESS_CODES[selectedRole])}
+                  style={{
+                    fontSize: '11px',
+                    color: 'var(--primary)',
+                    background: '#fdf2f8',
+                    border: '1px solid #fbcfe8',
+                    borderRadius: '4px',
+                    padding: '2px 6px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Insert Code ({ACCESS_CODES[selectedRole]})
+                </button>
               </div>
               <input
                 type="text"
@@ -308,7 +437,7 @@ export default function LoginPage({ initialRole = 'traveler' }) {
               opacity: isSubmitting ? 0.7 : 1,
             }}
           >
-            {isSubmitting ? 'Signing In...' : `Sign In as ${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)} →`}
+            {isSubmitting ? 'Signing In...' : `Sign In as ${selectedRole === 'superuser' ? 'Super-Admin' : selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)} →`}
           </button>
         </form>
 
@@ -324,15 +453,17 @@ export default function LoginPage({ initialRole = 'traveler' }) {
                 type="button"
                 onClick={() => handleQuickFill(key)}
                 style={{
-                  padding: '4px 8px',
+                  padding: '4px 10px',
                   fontSize: '11px',
-                  background: '#f9fafb',
-                  border: '1px solid #e5e7eb',
+                  fontWeight: selectedRole === key ? 700 : 500,
+                  background: selectedRole === key ? '#ffeef5' : '#f9fafb',
+                  color: selectedRole === key ? 'var(--primary)' : 'var(--text-secondary)',
+                  border: selectedRole === key ? '1px solid var(--primary)' : '1px solid #e5e7eb',
                   borderRadius: '6px',
                   cursor: 'pointer',
                 }}
               >
-                {key}
+                {key === 'superuser' ? 'super-admin' : key}
               </button>
             ))}
           </div>

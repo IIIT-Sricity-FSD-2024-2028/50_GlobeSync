@@ -7965,6 +7965,11 @@
           "password": {
             "type": "string",
             "example": "securepassword123"
+          },
+          "commissionRate": {
+            "type": "number",
+            "example": 1.5,
+            "description": "Requested commission rate (1.0 to 1.5)"
           }
         },
         "required": [
@@ -7993,6 +7998,11 @@
             "type": "string",
             "example": "securepassword123"
           },
+          "commissionRate": {
+            "type": "number",
+            "example": 1.5,
+            "description": "Requested commission rate (1.0 to 1.5)"
+          },
           "status": {
             "type": "string",
             "example": "approved",
@@ -8001,10 +8011,6 @@
               "approved",
               "rejected"
             ]
-          },
-          "commissionRate": {
-            "type": "number",
-            "example": 1.5
           }
         },
         "required": [
@@ -8054,6 +8060,11 @@
           "password": {
             "type": "string",
             "example": "securepassword123"
+          },
+          "commissionRate": {
+            "type": "number",
+            "example": 1.5,
+            "description": "Requested commission rate (1.0 to 1.5)"
           }
         }
       },

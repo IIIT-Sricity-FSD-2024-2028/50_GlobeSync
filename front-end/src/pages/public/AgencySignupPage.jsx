@@ -25,6 +25,7 @@ export default function AgencySignupPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [isRegistered, setIsRegistered] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -134,13 +135,16 @@ export default function AgencySignupPage() {
           <p style={{ fontSize: '14px', color: 'var(--muted)', marginBottom: '24px' }}>
             Registered contact email: <strong>{formData.contactEmail}</strong>
           </p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '16px' }}>
             <Link to="/login/agency" className="btn btn-primary" style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #19b6a6 0%, #0ea5e9 100%)', border: 'none' }}>
               Proceed to Agency Login →
             </Link>
             <Link to="/" className="btn btn-secondary" style={{ padding: '12px 20px' }}>
               Back to Home
             </Link>
+          </div>
+          <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: '10px', fontSize: '12px', color: '#64748b' }}>
+            ⚡ <strong>Evaluator Shortcut:</strong> To approve this agency right away, log in as Super-Admin (<Link to="/login/superuser" style={{ color: '#0284c7', fontWeight: 600 }}>superadmin@ticp.com</Link>) and visit <Link to="/super/agencies" style={{ color: '#0284c7', fontWeight: 600 }}>Agency Approvals</Link>.
           </div>
         </div>
       </div>
@@ -206,6 +210,38 @@ export default function AgencySignupPage() {
             ⚠️ {apiError}
           </div>
         )}
+
+        {/* 1-Click Demo Fill for Evaluators */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+          <button
+            type="button"
+            onClick={() => {
+              const uniqueSuffix = Math.floor(100 + Math.random() * 900);
+              setFormData({
+                businessName: `Voyage World Tours ${uniqueSuffix}`,
+                contactEmail: `contact${uniqueSuffix}@voyageworld.com`,
+                contactPhone: `9876543${uniqueSuffix}`,
+                password: 'AgencyPass@123',
+                confirmPassword: 'AgencyPass@123',
+                commissionRate: 1.5,
+              });
+              setErrors({});
+              setApiError(null);
+            }}
+            style={{
+              padding: '6px 12px',
+              fontSize: '12px',
+              fontWeight: 600,
+              background: '#f0fdfc',
+              color: '#0d9488',
+              border: '1px solid #99f6e4',
+              borderRadius: '8px',
+              cursor: 'pointer',
+            }}
+          >
+            ⚡ Quick-Fill Sample Agency
+          </button>
+        </div>
 
         <form onSubmit={handleSubmit}>
           {/* Agency Business Name */}
@@ -290,11 +326,21 @@ export default function AgencySignupPage() {
           {/* Password & Confirm Password */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
-                Account Password *
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Account Password *
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((p) => !p)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: 'var(--muted)', padding: 0 }}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
                 placeholder="At least 6 characters"
@@ -315,11 +361,13 @@ export default function AgencySignupPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
-                Confirm Password *
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Confirm Password *
+                </label>
+              </div>
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={formData.confirmPassword}
                 onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                 placeholder="Re-enter password"

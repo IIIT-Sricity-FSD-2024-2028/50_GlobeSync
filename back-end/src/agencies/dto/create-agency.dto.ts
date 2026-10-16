@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
 
 export class CreateAgencyDto {
   @ApiProperty({ example: 'Elite Travel Partners' })
@@ -21,4 +21,11 @@ export class CreateAgencyDto {
   @IsString()
   @MinLength(6)
   password: string;
+
+  @ApiPropertyOptional({ example: 1.5, description: 'Requested commission rate (1.0 to 1.5)' })
+  @IsOptional()
+  @IsNumber()
+  @Min(1.0)
+  @Max(1.5)
+  commissionRate?: number;
 }

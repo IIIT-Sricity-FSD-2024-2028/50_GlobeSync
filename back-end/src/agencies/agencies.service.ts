@@ -49,6 +49,7 @@ export class AgenciesService {
       contactEmail: dto.contactEmail,
       contactPhone: dto.contactPhone,
       password: dto.password,
+      commissionRate: dto.commissionRate != null ? Number(dto.commissionRate) : 1.5,
       status: 'pending',
       createdAt: new Date().toISOString(),
     };

@@ -25,6 +25,22 @@ export default function TravelerSignupPage() {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleQuickFill = () => {
+    const randomId = Math.floor(100 + Math.random() * 900);
+    setFormData({
+      name: `Aarav Sharma ${randomId}`,
+      email: `aarav${randomId}@traveler.test`,
+      password: 'TravelerPass@123',
+      confirmPassword: 'TravelerPass@123',
+      phone: `98765${randomId}12`,
+      gender: 'Male',
+      age: '27',
+    });
+    setErrors({});
+    setApiError(null);
+  };
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -155,6 +171,29 @@ export default function TravelerSignupPage() {
           </div>
         )}
 
+        {/* 1-Click Demo Fill for Evaluators */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+          <button
+            type="button"
+            onClick={handleQuickFill}
+            style={{
+              padding: '6px 12px',
+              fontSize: '12px',
+              fontWeight: 600,
+              background: '#fdf2f8',
+              color: 'var(--primary)',
+              border: '1px solid #fbcfe8',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            ⚡ Quick-Fill Sample Traveler
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit} noValidate>
           {/* Full Name */}
           <div style={{ marginBottom: '16px' }}>
@@ -211,11 +250,19 @@ export default function TravelerSignupPage() {
           {/* Password & Confirm Password */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
-                Password *
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>Password *</label>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((p) => !p)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: 'var(--muted)', padding: 0 }}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 placeholder="At least 6 chars"
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
@@ -236,11 +283,11 @@ export default function TravelerSignupPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
-                Confirm Password *
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>Confirm Password *</label>
+              </div>
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 placeholder="Re-enter password"
                 value={formData.confirmPassword}
                 onChange={(e) => handleInputChange('confirmPassword', e.target.value)}

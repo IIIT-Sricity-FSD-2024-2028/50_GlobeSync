@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { travelers, Traveler } from '../data';
 import { CreateTravelerDto, UpdateTravelerDto } from './dto';
 
@@ -18,6 +18,11 @@ export class TravelersService {
   }
 
   create(dto: CreateTravelerDto): Omit<Traveler, 'password'> {
+    // Check if email already registered
+    if (travelers.some((t) => t.email.toLowerCase() === dto.email.toLowerCase())) {
+      throw new BadRequestException('Email is already registered. Please log in or use another email.');
+    }
+
     const maxId = travelers.length > 0
       ? Math.max(...travelers.map((t) => t.travelerId))
       : 0;
