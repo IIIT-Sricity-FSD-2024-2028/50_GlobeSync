@@ -20,30 +20,46 @@ root/
 
 ---
 
-## Getting Started
+## Prerequisites & Environment
 
-### 1. Start the NestJS Backend Server
+- **Node.js**: `v18.x` or higher (verified on Node `v20.x` / `v22.x`)
+- **npm**: `v9.x` or higher
+- **OS**: Windows / Linux / macOS (all scripts are cross-platform compatible)
+
+---
+
+## Getting Started & Installation
+
+### 1. Install Dependencies & Start the NestJS Backend
 ```bash
 cd back-end
 npm install
 npm run start:dev
 ```
-The backend server runs on `http://localhost:3000`. Swagger API documentation is available at `http://localhost:3000/api`.
+- **Backend API**: `http://localhost:3000`
+- **Health Check**: `http://localhost:3000/health`
+- **Interactive Swagger Documentation**: `http://localhost:3000/api`
 
-### 2. Start the React Frontend Application
+### 2. Install Dependencies & Start the React Frontend Application
+In a separate terminal window:
 ```bash
 cd front-end
 npm install
 npm run dev
 ```
-The React development server runs on `http://localhost:5173`.
+- **React Frontend**: `http://localhost:5173`
 
-### 3. Production Build
+### 3. Production Bundles
 ```bash
+# Frontend optimized production bundle (front-end/dist)
 cd front-end
 npm run build
+
+# Backend compiled TypeScript bundle (back-end/dist)
+cd back-end
+npm run build
 ```
-Builds the optimized production bundle in `front-end/dist`.
+
 
 ---
 
@@ -461,27 +477,41 @@ http://localhost:3000/api
 
 ---
 
-## How to Run Frontend
+## Execution Procedure & Portal Access
 
-Open another terminal from the project root:
-
+### Step 1: Start the NestJS Backend
+From the project root:
 ```bash
-npx http-server -p 5501
+cd back-end
+npm run start:dev
 ```
+- **Backend API**: `http://localhost:3000`
+- **Health Check**: `http://localhost:3000/health`
+- **Swagger Documentation**: `http://localhost:3000/api` (84 endpoints across 24 tag groups)
 
-Open in browser:
-
-```text
-http://127.0.0.1:5501/front-end/
+### Step 2: Start the React + Vite Frontend
+In a second terminal window from the project root:
+```bash
+cd front-end
+npm run dev
 ```
+- **Frontend Portal**: `http://localhost:5173`
 
-The frontend communicates with the backend using Fetch API.
+The frontend communicates with the backend via centralized Fetch API wrappers (`front-end/src/services/api.js`) automatically injecting the active user's `x-user-role` and `x-user-id` headers.
 
-Backend base URL:
+### Seeded Demo Login Credentials (All 6 Roles)
 
-```text
-http://localhost:3000
-```
+The platform comes seeded with in-memory test credentials for each of the 6 roles. Use the quick-fill buttons on the login gateway (`http://localhost:5173/login`) or supply the credentials manually:
+
+| Role | Email | Password | Access Code | Landing Route | Key Capabilities |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Traveler** | `Arjun@gmail.com` | `traveler123` | *(None)* | `/traveler/packages` | Browse packages, create trips/itineraries, book transit/hotels, log expenses, submit support tickets with attachments |
+| **Tour Guide** | `Devansh@gmail.com` | `guide123` | `GUIDE-2026` | `/guide/dashboard` | Accept/decline trip requests, view assigned travelers, track completed tours, manage daily itineraries |
+| **Customer Support** | `Aisha.johnson@gmail.com` | `support123` | `SUPP-2026` | `/support/dashboard` | Triage ticket queue (Open -> In Progress -> Resolved), audit & approve refund requests, customer messaging |
+| **Platform Administrator** | `admin@ticp.com` | `admin123` | `ADMIN-TICP` | `/admin/dashboard` | Manage packages & trip assignments, oversee guide status, approve agency reseller partners |
+| **Superuser (Governance)** | `superadmin@ticp.com` | `super123` | `SUPER-2026` | `/super/dashboard` | Live platform rules (ceilings, cutoffs), toggle payment gateways, manage staff, audit trail |
+| **Travel Agency Partner** | `ops@horizontravel.com` | `horizon123` | *(None)* | `/agency/dashboard` | Manage offline client passengers, book trips on clients' behalf, view commission ledger & subscriptions |
+
 
 ---
 
@@ -799,43 +829,67 @@ For each API, show:
 
 ---
 
-## Production Verification & Multi-Actor Architecture
+## Testing & Middleware Verification Instructions
 
-### 1. Production Build Results
-Both front-end and back-end have been compiled and verified for production:
-* **Frontend Production Build**:
-  ```powershell
-  cd front-end
-  npm run build
-  ```
-  Result: **173 modules transformed** into optimized production assets in `front-end/dist/` in 3.02s with **Exit code 0** (zero bundling errors, zero lint blockers).
-* **Backend TypeScript Compilation Check**:
-  ```powershell
-  cd back-end
-  npx tsc --noEmit
-  ```
-  Result: **Exit code 0** (zero compilation or type errors across all 23 controllers, services, DTOs, and system-config modules).
+### 1. Automated Backend Unit & RBAC Test Suite
+GlobeSync provides 7 sequential automated test suites covering RBAC boundaries, state machine transitions, and data protection rules. Run the full test suite via `ts-node`:
+```bash
+cd back-end
+npm test
+```
+**Test Results: 132 tests, 132 passed, 0 failed (100% pass rate)**:
+- `src/trips/backend-fixes.spec.ts` (23 tests): Trip lifecycle finite state machine (`Planning` -> `Pending` -> `Confirmed`), guide assignment decoupling, guideStatus initialization (`Pending`), genuine revenue calculation without synthetic inflation.
+- `src/support-users/support-users.service.spec.ts` (16 tests): Support user profile CRUD, password sanitization on output, caller identity ownership enforcement via `RolesGuard`.
+- `src/agencies/agencies.service.spec.ts` (17 tests): Reseller agency registration, password protection, status-based login gating (`pending` rejected, `approved` allowed).
+- `src/admins/admins.service.spec.ts` (17 tests): Admin profile management, immutable role boundaries, strict administrator identity matching.
+- `src/common/guards/roles-guard-ownership.spec.ts` (17 tests): Multi-tenant RBAC headers (`x-user-role`, `x-user-id`), cross-role caller identity matching, dashboard and message privacy.
+- `src/common/guards/child-resource-ownership.spec.ts` (19 tests): Deep child resource ownership verification across itineraries, expenses, payments, and refunds.
+- `src/revenue/revenue-subscriptions-promotions.rbac.spec.ts` (23 tests): Agency revenue access boundaries, subscription billing tiers, and promotional discount RBAC.
 
-### 2. Single Shared Backend Instance Architecture
+### 2. Production Bundle Verification
+Verify that both frontend and backend compile to optimized production assets:
+```bash
+# Frontend Build (Vite)
+cd front-end
+npm run build
+# Result: 173 modules transformed into front-end/dist/ with zero errors
+
+# Backend Build (NestJS)
+cd back-end
+npm run build
+# Result: Compiled into back-end/dist/ with zero errors
+```
+
+### 3. FDFED Middleware Verification
+The GlobeSync backend integrates 4 enterprise-grade middlewares meeting all FDFED requirements:
+
+1. **Router-Level Access Logging (`LoggerMiddleware`)**:
+   - Location: `back-end/src/common/middleware/logger.middleware.ts`
+   - Log destination: `back-end/logs/access.log`
+   - Behavior: Automatically logs every incoming HTTP request with method, URL, response status code, and execution duration in milliseconds.
+
+2. **Global Exception Filter (`GlobalExceptionFilter`)**:
+   - Location: `back-end/src/common/filters/http-exception.filter.ts`
+   - Log destination: `back-end/logs/error.log`
+   - Behavior: Intercepts all unhandled HTTP exceptions, serializes standardized JSON responses (`statusCode`, `message`, `error`, `timestamp`, `path`), and appends the detailed error stack to `back-end/logs/error.log`.
+
+3. **Helmet Security Headers (`helmet()`)**:
+   - Configured in: `back-end/src/main.ts`
+   - Behavior: Protects against common web vulnerabilities by injecting secure headers including `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, and `Strict-Transport-Security`.
+
+4. **File Upload Middleware (`UploadsController` via Multer)**:
+   - Endpoint: `POST /uploads/attachment`
+   - Static Asset Hosting: Uploaded files are served at `http://localhost:3000/uploads/<filename>`
+   - Constraints: Max file size 5 MB; allowed formats `.jpg`, `.jpeg`, `.png`, `.pdf` (validated before disk write).
+   - Frontend Integration: Connected in `front-end/src/services/api.js` via `uploadsApi.uploadAttachment(file)` and wired into Support Ticket creation (`front-end/src/components/support/TicketForm.jsx`).
+
+### 4. Single Shared Backend Instance Architecture
 The NestJS backend runs strictly in memory (`back-end/src/*/data/*.ts`). There is no persistent external database.
-* **Why Cross-Role Checks Require One Shared Instance**:
+- **Why Cross-Role Checks Require One Shared Instance**:
   In-memory data structures are held within the running Node.js process memory. Separate `localhost:3000` instances on different developer machines do **not** synchronize memory. A booking created on Laptop A does not exist on Laptop B.
-* **Shared Verification Host**:
+- **Shared Verification Host**:
   All 6 actor portals connect to a single active backend process (`http://localhost:3000`), ensuring that Traveler trip bookings, Guide assignments, Support tickets, and Agency transactions reflect across role views in real time.
 
-### 3. Automated End-to-End Test Suite Results
-All 8 verification suites were executed sequentially against the shared running backend:
-
-| Test Suite | Portal / Workflow | Scenarios Tested | Status |
-| :--- | :--- | :--- | :---: |
-| `verify_traveler_e2e_recovery.js` | Traveler | Duplicate payments rejected (400), Planning -> Pending -> Confirmed FSM | ✅ 4/4 Passed |
-| `test_traveler_payment_recovery.js` | Traveler | Card Luhn validation, cancellation rules, recovery from paid ledger | ✅ 9/9 Passed |
-| `verify_guide_shared_contracts.js` | Guide | Accept/decline decoupling, admin reassignment resets guideStatus | ✅ 42/42 Passed |
-| `scratch/verify_admin_e2e.js` | Admin | Safe package deletion (409 on active trips), guide reassignment, agency gating | ✅ All Passed |
-| `scratch/verify_super_workflows.js` | Superuser | Guide pricePerTrip preservation, agency commission tiers (0.5%-1.5%) | ✅ All Passed |
-| `scratch/verify_super_controls_e2e.js` | Superuser | System payment ceilings enforced in PaymentsService, audit logging | ✅ 24/24 Passed |
-| `scratch/verify_support_e2e.js` | Support | Ticket queue triage (Open->In Progress->Resolved), refund audit | ✅ 40/40 Passed |
-| `scratch/verify_agency_e2e.js` | Agency | Agency registration, approval gating, passenger CRUD, booking recovery | ✅ 33/33 Passed |
 
 ---
 
@@ -844,7 +898,7 @@ All 8 verification suites were executed sequentially against the shared running 
 Every team member owns an independent actor portal and can explain their complete **Action $\rightarrow$ API $\rightarrow$ State $\rightarrow$ Render** flow and demonstrate a small live modification.
 
 ### Member 1: Traveler Portal
-* **Owner Files**: [`TravelerCreateTripPage.jsx`](file:///c:/Users/krees/Music/50_GlobeSync/front-end/src/pages/traveler/TravelerCreateTripPage.jsx), [`TravelerBookingsPage.jsx`](file:///c:/Users/krees/Music/50_GlobeSync/front-end/src/pages/traveler/TravelerBookingsPage.jsx), [`TravelerTripsPage.jsx`](file:///c:/Users/krees/Music/50_GlobeSync/front-end/src/pages/traveler/TravelerTripsPage.jsx)
+* **Owner Files**: [`TravelerCreateTripPage.jsx`](front-end/src/pages/traveler/TravelerCreateTripPage.jsx), [`TravelerBookingsPage.jsx`](front-end/src/pages/traveler/TravelerBookingsPage.jsx), [`TravelerTripsPage.jsx`](front-end/src/pages/traveler/TravelerTripsPage.jsx)
 * **Components / Props**: Multi-step wizard (`TripForm`, `TransportSelectStep`, `HotelSelectStep`, `GuideSelectStep`, `TripCostSummary`), passing step handlers (`onNext`, `onBack`, `formData`, `onChange`).
 * **State / Events**: Wizard step progression (`step`, `setStep`), `sessionStorage` draft recovery, `costBreakdown` dynamic recalculation.
 * **Controlled Forms**: Controlled inputs for dates, destination, passenger selection, and card payment modal with Luhn validation.
@@ -857,7 +911,7 @@ Every team member owns an independent actor portal and can explain their complet
 * **Live Viva Modification**: In `TripCostSummary.jsx`, add a 5% transit surcharge or add a destination keyword filter in `TravelerTripsPage.jsx`.
 
 ### Member 2: Tour Guide Portal
-* **Owner Files**: [`GuideRequestsPage.jsx`](file:///c:/Users/krees/Music/50_GlobeSync/front-end/src/pages/guide/GuideRequestsPage.jsx), [`GuideTravelersPage.jsx`](file:///c:/Users/krees/Music/50_GlobeSync/front-end/src/pages/guide/GuideTravelersPage.jsx), [`GuideCompletedTripsPage.jsx`](file:///c:/Users/krees/Music/50_GlobeSync/front-end/src/pages/guide/GuideCompletedTripsPage.jsx)
+* **Owner Files**: [`GuideRequestsPage.jsx`](front-end/src/pages/guide/GuideRequestsPage.jsx), [`GuideTravelersPage.jsx`](front-end/src/pages/guide/GuideTravelersPage.jsx), [`GuideCompletedTripsPage.jsx`](front-end/src/pages/guide/GuideCompletedTripsPage.jsx)
 * **Components / Props**: `RequestCard`, `ItineraryProgress`, `GuideMessagePane`.
 * **State / Events**: Filter tabs (`All`, `Pending`, `Accepted`), modal confirmation state, optimistic trip status updates.
 * **Controlled Forms**: Controlled feedback/reply input, hourly/per-trip fee configuration in profile.
@@ -870,7 +924,7 @@ Every team member owns an independent actor portal and can explain their complet
 * **Live Viva Modification**: In `GuideTravelersPage.jsx`, add a search filter input to filter travelers by client name.
 
 ### Member 3: Admin Portal
-* **Owner Files**: [`AdminPackagesPage.jsx`](file:///c:/Users/krees/Music/50_GlobeSync/front-end/src/pages/admin/AdminPackagesPage.jsx), [`AdminTripsPage.jsx`](file:///c:/Users/krees/Music/50_GlobeSync/front-end/src/pages/admin/AdminTripsPage.jsx), [`AdminAgenciesPage.jsx`](file:///c:/Users/krees/Music/50_GlobeSync/front-end/src/pages/admin/AdminAgenciesPage.jsx)
+* **Owner Files**: [`AdminPackagesPage.jsx`](front-end/src/pages/admin/AdminPackagesPage.jsx), [`AdminTripsPage.jsx`](front-end/src/pages/admin/AdminTripsPage.jsx), [`AdminAgenciesPage.jsx`](front-end/src/pages/admin/AdminAgenciesPage.jsx)
 * **Components / Props**: `AdminPackageCard`, `AdminTripRow`, `AdminAgencyModal`.
 * **State / Events**: Modals for edit/create, safe deletion conflict warnings (HTTP 409).
 * **Controlled Forms**: Package creation form with duration, price, tags, and agency commission rate slider (0.5% - 1.5%).
@@ -883,7 +937,7 @@ Every team member owns an independent actor portal and can explain their complet
 * **Live Viva Modification**: In `AdminBookingsPage.jsx`, add a quick filter button for bookings over $1,000.
 
 ### Member 4: Superuser Portal
-* **Owner Files**: [`SuperRulesConfigPage.jsx`](file:///c:/Users/krees/Music/50_GlobeSync/front-end/src/pages/super/SuperRulesConfigPage.jsx), [`SuperPaymentMethodsPage.jsx`](file:///c:/Users/krees/Music/50_GlobeSync/front-end/src/pages/super/SuperPaymentMethodsPage.jsx), [`SuperRevenuePage.jsx`](file:///c:/Users/krees/Music/50_GlobeSync/front-end/src/pages/super/SuperRevenuePage.jsx), [`SuperUsersPage.jsx`](file:///c:/Users/krees/Music/50_GlobeSync/front-end/src/pages/super/SuperUsersPage.jsx)
+* **Owner Files**: [`SuperRulesConfigPage.jsx`](front-end/src/pages/super/SuperRulesConfigPage.jsx), [`SuperPaymentMethodsPage.jsx`](front-end/src/pages/super/SuperPaymentMethodsPage.jsx), [`SuperRevenuePage.jsx`](front-end/src/pages/super/SuperRevenuePage.jsx), [`SuperUsersPage.jsx`](front-end/src/pages/super/SuperUsersPage.jsx)
 * **Components / Props**: `MetricCard`, `RuleSlider`, `GatewayToggleCard`, `AuditLogTable`.
 * **State / Events**: Live config values, measured health ping latency, audit trail log pagination.
 * **Controlled Forms**: `maxSinglePaymentCeiling` slider, auto-confirm toggle, payment gateway switches.
@@ -896,7 +950,7 @@ Every team member owns an independent actor portal and can explain their complet
 * **Live Viva Modification**: In `SuperUsersPage.jsx`, add a text input to filter the user list by email domain.
 
 ### Member 5: Customer Support Portal
-* **Owner Files**: [`SupportTicketsPage.jsx`](file:///c:/Users/krees/Music/50_GlobeSync/front-end/src/pages/support/SupportTicketsPage.jsx), [`SupportRefundsPage.jsx`](file:///c:/Users/krees/Music/50_GlobeSync/front-end/src/pages/support/SupportRefundsPage.jsx), [`SupportMessagesPage.jsx`](file:///c:/Users/krees/Music/50_GlobeSync/front-end/src/pages/support/SupportMessagesPage.jsx)
+* **Owner Files**: [`SupportTicketsPage.jsx`](front-end/src/pages/support/SupportTicketsPage.jsx), [`SupportRefundsPage.jsx`](front-end/src/pages/support/SupportRefundsPage.jsx), [`SupportMessagesPage.jsx`](front-end/src/pages/support/SupportMessagesPage.jsx)
 * **Components / Props**: `TicketRow`, `SupportTicketDetailModal`, `SupportRefundDetailModal`.
 * **State / Events**: Ticket queue filter (`Open`, `In Progress`, `Resolved`), selected ticket modal state, refund review approval state.
 * **Controlled Forms**: Support reply textarea, ticket status select, refund rejection reason input.
@@ -909,11 +963,12 @@ Every team member owns an independent actor portal and can explain their complet
 * **Live Viva Modification**: In `SupportTicketsPage.jsx`, add a filter dropdown to filter tickets by priority (High / Medium / Low).
 
 ### Member 6: Travel Agency Portal
-* **Owner Files**: [`AgencyBookPackagePage.jsx`](file:///c:/Users/krees/Music/50_GlobeSync/front-end/src/pages/agency/AgencyBookPackagePage.jsx), [`AgencyPassengersPage.jsx`](file:///c:/Users/krees/Music/50_GlobeSync/front-end/src/pages/agency/AgencyPassengersPage.jsx), [`AgencyCommissionPage.jsx`](file:///c:/Users/krees/Music/50_GlobeSync/front-end/src/pages/agency/AgencyCommissionPage.jsx)
+* **Owner Files**: [`AgencyBookPackagePage.jsx`](front-end/src/pages/agency/AgencyBookPackagePage.jsx), [`AgencyPassengersPage.jsx`](front-end/src/pages/agency/AgencyPassengersPage.jsx), [`AgencyCommissionPage.jsx`](front-end/src/pages/agency/AgencyCommissionPage.jsx)
 * **Components / Props**: `PassengerCard`, `BookingWizardStep`, `CommissionLedgerTable`.
 * **State / Events**: Selected offline passenger, step wizard state, commission summary calculations.
 * **Controlled Forms**: Passenger creation form (`name`, `age`, `gender`), custom booking dates, promotion submission.
 * **useEffect / Side Effects**: Fetches agency passengers (`GET /passengers/agency/:agencyId`) and packages (`GET /packages`).
+
 * **Complete Action $\rightarrow$ API $\rightarrow$ State $\rightarrow$ Render Flow**:
   1. *Action*: Agency submits new client passenger form with name, age, and gender.
   2. *API*: Sends `POST /passengers` with `{ name: 'John Doe', age: 34, gender: 'Male', agencyId: '1' }`.

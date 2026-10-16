@@ -17,6 +17,7 @@ export default function BookingDetailModal({
   const [loadingPayments, setLoadingPayments] = useState(false);
   const [paymentsError, setPaymentsError] = useState(null);
   const [refundStatus, setRefundStatus] = useState(null);
+  const [refundError, setRefundError] = useState(null);
   const [refundSubmitting, setRefundSubmitting] = useState(false);
 
   const bookingId = booking ? Number(booking.bookingId || booking.id) : null;
@@ -50,6 +51,7 @@ export default function BookingDetailModal({
       setPayments([]);
       setPaymentsError(null);
       setRefundStatus(null);
+      setRefundError(null);
       return;
     }
 
@@ -71,6 +73,7 @@ export default function BookingDetailModal({
     if (!confirmRefund) return;
 
     setRefundSubmitting(true);
+    setRefundError(null);
     const today = new Date().toISOString().split('T')[0];
 
     try {
@@ -85,7 +88,7 @@ export default function BookingDetailModal({
       setRefundStatus(`Refund request submitted for Payment #${payment.paymentId} (Status: Processing). Support will review your request.`);
     } catch (err) {
       console.error('[BookingDetailModal] Refund request failed:', err);
-      alert(`Refund request failed: ${err.message}`);
+      setRefundError(`Refund request failed: ${err.message}`);
     } finally {
       setRefundSubmitting(false);
     }
@@ -211,6 +214,33 @@ export default function BookingDetailModal({
               }}
             >
               ✓ {refundStatus}
+            </div>
+          )}
+
+          {/* Refund Error Banner */}
+          {refundError && (
+            <div
+              style={{
+                padding: '12px 16px',
+                background: '#fef2f2',
+                border: '1px solid #fee2e2',
+                borderRadius: '10px',
+                color: '#991b1b',
+                fontSize: '13px',
+                fontWeight: 600,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <span>⚠️ {refundError}</span>
+              <button
+                type="button"
+                onClick={() => setRefundError(null)}
+                style={{ background: 'none', border: 'none', color: '#991b1b', cursor: 'pointer', fontSize: '16px' }}
+              >
+                ✕
+              </button>
             </div>
           )}
 

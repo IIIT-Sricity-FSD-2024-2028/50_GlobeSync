@@ -2705,12 +2705,44 @@
     "/system-config/rules": {
       "get": {
         "operationId": "SystemConfigController_getRules",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Rules returned successfully"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Get global platform operational rules and policy settings",
         "tags": [
           "system-config"
@@ -2795,12 +2827,44 @@
     "/system-config/payment-methods": {
       "get": {
         "operationId": "SystemConfigController_getPaymentMethods",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Payment methods returned successfully"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Get configured checkout payment methods and gateway statuses",
         "tags": [
           "system-config"
@@ -6581,6 +6645,42 @@
     {
       "name": "dashboard",
       "description": "Dashboard & reports"
+    },
+    {
+      "name": "agencies",
+      "description": "Travel agency partner management"
+    },
+    {
+      "name": "admins",
+      "description": "Platform administrator management"
+    },
+    {
+      "name": "support-users",
+      "description": "Customer care support personnel management"
+    },
+    {
+      "name": "passengers",
+      "description": "Passenger master records and co-traveler management"
+    },
+    {
+      "name": "uploads",
+      "description": "File attachment uploads and storage"
+    },
+    {
+      "name": "revenue",
+      "description": "Agency revenue reporting and platform fee reconciliation"
+    },
+    {
+      "name": "subscriptions",
+      "description": "Agency subscription tiers and billing plans"
+    },
+    {
+      "name": "promotions",
+      "description": "Promotional discounts and campaign management"
+    },
+    {
+      "name": "system-config",
+      "description": "Platform operational rules, payment methods, integrations, and audit trail"
     }
   ],
   "servers": [],

@@ -59,7 +59,17 @@ async function bootstrap() {
     .addTag('support-tickets', 'Support ticket management')
     .addTag('messages', 'Messaging')
     .addTag('dashboard', 'Dashboard & reports')
+    .addTag('agencies', 'Travel agency partner management')
+    .addTag('admins', 'Platform administrator management')
+    .addTag('support-users', 'Customer care support personnel management')
+    .addTag('passengers', 'Passenger master records and co-traveler management')
+    .addTag('uploads', 'File attachment uploads and storage')
+    .addTag('revenue', 'Agency revenue reporting and platform fee reconciliation')
+    .addTag('subscriptions', 'Agency subscription tiers and billing plans')
+    .addTag('promotions', 'Promotional discounts and campaign management')
+    .addTag('system-config', 'Platform operational rules, payment methods, integrations, and audit trail')
     .build();
+
 
   const document = SwaggerModule.createDocument(app, config);
 

@@ -24,33 +24,33 @@ Located in `front-end/src/pages/guide/`:
 
 | Page File | Route | Primary Responsibility |
 |---|---|---|
-| [`GuideDashboardPage.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/pages/guide/GuideDashboardPage.jsx) | `/guide/dashboard` | Fetches guide metrics (`dashboardApi.getGuide`) and verified profile (`guidesApi.getById`); displays KPI cards, verified profile card, and navigation shortcuts. |
-| [`GuideRequestsPage.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/pages/guide/GuideRequestsPage.jsx) | `/guide/requests` | Manages incoming trip invitations; resolves traveler and agency names; executes accept/decline decisions; handles decoupled notifications and retries. |
-| [`GuideTravelersPage.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/pages/guide/GuideTravelersPage.jsx) | `/guide/travelers` | Manages assigned travelers and agencies; displays multi-trip roster; loads scoped hotel bookings (`GET /bookings/guide/:guideId`); manages daily itineraries and tour lifecycle (`Active`/`Completed`). |
-| [`GuideCompletedTripsPage.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/pages/guide/GuideCompletedTripsPage.jsx) | `/guide/completed-trips` | Archive of completed guided tours; strictly matches traveler feedback by `tripId` and `guideId`; displays honest reviews without fabricated ratings. |
-| [`GuideMessagesPage.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/pages/guide/GuideMessagesPage.jsx) | `/guide/messages` | Two-pane messaging coordinator; builds contacts from messages and assigned trips; manages canonical conversation keys; isolates drafts per conversation. |
-| [`GuideProfilePage.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/pages/guide/GuideProfilePage.jsx) | `/guide/profile` | Read-only profile view with an edit toggle; coordinates `GuideProfileForm`; syncs safe public fields to `SessionContext.updateUser`; excludes password and admin fields from session. |
+| [`GuideDashboardPage.jsx`](front-end/src/pages/guide/GuideDashboardPage.jsx) | `/guide/dashboard` | Fetches guide metrics (`dashboardApi.getGuide`) and verified profile (`guidesApi.getById`); displays KPI cards, verified profile card, and navigation shortcuts. |
+| [`GuideRequestsPage.jsx`](front-end/src/pages/guide/GuideRequestsPage.jsx) | `/guide/requests` | Manages incoming trip invitations; resolves traveler and agency names; executes accept/decline decisions; handles decoupled notifications and retries. |
+| [`GuideTravelersPage.jsx`](front-end/src/pages/guide/GuideTravelersPage.jsx) | `/guide/travelers` | Manages assigned travelers and agencies; displays multi-trip roster; loads scoped hotel bookings (`GET /bookings/guide/:guideId`); manages daily itineraries and tour lifecycle (`Active`/`Completed`). |
+| [`GuideCompletedTripsPage.jsx`](front-end/src/pages/guide/GuideCompletedTripsPage.jsx) | `/guide/completed-trips` | Archive of completed guided tours; strictly matches traveler feedback by `tripId` and `guideId`; displays honest reviews without fabricated ratings. |
+| [`GuideMessagesPage.jsx`](front-end/src/pages/guide/GuideMessagesPage.jsx) | `/guide/messages` | Two-pane messaging coordinator; builds contacts from messages and assigned trips; manages canonical conversation keys; isolates drafts per conversation. |
+| [`GuideProfilePage.jsx`](front-end/src/pages/guide/GuideProfilePage.jsx) | `/guide/profile` | Read-only profile view with an edit toggle; coordinates `GuideProfileForm`; syncs safe public fields to `SessionContext.updateUser`; excludes password and admin fields from session. |
 
 ### Feature Components (Presentational & Sub-Forms)
 Located in `front-end/src/components/guide/`:
 
 | Component File | Role / Responsibility |
 |---|---|
-| [`GuideRequestList.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/components/guide/GuideRequestList.jsx) | Renders the list of request cards with loading, error, and empty states. |
-| [`GuideRequestCard.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/components/guide/GuideRequestCard.jsx) | Renders an individual request card with trip budget, dates, requestor tag, Accept/Decline buttons, and Retry Notification button. |
-| [`GuideTravelerRoster.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/components/guide/GuideTravelerRoster.jsx) | Left column roster for assigned travelers with search filter, agency badges, and multi-trip count pills. |
-| [`GuideTravelerProfile.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/components/guide/GuideTravelerProfile.jsx) | Right detail pane displaying client details, multi-trip selector tabs, hotel bookings, and tour start/complete buttons. |
-| [`GuideTripItineraryManager.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/components/guide/GuideTripItineraryManager.jsx) | Daily itinerary schedule manager: groups activities by `dayNumber`, shows progress bars, status toggles, and edit actions. |
-| [`GuideActivityModal.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/components/guide/GuideActivityModal.jsx) | Controlled modal dialog for creating or updating daily activities. |
-| [`GuideSuggestItineraryModal.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/components/guide/GuideSuggestItineraryModal.jsx) | Controlled suggestion modal that dispatches an itinerary proposal as a direct message (does not mutate saved itinerary). |
-| [`GuideCompletedTripCard.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/components/guide/GuideCompletedTripCard.jsx) | Displays completed tour cards with matched feedback, star ratings, and review comments. |
-| [`GuideConversationList.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/components/guide/GuideConversationList.jsx) | Left conversation list with search input, role avatars (Traveler 👤, Agency 🏢, Support 🎧), preview snippets, and manual refresh button. |
-| [`GuideConversationThread.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/components/guide/GuideConversationThread.jsx) | Right thread pane rendering chat bubbles (`mine` vs. `theirs`), timestamps, auto-scroll, and pending request banner. |
-| [`GuideMessageInput.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/components/guide/GuideMessageInput.jsx) | Controlled textarea input with whitespace validation, duplicate-send protection, <kbd>Ctrl+Enter</kbd> send, and inline error. |
-| [`GuideProfileForm.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/components/guide/GuideProfileForm.jsx) | Controlled profile edit form with validation for name, email, numeric experience, trip fee, languages array, and optional password. |
-| [`GuideProfileCard.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/components/guide/GuideProfileCard.jsx) | Dashboard summary card showing guide credentials, ratings, and fee labeled as "Price per Trip". |
-| [`GuideStatsGrid.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/components/guide/GuideStatsGrid.jsx) | 4-card KPI metric grid (Assigned Tours, Completed Tours, Pending Invitations, Messages). |
-| [`GuideQuickActions.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/components/guide/GuideQuickActions.jsx) | Fast navigation cards linking to all 5 secondary guide modules. |
+| [`GuideRequestList.jsx`](front-end/src/components/guide/GuideRequestList.jsx) | Renders the list of request cards with loading, error, and empty states. |
+| [`GuideRequestCard.jsx`](front-end/src/components/guide/GuideRequestCard.jsx) | Renders an individual request card with trip budget, dates, requestor tag, Accept/Decline buttons, and Retry Notification button. |
+| [`GuideTravelerRoster.jsx`](front-end/src/components/guide/GuideTravelerRoster.jsx) | Left column roster for assigned travelers with search filter, agency badges, and multi-trip count pills. |
+| [`GuideTravelerProfile.jsx`](front-end/src/components/guide/GuideTravelerProfile.jsx) | Right detail pane displaying client details, multi-trip selector tabs, hotel bookings, and tour start/complete buttons. |
+| [`GuideTripItineraryManager.jsx`](front-end/src/components/guide/GuideTripItineraryManager.jsx) | Daily itinerary schedule manager: groups activities by `dayNumber`, shows progress bars, status toggles, and edit actions. |
+| [`GuideActivityModal.jsx`](front-end/src/components/guide/GuideActivityModal.jsx) | Controlled modal dialog for creating or updating daily activities. |
+| [`GuideSuggestItineraryModal.jsx`](front-end/src/components/guide/GuideSuggestItineraryModal.jsx) | Controlled suggestion modal that dispatches an itinerary proposal as a direct message (does not mutate saved itinerary). |
+| [`GuideCompletedTripCard.jsx`](front-end/src/components/guide/GuideCompletedTripCard.jsx) | Displays completed tour cards with matched feedback, star ratings, and review comments. |
+| [`GuideConversationList.jsx`](front-end/src/components/guide/GuideConversationList.jsx) | Left conversation list with search input, role avatars (Traveler 👤, Agency 🏢, Support 🎧), preview snippets, and manual refresh button. |
+| [`GuideConversationThread.jsx`](front-end/src/components/guide/GuideConversationThread.jsx) | Right thread pane rendering chat bubbles (`mine` vs. `theirs`), timestamps, auto-scroll, and pending request banner. |
+| [`GuideMessageInput.jsx`](front-end/src/components/guide/GuideMessageInput.jsx) | Controlled textarea input with whitespace validation, duplicate-send protection, <kbd>Ctrl+Enter</kbd> send, and inline error. |
+| [`GuideProfileForm.jsx`](front-end/src/components/guide/GuideProfileForm.jsx) | Controlled profile edit form with validation for name, email, numeric experience, trip fee, languages array, and optional password. |
+| [`GuideProfileCard.jsx`](front-end/src/components/guide/GuideProfileCard.jsx) | Dashboard summary card showing guide credentials, ratings, and fee labeled as "Price per Trip". |
+| [`GuideStatsGrid.jsx`](front-end/src/components/guide/GuideStatsGrid.jsx) | 4-card KPI metric grid (Assigned Tours, Completed Tours, Pending Invitations, Messages). |
+| [`GuideQuickActions.jsx`](front-end/src/components/guide/GuideQuickActions.jsx) | Fast navigation cards linking to all 5 secondary guide modules. |
 
 ---
 
@@ -233,7 +233,7 @@ Examiners often ask students to modify the code on the spot during a viva. Here 
 ---
 
 ### Task 1: Add a Request Filter (Filter by Agency Only)
-**Target File**: [`front-end/src/pages/GuideRequestsPage.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/pages/guide/GuideRequestsPage.jsx)
+**Target File**: [`front-end/src/pages/guide/GuideRequestsPage.jsx`](front-end/src/pages/guide/GuideRequestsPage.jsx)
 
 1. Add state or a new tab option:
    ```jsx
@@ -261,7 +261,7 @@ Examiners often ask students to modify the code on the spot during a viva. Here 
 ---
 
 ### Task 2: Display Filtered Count Badges on Filter Tabs
-**Target File**: [`front-end/src/pages/GuideRequestsPage.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/pages/guide/GuideRequestsPage.jsx)
+**Target File**: [`front-end/src/pages/guide/GuideRequestsPage.jsx`](front-end/src/pages/guide/GuideRequestsPage.jsx)
 
 1. Calculate the counts using `useMemo`:
    ```javascript
@@ -287,7 +287,7 @@ Examiners often ask students to modify the code on the spot during a viva. Here 
 ---
 
 ### Task 3: Change Validation (Require Minimum 1 Year of Experience)
-**Target File**: [`front-end/src/components/GuideProfileForm.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/components/guide/GuideProfileForm.jsx)
+**Target File**: [`front-end/src/components/guide/GuideProfileForm.jsx`](front-end/src/components/guide/GuideProfileForm.jsx)
 
 1. In the `validate()` function:
    ```javascript
@@ -305,7 +305,7 @@ Examiners often ask students to modify the code on the spot during a viva. Here 
 ---
 
 ### Task 4: Add a New Profile Field (e.g., Specialization)
-**Target File**: [`front-end/src/components/GuideProfileForm.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/components/guide/GuideProfileForm.jsx)
+**Target File**: [`front-end/src/components/guide/GuideProfileForm.jsx`](front-end/src/components/guide/GuideProfileForm.jsx)
 
 1. Add state:
    ```jsx
@@ -337,7 +337,7 @@ Examiners often ask students to modify the code on the spot during a viva. Here 
 ---
 
 ### Task 5: Preserve Failed Message Draft on Network Error
-**Target File**: [`front-end/src/pages/GuideMessagesPage.jsx`](file:///c:/Users/miste/html/50_GlobeSync-main/50_GlobeSync-main/front-end/src/pages/guide/GuideMessagesPage.jsx)
+**Target File**: [`front-end/src/pages/guide/GuideMessagesPage.jsx`](front-end/src/pages/guide/GuideMessagesPage.jsx)
 
 Explain how this is already built into `handleSend`:
 ```javascript

@@ -8,7 +8,8 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "build": "nest build"
+    "build": "nest build",
+    "test": "ts-node --project tsconfig.json src/trips/backend-fixes.spec.ts && ts-node --project tsconfig.json src/support-users/support-users.service.spec.ts && ts-node --project tsconfig.json src/agencies/agencies.service.spec.ts && ts-node --project tsconfig.json src/admins/admins.service.spec.ts && ts-node --project tsconfig.json src/common/guards/roles-guard-ownership.spec.ts && ts-node --project tsconfig.json src/common/guards/child-resource-ownership.spec.ts && ts-node --project tsconfig.json src/revenue/revenue-subscriptions-promotions.rbac.spec.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",

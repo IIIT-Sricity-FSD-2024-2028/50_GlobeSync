@@ -5,6 +5,7 @@ import BookingList from '../../components/bookings/BookingList';
 import BookingStats from '../../components/bookings/BookingStats';
 import PaymentModal from '../../components/bookings/PaymentModal';
 import BookingDetailModal from '../../components/bookings/BookingDetailModal';
+import Toast from '../../components/common/Toast';
 
 /**
  * TravelerBookingsPage: Comprehensive bookings management and payment execution portal for travelers.
@@ -37,6 +38,16 @@ export default function TravelerBookingsPage() {
   // 4. Feedback & Partial Success Recovery State
   const [actionMessage, setActionMessage] = useState(null);
   const [partialTripRecovery, setPartialTripRecovery] = useState(null);
+
+  // Toast Notification State
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('success');
+
+  const showToast = (msg, type = 'success') => {
+    setToastType(type);
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 4000);
+  };
 
   // Data Loading: Distinguishes required bookings from optional trip context
   const loadData = async (signal) => {
@@ -176,7 +187,7 @@ export default function TravelerBookingsPage() {
       setTimeout(() => setActionMessage(null), 4000);
     } catch (err) {
       console.error('[TravelerBookingsPage] Trip confirmation retry failed:', err);
-      alert(`Trip confirmation retry failed: ${err.message}`);
+      showToast(`Trip confirmation retry failed: ${err.message}`, 'error');
     }
   };
 
@@ -208,7 +219,7 @@ export default function TravelerBookingsPage() {
       setTimeout(() => setActionMessage(null), 4000);
     } catch (err) {
       console.error('[TravelerBookingsPage] Cancel failed:', err);
-      alert(`Could not cancel booking: ${err.message}`);
+      showToast(`Could not cancel booking: ${err.message}`, 'error');
     }
   };
 
@@ -439,6 +450,13 @@ export default function TravelerBookingsPage() {
           }}
         />
       )}
+
+      {/* Toast Notification */}
+      <Toast
+        message={toastMessage}
+        type={toastType}
+        onClose={() => setToastMessage('')}
+      />
     </div>
   );
 }

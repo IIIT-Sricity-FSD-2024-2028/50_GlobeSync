@@ -34,8 +34,7 @@ front-end/src/
 │   ├── SuperApiManagementPage.jsx             # Third-party integration connector and simulation monitor
 │   └── SuperProfilePage.jsx                   # Administrator identity update (name & email)
 └── components/super/
-    ├── AuditLogDrawer.jsx                     # Real-time drawer displaying audit trail of saved system changes
-    └── ConfirmationDialog.jsx                 # Controlled modal for destructive or governance confirmations
+    └── SuperMetricCard.jsx                    # Reusable visual metric card for superuser KPI telemetry (audit log tables and confirmation modals are implemented inline within pages/super/ views)
 ```
 
 ---

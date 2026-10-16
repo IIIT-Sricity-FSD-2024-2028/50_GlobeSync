@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { supportTicketsApi } from '../../services/api';
+import React, { useState, useRef } from 'react';
+import { supportTicketsApi, uploadsApi, API_BASE_URL } from '../../services/api';
 
 /**
  * TicketForm: Controlled form for creating a new support ticket.
@@ -7,6 +7,7 @@ import { supportTicketsApi } from '../../services/api';
  * Features:
  * - Controlled inputs for category, subject, description, priority, and optional linked booking
  * - Client-side validation: prevents empty or whitespace-only submissions
+ * - Optional file attachment upload connecting to POST /uploads/attachment
  * - Prevents double submission while request is in flight
  * - Passes new ticket record to parent via onTicketCreated callback
  */
@@ -26,6 +27,13 @@ export default function TicketForm({
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState(null);
+
+  // File Upload State (FDFED Middleware Attachment Integration)
+  const [attachmentData, setAttachmentData] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [attachmentError, setAttachmentError] = useState(null);
+  const fileInputRef = useRef(null);
+
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -59,9 +67,49 @@ export default function TicketForm({
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAttachmentError(null);
+    const validExts = ['.jpg', '.jpeg', '.png', '.pdf'];
+    const lowerName = file.name.toLowerCase();
+    const hasValidExt = validExts.some((ext) => lowerName.endsWith(ext));
+
+    if (!hasValidExt) {
+      setAttachmentError('Only JPG, PNG, and PDF files are allowed.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setAttachmentError('File size exceeds the 5 MB limit.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const res = await uploadsApi.uploadAttachment(file);
+      setAttachmentData(res);
+      setAttachmentError(null);
+    } catch (err) {
+      console.error('[TicketForm] Attachment upload failed:', err);
+      setAttachmentError(err.message || 'Failed to upload attachment.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemoveAttachment = () => {
+    setAttachmentData(null);
+    setAttachmentError(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isSubmitting) return;
+    if (isSubmitting || isUploading) return;
     if (!validate()) return;
 
     setIsSubmitting(true);
@@ -72,10 +120,14 @@ export default function TicketForm({
       ? `${formData.category} [BK#${formData.bookingId}]: ${formData.subject.trim()}`
       : `${formData.category}: ${formData.subject.trim()}`;
 
+    const finalDescription = attachmentData?.path
+      ? `${formData.description.trim()}\n\nAttachment: ${attachmentData.path}`
+      : formData.description.trim();
+
     const payload = {
       travelerId: Number(travelerId),
       issueType: formattedIssueType,
-      description: formData.description.trim(),
+      description: finalDescription,
       priority: formData.priority,
       status: 'Open',
     };
@@ -92,6 +144,9 @@ export default function TicketForm({
         bookingId: '',
       });
       setErrors({});
+      setAttachmentData(null);
+      setAttachmentError(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
 
       if (onTicketCreated) {
         onTicketCreated(createdTicket);
@@ -258,6 +313,85 @@ export default function TicketForm({
               {errors.description}
             </p>
           )}
+        </div>
+
+        {/* Attachment Upload (FDFED File Upload Middleware Integration) */}
+        <div style={{ marginBottom: '20px' }}>
+          <label className="form-label" style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
+            Attachment (Optional)
+          </label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".jpg,.jpeg,.png,.pdf"
+              onChange={handleFileChange}
+              disabled={isSubmitting || isUploading}
+              style={{
+                fontSize: '13px',
+                color: 'var(--text-secondary)',
+              }}
+            />
+            <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
+              Allowed formats: .jpg, .jpeg, .png, .pdf (Max size: 5 MB)
+            </span>
+
+            {isUploading && (
+              <div style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 600 }}>
+                ⏳ Uploading attachment via POST /uploads/attachment...
+              </div>
+            )}
+
+            {attachmentError && (
+              <div style={{ fontSize: '12px', color: '#ef4444', fontWeight: 600 }}>
+                ⚠️ {attachmentError}
+              </div>
+            )}
+
+            {attachmentData && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 14px',
+                  background: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                }}
+              >
+                <div>
+                  <span style={{ color: '#166534', fontWeight: 700 }}>✓ Uploaded: </span>
+                  <a
+                    href={`${API_BASE_URL}${attachmentData.path}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: '#0284c7', textDecoration: 'underline', fontWeight: 600 }}
+                  >
+                    {attachmentData.path}
+                  </a>
+                  <span style={{ color: 'var(--muted)', fontSize: '11px', marginLeft: '8px' }}>
+                    ({Math.round((attachmentData.size || 0) / 1024)} KB)
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemoveAttachment}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#dc2626',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                  }}
+                >
+                  ✕ Remove
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Tip Box */}

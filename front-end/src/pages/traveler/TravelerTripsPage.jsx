@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
 import { tripsApi, itinerariesApi } from '../../services/api';
@@ -8,6 +8,7 @@ import ActiveTripHeader from '../../components/trips/ActiveTripHeader';
 import TripEditModal from '../../components/trips/TripEditModal';
 import ItineraryList from '../../components/itineraries/ItineraryList';
 import ItineraryForm from '../../components/itineraries/ItineraryForm';
+import Toast from '../../components/common/Toast';
 
 /**
  * TravelerTripsPage: Displays and manages all travel itineraries owned by the authenticated traveler.
@@ -37,6 +38,19 @@ export default function TravelerTripsPage() {
   // 3. Trip Edit Modal State
   const [editingTrip, setEditingTrip] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
+
+  // Toast Notification State
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('success');
+
+  const showToast = (msg, type = 'success') => {
+    setToastType(type);
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 4000);
+  };
+
+  // Section reference for smooth scrolling without direct DOM access
+  const itinerarySectionRef = useRef(null);
 
   // 4. Selected Trip for Itinerary Management (Synced with URL)
   const [selectedTrip, setSelectedTrip] = useState(null);
@@ -194,8 +208,7 @@ export default function TravelerTripsPage() {
       setSearchParams({ tripId: String(trip.tripId || trip.id) });
 
       setTimeout(() => {
-        const el = document.getElementById('itinerary-manager-section');
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
+        itinerarySectionRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 50);
     }
   };
@@ -242,7 +255,7 @@ export default function TravelerTripsPage() {
       setTimeout(() => setActionMessage(null), 4000);
     } catch (err) {
       console.error('[TravelerTripsPage] Failed to cancel trip:', err);
-      alert(`Error cancelling trip: ${err.message}`);
+      showToast(`Error cancelling trip: ${err.message}`, 'error');
     }
   };
 
@@ -279,8 +292,9 @@ export default function TravelerTripsPage() {
       setTimeout(() => setItineraryActionMessage(null), 4000);
     } catch (err) {
       console.error('[TravelerTripsPage] Failed to delete itinerary:', err);
-      alert(
-        `Action Restricted: ${err.message}\n\nNote: Backend security rules (RolesGuard) restrict itinerary deletion to Administrator and Superuser roles. As a traveler, you can modify activity details or update status to 'Completed'.`
+      showToast(
+        `Action Restricted: ${err.message} (RolesGuard restricts itinerary deletion to Admins)`,
+        'error'
       );
     }
   };
@@ -407,6 +421,7 @@ export default function TravelerTripsPage() {
       {selectedTrip && (
         <div
           id="itinerary-manager-section"
+          ref={itinerarySectionRef}
           style={{
             marginTop: '36px',
             paddingTop: '24px',
@@ -458,8 +473,7 @@ export default function TravelerTripsPage() {
             onEditItem={(item) => {
               setEditingItinerary(item);
               setShowItineraryForm(false);
-              const formEl = document.getElementById('itinerary-manager-section');
-              if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
+              itinerarySectionRef.current?.scrollIntoView({ behavior: 'smooth' });
             }}
             onDeleteItem={handleDeleteItinerary}
             onOpenAddForm={() => {
@@ -484,6 +498,13 @@ export default function TravelerTripsPage() {
           onSave={handleTripUpdated}
         />
       )}
+
+      {/* Toast Notification */}
+      <Toast
+        message={toastMessage}
+        type={toastType}
+        onClose={() => setToastMessage('')}
+      />
     </div>
   );
 }

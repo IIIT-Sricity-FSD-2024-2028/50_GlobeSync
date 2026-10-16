@@ -552,3 +552,68 @@ export const promotionsApi = {
     apiPost('/api/promotions', data, options),
 };
 
+export const uploadsApi = {
+  uploadAttachment: async (file, options = {}) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const headers = {};
+    const role = getStoredRole();
+    if (role) {
+      headers['x-user-role'] = role;
+    }
+    const userId = getStoredUserId();
+    if (userId) {
+      headers['x-user-id'] = userId;
+    }
+
+    const url = `${API_BASE_URL}/uploads/attachment`;
+    const config = {
+      method: 'POST',
+      headers,
+      body: formData,
+      signal: options.signal,
+    };
+
+    let response;
+    try {
+      response = await fetch(url, config);
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        throw new ApiError('Upload was cancelled', 0, null, true);
+      }
+      throw new ApiError(
+        err.message || 'Network error while uploading file.',
+        0,
+        null
+      );
+    }
+
+    let data = null;
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      try {
+        data = await response.json();
+      } catch {
+        data = null;
+      }
+    } else {
+      data = await response.text().catch(() => null);
+    }
+
+    if (!response.ok) {
+      const message =
+        (data && (data.message || data.error)) ||
+        `Upload failed with HTTP ${response.status}`;
+      throw new ApiError(
+        Array.isArray(message) ? message.join('; ') : message,
+        response.status,
+        data
+      );
+    }
+
+    return data;
+  },
+};
+
+

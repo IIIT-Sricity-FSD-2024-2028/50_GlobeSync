@@ -43,6 +43,16 @@ export class SystemConfigController {
   // =========================================================================
 
   @Get('system-config/rules')
+  @Roles(
+    Role.TRAVELER,
+    Role.GUIDE,
+    Role.AGENCY,
+    Role.ADMIN,
+    Role.SUPERUSER,
+    Role.SUPPORT,
+  )
+  @ApiUserHeaders()
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get global platform operational rules and policy settings' })
   @ApiResponse({ status: 200, description: 'Rules returned successfully' })
   getRules() {
@@ -70,6 +80,16 @@ export class SystemConfigController {
   // =========================================================================
 
   @Get('system-config/payment-methods')
+  @Roles(
+    Role.TRAVELER,
+    Role.GUIDE,
+    Role.AGENCY,
+    Role.ADMIN,
+    Role.SUPERUSER,
+    Role.SUPPORT,
+  )
+  @ApiUserHeaders()
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get configured checkout payment methods and gateway statuses' })
   @ApiResponse({ status: 200, description: 'Payment methods returned successfully' })
   getPaymentMethods() {
@@ -77,6 +97,7 @@ export class SystemConfigController {
   }
 
   @Put('system-config/payment-methods/:id')
+
   @Roles(Role.SUPERUSER)
   @ApiUserHeaders()
   @ApiBearerAuth()

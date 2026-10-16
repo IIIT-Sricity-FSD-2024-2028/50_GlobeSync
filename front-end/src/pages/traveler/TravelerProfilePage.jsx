@@ -4,6 +4,7 @@ import { travelersApi, passengersApi } from '../../services/api';
 import ProfileForm from '../../components/profile/ProfileForm';
 import PassengerList from '../../components/passengers/PassengerList';
 import PassengerFormModal from '../../components/passengers/PassengerFormModal';
+import Toast from '../../components/common/Toast';
 
 /**
  * TravelerProfilePage: Traveler profile management and saved co-traveler passenger master list.
@@ -30,6 +31,16 @@ export default function TravelerProfilePage() {
 
   // Action Notification State
   const [actionMessage, setActionMessage] = useState(null);
+
+  // Toast Notification State
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('success');
+
+  const showToast = (msg, type = 'success') => {
+    setToastType(type);
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 4000);
+  };
 
   // Secondary Warning State for optional passenger list
   const [passengersWarning, setPassengersWarning] = useState(null);
@@ -159,7 +170,7 @@ export default function TravelerProfilePage() {
       setTimeout(() => setActionMessage(null), 4000);
     } catch (err) {
       console.error('[TravelerProfilePage] Delete passenger failed:', err);
-      alert(`Could not delete passenger: ${err.message}`);
+      showToast(`Could not delete passenger: ${err.message}`, 'error');
     }
   };
 
@@ -359,6 +370,13 @@ export default function TravelerProfilePage() {
           setIsPassengerModalOpen(false);
           setEditingPassenger(null);
         }}
+      />
+
+      {/* Toast Notification */}
+      <Toast
+        message={toastMessage}
+        type={toastType}
+        onClose={() => setToastMessage('')}
       />
     </div>
   );

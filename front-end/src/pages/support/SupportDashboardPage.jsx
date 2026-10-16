@@ -50,7 +50,7 @@ export default function SupportDashboardPage() {
     setIsOnline((prev) => {
       const next = !prev;
       localStorage.setItem('support_agent_online', String(next));
-      showToast(next ? 'Agent status: Online and ready for tickets! ✓' : 'Agent status: Offline.');
+      showToast(next ? 'Agent status: Online (Local preference only) ✓' : 'Agent status: Offline (Local preference only).');
       return next;
     });
   };
@@ -199,6 +199,7 @@ export default function SupportDashboardPage() {
           {/* Agent Online Toggle */}
           <div
             onClick={toggleAgentStatus}
+            title="Local preference only — client session state not persisted to backend"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -224,7 +225,7 @@ export default function SupportDashboardPage() {
                 boxShadow: isOnline ? '0 0 8px #10b981' : 'none',
               }}
             />
-            <span>{isOnline ? 'Agent Online' : 'Agent Offline'}</span>
+            <span>{isOnline ? 'Agent Online (Local preference only)' : 'Agent Offline (Local preference only)'}</span>
           </div>
 
           <button

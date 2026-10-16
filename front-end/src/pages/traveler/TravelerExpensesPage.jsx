@@ -4,6 +4,7 @@ import { tripsApi, expensesApi } from '../../services/api';
 import ExpenseStats from '../../components/expenses/ExpenseStats';
 import ExpenseList from '../../components/expenses/ExpenseList';
 import ExpenseFormModal from '../../components/expenses/ExpenseFormModal';
+import Toast from '../../components/common/Toast';
 
 /**
  * TravelerExpensesPage: Full expense tracking and reporting screen for travelers.
@@ -32,6 +33,16 @@ export default function TravelerExpensesPage() {
 
   // Action Notification State
   const [actionMessage, setActionMessage] = useState(null);
+
+  // Toast Notification State
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('success');
+
+  const showToast = (msg, type = 'success') => {
+    setToastType(type);
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 4000);
+  };
 
   const travelerId = Number(user?.travelerId || user?.traveler_id || user?.id);
 
@@ -181,8 +192,9 @@ export default function TravelerExpensesPage() {
     } catch (err) {
       console.error('[TravelerExpensesPage] Failed to delete expense:', err);
       // Handles 403 Forbidden because traveler role cannot delete expenses on backend
-      alert(
-        `Action Restricted: ${err.message}\n\nNote: Backend security rules (RolesGuard) restrict expense record deletion strictly to Superuser roles. As a traveler, you can edit the expense description or reduce the amount, but cannot permanently delete financial records.`
+      showToast(
+        `Action Restricted: ${err.message} (RolesGuard restricts deletion to Superuser)`,
+        'error'
       );
     }
   };
@@ -190,7 +202,7 @@ export default function TravelerExpensesPage() {
   // CSV Export
   const handleExportCSV = () => {
     if (expenses.length === 0) {
-      alert('No expenses available to export.');
+      showToast('No expenses available to export.', 'warning');
       return;
     }
 
@@ -395,6 +407,13 @@ export default function TravelerExpensesPage() {
         trips={trips}
         onSave={handleSaveExpense}
         onClose={handleCloseModal}
+      />
+
+      {/* Toast Notification */}
+      <Toast
+        message={toastMessage}
+        type={toastType}
+        onClose={() => setToastMessage('')}
       />
     </div>
   );
