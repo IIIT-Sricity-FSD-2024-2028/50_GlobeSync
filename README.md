@@ -14,7 +14,9 @@ root/
 ├── back-end/
 │   ├── docs/
 │   │   └── swagger.json
-├── Videos/
+├── Database/
+│   ├── database_schema.sql
+│   └── ER.png
 └── README.md
 ```
 
@@ -986,13 +988,12 @@ All Git operations remain strictly manual. Run the following PowerShell-compatib
 # 1. Review status of modified and added files
 git status
 
-# 2. Stage all updated migration checklists, contracts, guides, and source files
-git add README.md MIGRATION_CHECKLIST.md INTEGRATION_CONTRACT.md
-git add TRAVELER_VIVA_GUIDE.md GUIDE_VIVA_GUIDE.md SUPPORT_VIVA_GUIDE.md ADMIN_VIVA_GUIDE.md SUPERUSER_VIVA_GUIDE.md AGENCY_VIVA_GUIDE.md
+# 2. Stage all source files, database assets, and documentation
+git add README.md Database/
 git add front-end/ back-end/
 
 # 3. Commit with genuine, descriptive message
-git commit -m "docs: finalize full-platform migration, cross-role verification, and member viva guides"
+git commit -m "docs: finalize full-platform project setup and verification"
 
 # 4. Push changes to origin (replace 'main' with your target branch if different)
 git push origin main
