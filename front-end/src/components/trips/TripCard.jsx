@@ -45,8 +45,10 @@ export default function TripCard({
             <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase' }}>
               Trip #{trip.tripId || trip.id}
             </span>
-            <h4 style={{ fontSize: '18px', fontWeight: 800, marginTop: '2px', color: 'var(--text-primary)' }}>
-              📍 {trip.destination}
+            <h4 style={{ fontSize: '17px', fontWeight: 800, marginTop: '2px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
+              <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600 }}>🛫 {trip.origin || 'New Delhi, India'}</span>
+              <span style={{ color: 'var(--primary)' }}>➔</span>
+              <span>🛬 {trip.destination}</span>
             </h4>
           </div>
           <StatusBadge status={trip.status || 'Pending'} />

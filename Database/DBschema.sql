@@ -46,6 +46,7 @@ CREATE TABLE PackageBooking (
 CREATE TABLE CustomTrip (
     custom_trip_id INT AUTO_INCREMENT PRIMARY KEY,
     traveler_id INT,
+    origin VARCHAR(100),
     destination VARCHAR(100),
     budget DECIMAL(10,2),
     preferences TEXT,

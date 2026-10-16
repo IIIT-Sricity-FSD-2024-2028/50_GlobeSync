@@ -49,8 +49,15 @@ export default function ActiveTripHeader({
             📅 {selectedTrip.startDate} &rarr; {selectedTrip.endDate}
           </span>
         </div>
-        <h3 style={{ fontSize: '20px', fontWeight: 800, marginTop: '4px', color: 'var(--text-primary)', margin: '4px 0 0' }}>
-          📍 Managing Itinerary: {selectedTrip.destination}
+        <h3 style={{ fontSize: '20px', fontWeight: 800, marginTop: '4px', color: 'var(--text-primary)', margin: '4px 0 0', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+          <span>📍 Managing Itinerary:</span>
+          {selectedTrip.origin && (
+            <>
+              <span style={{ color: 'var(--text-secondary)', fontSize: '17px', fontWeight: 600 }}>🛫 {selectedTrip.origin}</span>
+              <span style={{ color: 'var(--primary)', margin: '0 2px' }}>➔</span>
+            </>
+          )}
+          <span>🛬 {selectedTrip.destination}</span>
         </h3>
       </div>
 

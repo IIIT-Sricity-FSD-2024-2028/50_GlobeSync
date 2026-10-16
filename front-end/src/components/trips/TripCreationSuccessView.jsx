@@ -37,7 +37,7 @@ export default function TripCreationSuccessView({
           Trip Created Successfully!
         </h2>
         <p style={{ color: 'var(--muted)', fontSize: '14px', maxWidth: '460px', margin: '0 auto 24px' }}>
-          Your itinerary for <strong>{createdTrip.destination}</strong> has been saved with Trip ID{' '}
+          Your itinerary from <strong>{createdTrip.origin || formData?.origin || formData?.currentLocation || 'New Delhi'}</strong> to <strong>{createdTrip.destination}</strong> has been saved with Trip ID{' '}
           <strong>#{createdTrip.tripId}</strong>.
         </p>
 
@@ -63,7 +63,9 @@ export default function TripCreationSuccessView({
               <StatusBadge status={actualStatus} />
             </div>
           </div>
-          <div><strong>Destination:</strong> {createdTrip.destination}</div>
+          <div>
+            <strong>Route:</strong> 🛫 {createdTrip.origin || formData?.origin || formData?.currentLocation || 'New Delhi, India'} <span style={{ color: 'var(--primary)', margin: '0 4px' }}>➔</span> 🛬 {createdTrip.destination}
+          </div>
           <div><strong>Dates:</strong> {createdTrip.startDate} → {createdTrip.endDate}</div>
           <div><strong>Total Trip Budget:</strong> ₹{Number(createdTrip.budget).toLocaleString('en-IN')}</div>
 

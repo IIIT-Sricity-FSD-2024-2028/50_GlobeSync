@@ -1,10 +1,13 @@
 import React from 'react';
-import { TRANSPORT_CATALOG } from './tripCalculations';
+import { getRouteTransportCatalog, analyzeRoute } from './tripCalculations';
 
 /**
  * TransportSelectStep: Controlled component for selecting transit mode, journey type, and carrier
+ * Dynamically computes carrier options and pricing tailored to the Departure (From) and Destination (To) route.
  */
 export default function TransportSelectStep({
+  origin = '',
+  destination = '',
   transportType = 'Flight',
   tripType = 'round',
   selectedCarrier = '',
@@ -14,7 +17,8 @@ export default function TransportSelectStep({
   onCarrierSelect,
   onProtectionToggle,
 }) {
-  const carriers = TRANSPORT_CATALOG[transportType] || [];
+  const routeInfo = analyzeRoute(origin, destination);
+  const carriers = getRouteTransportCatalog(transportType, origin, destination);
 
   return (
     <div>
@@ -31,12 +35,53 @@ export default function TransportSelectStep({
               fontWeight: 700,
             }}
           >
-            Simulated Carrier Rates
+            Route-Calibrated Pricing
           </span>
         </div>
         <p style={{ color: 'var(--muted)', fontSize: '13px' }}>
-          Choose your travel mode and carrier for accurate itinerary budget calculations.
+          Choose your travel mode and operator for accurate route-based itinerary budget calculations.
         </p>
+      </div>
+
+      {/* Dynamic Route Banner */}
+      <div
+        style={{
+          padding: '14px 18px',
+          background: '#f8fafc',
+          border: '1.5px solid #e2e8f0',
+          borderRadius: '12px',
+          marginBottom: '20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
+        }}
+      >
+        <div>
+          <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase' }}>
+            Confirmed Journey Route
+          </div>
+          <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)', marginTop: '2px' }}>
+            🛫 {origin || 'Departure City'} <span style={{ color: 'var(--primary)', margin: '0 4px' }}>➔</span> 🛬 {destination || 'Destination'}
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+            {routeInfo.label}
+          </div>
+        </div>
+        <span
+          style={{
+            fontSize: '12px',
+            fontWeight: 700,
+            background: `${routeInfo.color}18`,
+            color: routeInfo.color,
+            padding: '4px 12px',
+            borderRadius: '20px',
+            border: `1px solid ${routeInfo.color}40`,
+          }}
+        >
+          {routeInfo.badge}
+        </span>
       </div>
 
       {/* Transit Type Buttons */}
@@ -100,7 +145,7 @@ export default function TransportSelectStep({
               🔄 Round Trip
             </div>
             <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
-              Travel to destination and return
+              Travel to destination and return back to {origin ? origin.split(',')[0] : 'origin'}
             </div>
           </button>
 
@@ -120,7 +165,7 @@ export default function TransportSelectStep({
               ➡️ One Way
             </div>
             <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
-              Single outward journey
+              Single outward journey to {destination ? destination.split(',')[0] : 'destination'}
             </div>
           </button>
         </div>
@@ -129,7 +174,7 @@ export default function TransportSelectStep({
       {/* Available Carrier Options */}
       <div style={{ marginBottom: '24px' }}>
         <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
-          Available {transportType} Operators
+          Available {transportType} Operators for this Route
         </label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {carriers.map((c) => {
@@ -157,7 +202,7 @@ export default function TransportSelectStep({
                     {isChosen && <span style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 800 }}>✓ SELECTED</span>}
                   </div>
                   <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '2px' }}>
-                    {c.time}
+                    ⏱ {c.time} {c.note && `• ${c.note}`}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>

@@ -28,15 +28,16 @@ export default function TravelerCreateTripPage() {
   const [formData, setFormData] = useState({
     mode: 'custom', // 'custom' | 'package'
     packageId: null,
+    origin: 'New Delhi, India',
     destination: '',
-    currentLocation: '',
+    currentLocation: 'New Delhi, India',
     startDate: '',
     endDate: '',
     numPersons: 1,
     transportType: 'Flight',
     tripType: 'round',
     transportName: 'SkyHigh Airlines',
-    transportPrice: 14500,
+    transportPrice: 7800,
     hotelName: '',
     hotelPrice: 0,
     guideId: null,
@@ -209,9 +210,12 @@ export default function TravelerCreateTripPage() {
         updated.packageId = null;
       }
 
-      // 2. Consistency: Changing transport mode MUST update carrier and price for the new mode
-      if (field === 'transportType') {
-        const defaultCarrier = getDefaultCarrier(value);
+      // 2. Consistency: Changing transport mode, origin, or destination updates carrier and route price
+      if (field === 'transportType' || field === 'origin' || field === 'currentLocation' || field === 'destination') {
+        const curOrigin = (field === 'origin' || field === 'currentLocation') ? value : (updated.origin || updated.currentLocation);
+        const curDest = field === 'destination' ? value : updated.destination;
+        const curMode = field === 'transportType' ? value : updated.transportType;
+        const defaultCarrier = getDefaultCarrier(curMode, curOrigin, curDest);
         updated.transportName = defaultCarrier.name;
         updated.transportPrice = defaultCarrier.price;
       }
@@ -299,6 +303,10 @@ export default function TravelerCreateTripPage() {
     }
 
     if (step === 2) {
+      const originVal = (formData.origin || formData.currentLocation || '').trim();
+      if (!originVal) {
+        newErrors.origin = 'Departure / starting city is required.';
+      }
       if (!formData.destination || !formData.destination.trim()) {
         newErrors.destination = 'Primary destination is required.';
       }
@@ -318,6 +326,10 @@ export default function TravelerCreateTripPage() {
   const validateForm = () => {
     const newErrors = {};
 
+    const originVal = (formData.origin || formData.currentLocation || '').trim();
+    if (!originVal) {
+      newErrors.origin = 'Departure / starting city is required.';
+    }
     if (!formData.destination || !formData.destination.trim()) {
       newErrors.destination = 'Destination is required.';
     }
@@ -341,7 +353,7 @@ export default function TravelerCreateTripPage() {
       setCurrentStep(1);
       return false;
     }
-    if (newErrors.destination) {
+    if (newErrors.origin || newErrors.destination) {
       setCurrentStep(2);
       return false;
     }
@@ -379,6 +391,7 @@ export default function TravelerCreateTripPage() {
         }
 
         const tripPayload = {
+          origin: (formData.origin || formData.currentLocation || 'New Delhi, India').trim(),
           destination: formData.destination.trim(),
           startDate: formData.startDate,
           endDate: formData.endDate,
@@ -409,6 +422,7 @@ export default function TravelerCreateTripPage() {
 
         updateSubmissionProgress({
           tripId: activeTripId,
+          origin: created.origin || formData.origin || formData.currentLocation,
           destination: activeTripDestination,
           budget: activeTripBudget,
           tripStatus: activeTripStatus,

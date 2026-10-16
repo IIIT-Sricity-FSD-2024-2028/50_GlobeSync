@@ -181,9 +181,10 @@ export default function TravelerTripsPage() {
       statusFilter === 'ALL' || t.status?.toLowerCase() === statusFilter.toLowerCase();
 
     const dest = (t.destination || '').toLowerCase();
+    const origin = (t.origin || '').toLowerCase();
     const idStr = String(t.tripId || t.id || '');
     const query = searchQuery.trim().toLowerCase();
-    const matchesSearch = !query || dest.includes(query) || idStr.includes(query);
+    const matchesSearch = !query || dest.includes(query) || origin.includes(query) || idStr.includes(query);
 
     return matchesStatus && matchesSearch;
   });

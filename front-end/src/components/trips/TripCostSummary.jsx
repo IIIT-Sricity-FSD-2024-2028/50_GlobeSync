@@ -1,4 +1,5 @@
 import React from 'react';
+import { analyzeRoute } from './tripCalculations';
 
 /**
  * TripCostSummary: Live calculation widget showing cost breakdown of selected components
@@ -6,6 +7,8 @@ import React from 'react';
  */
 export default function TripCostSummary({ formData, costData }) {
   const {
+    origin = '',
+    currentLocation = '',
     destination = '',
     startDate = '',
     endDate = '',
@@ -17,6 +20,9 @@ export default function TripCostSummary({ formData, costData }) {
     guideName = '',
     includeCancellationProtection = false,
   } = formData;
+
+  const originVal = origin || currentLocation || 'Departure City';
+  const routeInfo = analyzeRoute(originVal, destination);
 
   const {
     days = 1,
@@ -70,10 +76,15 @@ export default function TripCostSummary({ formData, costData }) {
           marginBottom: '16px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '4px',
+          gap: '5px',
         }}
       >
-        <div><strong>Destination:</strong> {destination || 'Not selected'}</div>
+        <div>
+          <strong>Route:</strong> 🛫 {originVal} <span style={{ color: 'var(--primary)', margin: '0 2px' }}>➔</span> 🛬 {destination || 'Not selected'}
+        </div>
+        <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>
+          🏷 {routeInfo.badge}
+        </div>
         <div>
           <strong>Dates:</strong> {startDate || '—'} → {endDate || '—'} ({days} Day{days !== 1 ? 's' : ''})
         </div>

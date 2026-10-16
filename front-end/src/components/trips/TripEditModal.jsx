@@ -9,6 +9,7 @@ import { tripsApi } from '../../services/api';
 export default function TripEditModal({ trip = null, isOpen = true, onClose, onSave }) {
   // 1. Controlled Form State - Unconditional hooks
   const [formData, setFormData] = useState({
+    origin: trip?.origin || 'New Delhi, India',
     destination: trip?.destination || '',
     startDate: trip?.startDate || '',
     endDate: trip?.endDate || '',
@@ -31,6 +32,7 @@ export default function TripEditModal({ trip = null, isOpen = true, onClose, onS
   useEffect(() => {
     if (trip && isOpen) {
       setFormData({
+        origin: trip.origin || 'New Delhi, India',
         destination: trip.destination || '',
         startDate: trip.startDate || '',
         endDate: trip.endDate || '',
@@ -67,6 +69,10 @@ export default function TripEditModal({ trip = null, isOpen = true, onClose, onS
   // Client-side validation before sending request to backend
   const validateForm = () => {
     const newErrors = {};
+
+    if (!formData.origin || !formData.origin.trim()) {
+      newErrors.origin = 'Departure / starting city is required.';
+    }
 
     if (!formData.destination || !formData.destination.trim()) {
       newErrors.destination = 'Destination is required.';
@@ -109,6 +115,7 @@ export default function TripEditModal({ trip = null, isOpen = true, onClose, onS
 
     try {
       const payload = {
+        origin: formData.origin.trim(),
         destination: formData.destination.trim(),
         startDate: formData.startDate,
         endDate: formData.endDate,
@@ -210,10 +217,35 @@ export default function TripEditModal({ trip = null, isOpen = true, onClose, onS
             </div>
           )}
 
-          {/* Destination */}
+          {/* Departure City (From) */}
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
-              Destination *
+              🛫 From: Departure / Starting City *
+            </label>
+            <input
+              type="text"
+              value={formData.origin}
+              onChange={(e) => handleInputChange('origin', e.target.value)}
+              placeholder="e.g. New Delhi, India"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                border: `1.5px solid ${errors.origin ? 'var(--danger, #ef4444)' : 'var(--border)'}`,
+                fontSize: '14px',
+              }}
+            />
+            {errors.origin && (
+              <div style={{ color: 'var(--danger, #ef4444)', fontSize: '12px', marginTop: '4px' }}>
+                {errors.origin}
+              </div>
+            )}
+          </div>
+
+          {/* Destination (To) */}
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
+              🛬 To: Target Destination *
             </label>
             <input
               type="text"

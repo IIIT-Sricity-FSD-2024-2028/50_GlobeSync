@@ -382,8 +382,10 @@ export default function TravelerDashboardPage() {
                         <StatusBadge status={trip.status || 'Confirmed'} />
                       </div>
 
-                      <h4 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>
-                        📍 {trip.destination}
+                      <h4 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 600 }}>🛫 {trip.origin || 'New Delhi, India'}</span>
+                        <span style={{ color: 'var(--primary)' }}>➔</span>
+                        <span>🛬 {trip.destination}</span>
                       </h4>
 
                       <div style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>

@@ -2,6 +2,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class UpdateTripDto {
+  @ApiPropertyOptional({ example: 'New Delhi, India', description: 'Starting / departure city (From)' }) @IsOptional() @IsString() origin?: string;
   @ApiPropertyOptional({ example: 'Maldives' }) @IsOptional() @IsString() destination?: string;
   @ApiPropertyOptional({ example: '2026-08-01' }) @IsOptional() @IsString() startDate?: string;
   @ApiPropertyOptional({ example: '2026-08-07' }) @IsOptional() @IsString() endDate?: string;

@@ -7061,10 +7061,15 @@
       "CreateTripDto": {
         "type": "object",
         "properties": {
+          "origin": {
+            "type": "string",
+            "example": "New Delhi, India",
+            "description": "Starting / departure city (From)"
+          },
           "destination": {
             "type": "string",
             "example": "Maldives",
-            "description": "Trip destination"
+            "description": "Trip destination (To)"
           },
           "startDate": {
             "type": "string",
@@ -7123,6 +7128,11 @@
       "UpdateTripDto": {
         "type": "object",
         "properties": {
+          "origin": {
+            "type": "string",
+            "example": "New Delhi, India",
+            "description": "Starting / departure city (From)"
+          },
           "destination": {
             "type": "string",
             "example": "Maldives"

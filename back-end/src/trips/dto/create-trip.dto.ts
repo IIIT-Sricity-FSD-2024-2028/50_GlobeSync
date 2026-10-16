@@ -2,7 +2,11 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateTripDto {
-  @ApiProperty({ example: 'Maldives', description: 'Trip destination' })
+  @ApiPropertyOptional({ example: 'New Delhi, India', description: 'Starting / departure city (From)' })
+  @IsOptional() @IsString()
+  origin?: string;
+
+  @ApiProperty({ example: 'Maldives', description: 'Trip destination (To)' })
   @IsNotEmpty() @IsString()
   destination: string;
 

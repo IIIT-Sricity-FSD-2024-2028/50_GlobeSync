@@ -88,6 +88,7 @@ export class TripsService {
     const maxId = trips.length > 0 ? Math.max(...trips.map((t) => t.tripId)) : 0;
     const newTrip: Trip = {
       tripId: maxId + 1,
+      origin: dto.origin || 'New Delhi, India',
       destination: dto.destination,
       startDate: dto.startDate,
       endDate: dto.endDate,
@@ -154,6 +155,7 @@ export class TripsService {
 
     const updated: Trip = {
       ...current,
+      ...(dto.origin !== undefined && { origin: dto.origin }),
       ...(dto.destination !== undefined && { destination: dto.destination }),
       ...(dto.startDate !== undefined && { startDate: dto.startDate }),
       ...(dto.endDate !== undefined && { endDate: dto.endDate }),

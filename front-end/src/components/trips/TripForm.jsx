@@ -4,6 +4,7 @@ import TransportSelectStep from './TransportSelectStep';
 import HotelSelectStep from './HotelSelectStep';
 import GuideSelectStep from './GuideSelectStep';
 import TripCostSummary from './TripCostSummary';
+import { analyzeRoute } from './tripCalculations';
 
 const STEPS = [
   { id: 0, title: 'Planning Mode', icon: '🎯' },
@@ -281,20 +282,74 @@ export default function TripForm({
           {currentStep === 2 && (
             <div>
               <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '6px' }}>
-                Destination & Starting Point
+                Journey Route: Departure & Destination
               </h3>
               <p style={{ color: 'var(--muted)', fontSize: '13px', marginBottom: '20px' }}>
-                Enter your departure location and target destination city.
+                Specify where your journey starts (From) and your target destination (To). Both locations are essential for accurate route pricing and complete itinerary planning.
               </p>
 
-              <div style={{ marginBottom: '16px' }}>
+              {/* 1. Departure / Starting City (From) */}
+              <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
-                  Primary Destination *
+                  🛫 From: Departure / Starting City *
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Paris, France or Tokyo, Japan"
-                  value={formData.destination}
+                  placeholder="e.g. New Delhi, Mumbai, Bengaluru, Kolkata, Chennai"
+                  value={formData.origin || formData.currentLocation || ''}
+                  onChange={(e) => {
+                    onInputChange('origin', e.target.value);
+                    onInputChange('currentLocation', e.target.value);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: `1px solid ${errors.origin || errors.currentLocation ? 'var(--danger, #ef4444)' : 'var(--border)'}`,
+                    fontSize: '14px',
+                  }}
+                />
+                {(errors.origin || errors.currentLocation) && (
+                  <div style={{ color: 'var(--danger, #ef4444)', fontSize: '12px', marginTop: '4px' }}>
+                    {errors.origin || errors.currentLocation}
+                  </div>
+                )}
+                {/* Popular Origin Suggestions */}
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>Quick Select:</span>
+                  {['New Delhi', 'Mumbai', 'Bengaluru', 'Kolkata', 'Chennai', 'Hyderabad'].map((city) => (
+                    <button
+                      key={city}
+                      type="button"
+                      onClick={() => {
+                        onInputChange('origin', `${city}, India`);
+                        onInputChange('currentLocation', `${city}, India`);
+                      }}
+                      style={{
+                        padding: '3px 9px',
+                        fontSize: '11px',
+                        borderRadius: '12px',
+                        border: '1px solid var(--border)',
+                        background: '#f8fafc',
+                        cursor: 'pointer',
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      {city}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 2. Destination City (To) */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
+                  🛬 To: Target Destination *
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Paris, France or Tokyo, Japan or Goa, India"
+                  value={formData.destination || ''}
                   onChange={(e) => onInputChange('destination', e.target.value)}
                   style={{
                     width: '100%',
@@ -309,32 +364,86 @@ export default function TripForm({
                     {errors.destination}
                   </div>
                 )}
+                {/* Popular Destination Suggestions */}
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>Quick Select:</span>
+                  {['Paris', 'Tokyo', 'Swiss Alps', 'Bali', 'Goa', 'Dubai', 'Kerala', 'Rajasthan'].map((dest) => (
+                    <button
+                      key={dest}
+                      type="button"
+                      onClick={() => onInputChange('destination', dest)}
+                      style={{
+                        padding: '3px 9px',
+                        fontSize: '11px',
+                        borderRadius: '12px',
+                        border: '1px solid var(--border)',
+                        background: '#f8fafc',
+                        cursor: 'pointer',
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      {dest}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
-                  Departure / Starting City (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. New Delhi, Mumbai, Bengaluru"
-                  value={formData.currentLocation}
-                  onChange={(e) => onInputChange('currentLocation', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border)',
-                    fontSize: '14px',
-                  }}
-                />
-              </div>
+              {/* 3. Live Route Preview Card */}
+              {(formData.destination || formData.origin || formData.currentLocation) && (
+                (() => {
+                  const originVal = formData.origin || formData.currentLocation || 'Departure City';
+                  const destVal = formData.destination || 'Destination';
+                  const route = analyzeRoute(originVal, destVal);
+                  return (
+                    <div
+                      style={{
+                        padding: '14px 18px',
+                        borderRadius: '12px',
+                        background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
+                        border: '1.5px solid #a7f3d0',
+                        marginTop: '16px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: '12px',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: '#047857', textTransform: 'uppercase' }}>
+                          Route Overview & Pricing Tier
+                        </div>
+                        <div style={{ fontSize: '15px', fontWeight: 800, color: '#064e3b', marginTop: '2px' }}>
+                          🛫 {originVal} <span style={{ margin: '0 4px', color: '#059669' }}>➔</span> 🛬 {destVal}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#047857', marginTop: '2px' }}>
+                          {route.label}
+                        </div>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          background: '#d1fae5',
+                          color: '#065f46',
+                          padding: '4px 12px',
+                          borderRadius: '20px',
+                        }}
+                      >
+                        ✓ {route.badge}
+                      </span>
+                    </div>
+                  );
+                })()
+              )}
             </div>
           )}
 
           {/* STEP 3: Transport Selection */}
           {currentStep === 3 && (
             <TransportSelectStep
+              origin={formData.origin || formData.currentLocation}
+              destination={formData.destination}
               transportType={formData.transportType}
               tripType={formData.tripType}
               selectedCarrier={formData.transportName}
@@ -389,8 +498,7 @@ export default function TripForm({
                 }}
               >
                 <div><strong>Planning Mode:</strong> {formData.mode === 'package' ? `Pre-Planned Package #${formData.packageId}` : 'Custom Itinerary (No Package ID)'}</div>
-                <div><strong>Destination:</strong> {formData.destination}</div>
-                <div><strong>Departure City:</strong> {formData.currentLocation || 'Self-Arranged'}</div>
+                <div><strong>Confirmed Route:</strong> 🛫 {formData.origin || formData.currentLocation || 'Departure City'} <span style={{ color: 'var(--primary)', margin: '0 4px' }}>➔</span> 🛬 {formData.destination}</div>
                 <div><strong>Travel Dates:</strong> {formData.startDate} → {formData.endDate} ({costData.days} Days)</div>
                 <div><strong>Passengers:</strong> {formData.numPersons} Traveler(s)</div>
                 <div>
