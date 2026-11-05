@@ -43,4 +43,6 @@ export const bookings: Booking[] = [
   { bookingId: 17, bookingDate: '2026-03-20', status: 'Confirmed', tripId: 4, travelerId: 3, service: 'The Roosevelt Hotel', type: 'Hotel', amount: 85000 },
   { bookingId: 18, bookingDate: '2025-12-05', status: 'Confirmed', tripId: 13, agencyId: 1, service: 'European Roman Holiday — Wholesale Package', type: 'Package', amount: 175000 },
   { bookingId: 19, bookingDate: '2026-07-01', status: 'Confirmed', tripId: 21, agencyId: 1, service: 'Switzerland Scenic Express — Client Resell', type: 'Package', amount: 260000 },
+  { bookingId: 20, bookingDate: '2026-04-10', status: 'Confirmed', tripId: 9, travelerId: 2, service: 'Garuda Indonesia GA-881 BLR→DPS', type: 'Flight', amount: 42000 },
+  { bookingId: 21, bookingDate: '2026-04-10', status: 'Confirmed', tripId: 9, travelerId: 2, service: 'Seminyak Beachfront Resort', type: 'Hotel', amount: 53000 },
 ];

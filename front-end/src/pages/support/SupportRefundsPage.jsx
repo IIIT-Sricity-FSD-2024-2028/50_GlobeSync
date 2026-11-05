@@ -13,8 +13,9 @@ import SupportCreateRefundModal from '../../components/support/SupportCreateRefu
  * Explicitly distinguishes internal platform ledger adjustments from real payment gateway settlements.
  */
 export default function SupportRefundsPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const prefillTravelerId = searchParams.get('travelerId');
+  const prefillBookingId = searchParams.get('bookingId');
 
   const [refunds, setRefunds] = useState([]);
   const [travelers, setTravelers] = useState([]);
@@ -82,12 +83,22 @@ export default function SupportRefundsPage() {
     return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    if (prefillTravelerId) {
+      setIsCreateModalOpen(true);
+    }
+  }, [prefillTravelerId]);
+
   // Status updates
   const handleStatusUpdate = async (refundId, newStatus) => {
     await refundsApi.updateStatus(refundId, newStatus);
     showToast(`Refund REF00${refundId} updated to ${newStatus}! ✓`);
-    const refreshed = await refundsApi.getAll();
+    const [refreshed, paymentsRefreshed] = await Promise.all([
+      refundsApi.getAll().catch(() => null),
+      paymentsApi.getAll().catch(() => null),
+    ]);
     if (refreshed) setRefunds(refreshed);
+    if (paymentsRefreshed) setPayments(paymentsRefreshed);
     setSelectedRefund((prev) => (prev && prev.refundId === refundId ? { ...prev, refundStatus: newStatus } : prev));
   };
 
@@ -95,8 +106,12 @@ export default function SupportRefundsPage() {
   const handleCreateRefund = async (refundData) => {
     await refundsApi.create(refundData);
     showToast('Refund claim successfully recorded! ✓');
-    const refreshed = await refundsApi.getAll();
+    const [refreshed, paymentsRefreshed] = await Promise.all([
+      refundsApi.getAll().catch(() => null),
+      paymentsApi.getAll().catch(() => null),
+    ]);
     if (refreshed) setRefunds(refreshed);
+    if (paymentsRefreshed) setPayments(paymentsRefreshed);
   };
 
   // Filtered refunds
@@ -331,6 +346,7 @@ export default function SupportRefundsPage() {
                   <th style={{ padding: '10px 12px' }}>Refund ID</th>
                   <th style={{ padding: '10px 12px' }}>Payment Ref</th>
                   <th style={{ padding: '10px 12px' }}>Traveler / Booking</th>
+                  <th style={{ padding: '10px 12px' }}>Refund Amount</th>
                   <th style={{ padding: '10px 12px' }}>Recorded Date</th>
                   <th style={{ padding: '10px 12px' }}>Status</th>
                   <th style={{ padding: '10px 12px', textAlign: 'right' }}>Actions</th>
@@ -353,8 +369,11 @@ export default function SupportRefundsPage() {
                       <td style={{ padding: '12px' }}>
                         <div style={{ fontWeight: 600 }}>{tr ? tr.name : 'Registered Traveler'}</div>
                         <div style={{ fontSize: '11px', color: 'var(--muted)' }}>
-                          {bk ? `${bk.service} ($${bk.amount})` : `BK00${pmt?.bookingId || 'N/A'}`}
+                          {bk ? `${bk.service} (₹${Number(bk.amount).toLocaleString('en-IN')})` : `BK00${pmt?.bookingId || 'N/A'}`}
                         </div>
+                      </td>
+                      <td style={{ padding: '12px', fontWeight: 700, color: '#10b981' }}>
+                        ₹{Number(r.amount !== undefined ? r.amount : pmt?.amount || bk?.amount || 0).toLocaleString('en-IN')}
                       </td>
                       <td style={{ padding: '12px', color: 'var(--muted)', fontSize: '13px' }}>
                         {r.refundDate || 'N/A'} {r.refundTime ? `at ${r.refundTime}` : ''}
@@ -407,7 +426,14 @@ export default function SupportRefundsPage() {
         travelers={travelers}
         bookings={bookings}
         payments={payments}
-        onClose={() => setIsCreateModalOpen(false)}
+        initialTravelerId={prefillTravelerId}
+        initialBookingId={prefillBookingId}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          if (prefillTravelerId || prefillBookingId) {
+            setSearchParams({});
+          }
+        }}
         onCreate={handleCreateRefund}
       />
     </div>

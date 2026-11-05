@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { paymentsApi } from '../../services/api';
 
 /**
  * SupportCreateRefundModal
@@ -11,6 +12,8 @@ export default function SupportCreateRefundModal({
   travelers = [],
   bookings = [],
   payments = [],
+  initialTravelerId = null,
+  initialBookingId = null,
   onClose,
   onCreate,
 }) {
@@ -24,7 +27,27 @@ export default function SupportCreateRefundModal({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
 
-  if (!isOpen) return null;
+  // Sync initial prefilled props when opening modal
+  useEffect(() => {
+    if (isOpen) {
+      if (initialTravelerId) {
+        setSelectedTravelerId(String(initialTravelerId));
+      }
+      if (initialBookingId) {
+        setSelectedBookingId(String(initialBookingId));
+        const found = bookings.find(
+          (b) => Number(b.bookingId || b.booking_id) === Number(initialBookingId)
+        );
+        if (found) {
+          setRefundAmount(String(found.amount || '0'));
+        }
+      }
+    } else {
+      // Clear errors on close
+      setErrors({});
+      setSubmitError(null);
+    }
+  }, [isOpen, initialTravelerId, initialBookingId, bookings]);
 
   // Filter bookings belonging to selected traveler
   const travelerBookings = useMemo(() => {
@@ -45,10 +68,12 @@ export default function SupportCreateRefundModal({
   // Find corresponding payment record
   const matchingPayment = useMemo(() => {
     if (!selectedBookingId) return null;
+    const bId = Number(selectedBookingId);
+    const bk = bookings.find((b) => Number(b.bookingId || b.booking_id) === bId);
     return payments.find(
-      (p) => Number(p.bookingId || p.booking_id) === Number(selectedBookingId)
+      (p) => Number(p.bookingId || p.booking_id) === bId || (bk?.tripId && Number(p.tripId) === Number(bk.tripId))
     );
-  }, [selectedBookingId, payments]);
+  }, [selectedBookingId, bookings, payments]);
 
   const handleBookingChange = (bId) => {
     setSelectedBookingId(bId);
@@ -72,7 +97,7 @@ export default function SupportCreateRefundModal({
     if (isNaN(amt) || amt <= 0) {
       errs.amount = 'Please enter a valid positive refund amount';
     } else if (selectedBooking && amt > (selectedBooking.amount || 0)) {
-      errs.amount = `Refund cannot exceed original booking amount ($${selectedBooking.amount})`;
+      errs.amount = `Refund cannot exceed original booking amount (₹${Number(selectedBooking.amount).toLocaleString('en-IN')})`;
     }
     if (!reason) errs.reason = 'Please select a refund reason';
     setErrors(errs);
@@ -87,15 +112,39 @@ export default function SupportCreateRefundModal({
     setSubmitError(null);
 
     const now = new Date();
-    const paymentId = matchingPayment?.paymentId || matchingPayment?.payment_id || 1;
 
     try {
-      await onCreate({
-        paymentId: Number(paymentId),
+      let resolvedPaymentId = matchingPayment?.paymentId || matchingPayment?.payment_id;
+
+      // If no payment record exists for this booking, create one so the ledger maintains referential integrity
+      if (!resolvedPaymentId && selectedBooking) {
+        try {
+          const newPayment = await paymentsApi.create({
+            bookingId: Number(selectedBooking.bookingId || selectedBooking.booking_id),
+            amount: Number(selectedBooking.amount || 0),
+            paymentDate: now.toISOString().split('T')[0],
+            method: 'Card',
+            status: 'Paid',
+          });
+          resolvedPaymentId = newPayment?.paymentId || newPayment?.payment_id;
+        } catch {
+          // Fallback to first existing payment if creation blocked
+          resolvedPaymentId = payments[0]?.paymentId || 1;
+        }
+      }
+
+      const refundPayload = {
+        paymentId: Number(resolvedPaymentId || 1),
         refundDate: now.toISOString().split('T')[0],
         refundTime: now.toTimeString().split(' ')[0],
         refundStatus: 'Processing',
-      });
+        amount: parseFloat(refundAmount),
+        reason: reason,
+        notes: notes || undefined,
+      };
+
+      await onCreate(refundPayload);
+
       // Reset
       setSelectedTravelerId('');
       setSelectedBookingId('');
@@ -104,11 +153,14 @@ export default function SupportCreateRefundModal({
       setErrors({});
       onClose();
     } catch (err) {
+      console.error('Failed to initiate refund claim:', err);
       setSubmitError(err.message || 'Failed to initiate refund. Please check inputs.');
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div
@@ -210,7 +262,7 @@ export default function SupportCreateRefundModal({
           {/* Traveler Select */}
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
-              Traveler *
+              Traveler Customer *
             </label>
             <select
               value={selectedTravelerId}
@@ -268,7 +320,7 @@ export default function SupportCreateRefundModal({
               <option value="">-- Choose traveler booking --</option>
               {travelerBookings.map((b) => (
                 <option key={b.bookingId || b.booking_id} value={b.bookingId || b.booking_id}>
-                  BK00{b.bookingId || b.booking_id} — {b.service || 'Trip Booking'} (${b.amount}) [{b.status}]
+                  BK00{b.bookingId || b.booking_id} — {b.service || 'Trip Booking'} (₹{Number(b.amount).toLocaleString('en-IN')}) [{b.status}]
                 </option>
               ))}
             </select>
@@ -300,9 +352,9 @@ export default function SupportCreateRefundModal({
               }}
             >
               <div><strong>Service:</strong> {selectedBooking.service}</div>
-              <div><strong>Original Amount:</strong> ${selectedBooking.amount}</div>
+              <div><strong>Original Amount:</strong> ₹{Number(selectedBooking.amount).toLocaleString('en-IN')}</div>
               <div><strong>Booking Date:</strong> {selectedBooking.bookingDate}</div>
-              <div><strong>Payment Ref:</strong> {matchingPayment ? `PMT00${matchingPayment.paymentId}` : 'On File'}</div>
+              <div><strong>Payment Ref:</strong> {matchingPayment ? `PMT00${matchingPayment.paymentId}` : 'Will be recorded with refund'}</div>
             </div>
           )}
 
@@ -330,18 +382,18 @@ export default function SupportCreateRefundModal({
 
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
-                Refund Amount ($) *
+                Refund Amount (₹) *
               </label>
               <input
                 type="number"
-                step="0.01"
-                min="0.01"
+                step="1"
+                min="1"
                 value={refundAmount}
                 onChange={(e) => {
                   setRefundAmount(e.target.value);
                   if (errors.amount) setErrors((prev) => ({ ...prev, amount: null }));
                 }}
-                placeholder="0.00"
+                placeholder="0"
                 className="form-control"
                 style={{
                   width: '100%',
@@ -370,8 +422,10 @@ export default function SupportCreateRefundModal({
               className="form-control"
               style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
             >
-              <option value="Service Issue">Service / Guide Issue</option>
-              <option value="Cancellation">Trip Cancellation</option>
+              <option value="Flight cancellation refund">Flight cancellation refund</option>
+              <option value="Hotel booking mismatch">Hotel booking mismatch</option>
+              <option value="Service / Guide Issue">Service / Guide Issue</option>
+              <option value="Trip Cancellation">Trip Cancellation</option>
               <option value="Overbooking">Overbooking / Capacity</option>
               <option value="Flight Delay">Flight Delay / Schedule Shift</option>
               <option value="Other">Other Operational Exception</option>

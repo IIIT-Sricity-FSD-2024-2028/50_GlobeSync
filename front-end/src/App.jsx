@@ -52,7 +52,7 @@ import AgencyPassengersPage from './pages/agency/AgencyPassengersPage';
 import AgencyExpensesPage from './pages/agency/AgencyExpensesPage';
 import AgencyCommissionPage from './pages/agency/AgencyCommissionPage';
 import AgencyPaymentsPage from './pages/agency/AgencyPaymentsPage';
-import AgencySubscriptionPage from './pages/agency/AgencySubscriptionPage';
+
 import AgencyMessagesPage from './pages/agency/AgencyMessagesPage';
 import AgencyProfilePage from './pages/agency/AgencyProfilePage';
 import AgencySupportPage from './pages/agency/AgencySupportPage';
@@ -462,7 +462,7 @@ export default function App() {
               path="/agency/subscription"
               element={
                 <ProtectedRoute allowedRoles={['agency', 'superuser']}>
-                  <AgencySubscriptionPage />
+                  <Navigate to="/agency/dashboard" replace />
                 </ProtectedRoute>
               }
             />

@@ -39,7 +39,7 @@ export class RefundsController {
   }
 
   @Post()
-  @Roles(Role.SUPERUSER, Role.TRAVELER, Role.SUPPORT)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.SUPPORT)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Create a refund request' })
   @ApiResponse({ status: 201, description: 'Refund created' })

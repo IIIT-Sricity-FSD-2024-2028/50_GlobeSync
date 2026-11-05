@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSession } from '../../context/SessionContext';
+import { supportTicketsApi } from '../../services/api';
 import StatusBadge from '../common/StatusBadge';
 
 /**
  * SupportTicketDetailModal
  * 
- * Displays full ticket details, traveler identity card, internal notes,
+ * Displays full ticket details, traveler identity card,
+ * live synchronized conversation thread with replies,
  * and allows transitioning ticket status ('Open', 'In Progress', 'Resolved', 'Closed').
  */
 export default function SupportTicketDetailModal({
@@ -15,11 +18,37 @@ export default function SupportTicketDetailModal({
   onStatusUpdate,
   onNavigateToMessages,
   onNavigateToRefunds,
+  onReplySent,
 }) {
-  const [internalNotes, setInternalNotes] = useState([]);
-  const [noteText, setNoteText] = useState('');
+  const { user } = useSession();
+
+  const [replies, setReplies] = useState(ticket?.replies || []);
+  const [replyText, setReplyText] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
+  const [replyError, setReplyError] = useState(null);
+
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [statusError, setStatusError] = useState(null);
+
+  // Sync replies and fetch latest thread from backend when modal opens
+  useEffect(() => {
+    if (isOpen && ticket?.ticketId) {
+      setReplies(Array.isArray(ticket.replies) ? ticket.replies : []);
+      setReplyText('');
+      setReplyError(null);
+      setStatusError(null);
+
+      // Fetch freshest copy of ticket to ensure replies are up to date
+      supportTicketsApi
+        .getById(ticket.ticketId)
+        .then((fresh) => {
+          if (fresh && Array.isArray(fresh.replies)) {
+            setReplies(fresh.replies);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isOpen, ticket?.ticketId]);
 
   if (!isOpen || !ticket) return null;
 
@@ -38,19 +67,37 @@ export default function SupportTicketDetailModal({
     }
   };
 
-  const handleAddNote = (e) => {
+  const handleSendReply = async (e) => {
     e.preventDefault();
-    if (!noteText.trim()) return;
-    setInternalNotes((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        text: noteText.trim(),
-        author: 'Support Agent',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      },
-    ]);
-    setNoteText('');
+    if (!replyText.trim() || sendingReply) return;
+
+    setSendingReply(true);
+    setReplyError(null);
+
+    try {
+      const senderName = user?.name || user?.contactPerson || 'Customer Support Specialist';
+      const createdReply = await supportTicketsApi.reply(ticket.ticketId, {
+        message: replyText.trim(),
+        senderName,
+      });
+
+      setReplies((prev) => [...prev, createdReply]);
+      setReplyText('');
+
+      // Auto update status to In Progress if currently Open
+      if (ticket.status === 'Open' && onStatusUpdate) {
+        onStatusUpdate(ticket.ticketId, 'In Progress');
+      }
+
+      if (onReplySent) {
+        onReplySent();
+      }
+    } catch (err) {
+      console.error('Failed to post reply:', err);
+      setReplyError(err.message || 'Failed to post reply. Please try again.');
+    } finally {
+      setSendingReply(false);
+    }
   };
 
   const getPriorityStyle = (priority) => {
@@ -63,6 +110,20 @@ export default function SupportTicketDetailModal({
         return { background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe' };
       default:
         return { background: '#f3f4f6', color: '#6b7280', border: '1px solid #e5e7eb' };
+    }
+  };
+
+  const formatTimestamp = (ts) => {
+    if (!ts) return 'Just now';
+    try {
+      return new Date(ts).toLocaleString('en-IN', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return ts;
     }
   };
 
@@ -87,8 +148,8 @@ export default function SupportTicketDetailModal({
           background: '#fff',
           borderRadius: '16px',
           width: '100%',
-          maxWidth: '750px',
-          maxHeight: '90vh',
+          maxWidth: '780px',
+          maxHeight: '92vh',
           overflowY: 'auto',
           boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
           padding: 0,
@@ -111,7 +172,7 @@ export default function SupportTicketDetailModal({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                Support Request #{ticket.ticketId}
+                Support Ticket #{ticket.ticketId}
               </span>
               <span
                 style={{
@@ -126,7 +187,7 @@ export default function SupportTicketDetailModal({
               </span>
             </div>
             <p style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '2px' }}>
-              Logged on {ticket.created ? new Date(ticket.created).toLocaleString() : 'N/A'}
+              Logged on {ticket.created ? new Date(ticket.created).toLocaleString() : 'N/A'} {ticket.caseId ? `• Case #${ticket.caseId}` : ''}
             </p>
           </div>
           <button
@@ -144,256 +205,334 @@ export default function SupportTicketDetailModal({
         </div>
 
         {/* Modal Body */}
-        <div style={{ padding: '24px', display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '20px' }}>
-          {/* Left Column: Ticket Details & Notes */}
-          <div>
-            <div
-              style={{
-                background: '#f8fafc',
-                borderRadius: '12px',
-                padding: '16px',
-                border: '1px solid var(--border-light, #e2e8f0)',
-                marginBottom: '16px',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>
-                  Issue Category
-                </span>
-                <StatusBadge status={ticket.status} />
-              </div>
-              <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>
-                {ticket.issueType}
-              </div>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '4px' }}>
-                Description
-              </div>
-              <p
-                style={{
-                  fontSize: '14px',
-                  color: 'var(--text-primary)',
-                  lineHeight: '1.6',
-                  background: '#fff',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: '1px solid #e2e8f0',
-                  whiteSpace: 'pre-wrap',
-                }}
-              >
-                {ticket.description}
-              </p>
-            </div>
-
-            {/* Status Transition Control */}
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
-                Update Ticket Status
-              </label>
-              {statusError && (
-                <div style={{ padding: '8px 12px', background: '#fee2e2', color: '#b91c1c', borderRadius: '6px', fontSize: '12px', marginBottom: '8px' }}>
-                  {statusError}
-                </div>
-              )}
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                {validStatuses.map((st) => (
-                  <button
-                    key={st}
-                    type="button"
-                    disabled={updatingStatus}
-                    onClick={() => handleStatusChange(st)}
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      borderRadius: '8px',
-                      border: ticket.status === st ? '2px solid var(--primary, #10b981)' : '1px solid #d1d5db',
-                      background: ticket.status === st ? '#ecfdf5' : '#fff',
-                      color: ticket.status === st ? '#059669' : '#374151',
-                      cursor: updatingStatus ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    {ticket.status === st ? `✓ ${st}` : st}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Internal Notes */}
+        <div style={{ padding: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '24px' }}>
+            {/* Left Column: Details, Status Transitions, Synchronized Conversation Thread */}
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
-                Internal Resolution Notes
-              </label>
-              <form onSubmit={handleAddNote} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <textarea
-                  value={noteText}
-                  onChange={(e) => setNoteText(e.target.value)}
-                  placeholder="Record internal escalation notes or follow-up status..."
-                  rows={2}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '13px',
-                    resize: 'vertical',
-                  }}
-                />
-                <button
-                  type="submit"
-                  className="btn btn-secondary btn-sm"
-                  style={{ alignSelf: 'flex-start', padding: '6px 14px', fontSize: '12px' }}
-                >
-                  + Add Note
-                </button>
-              </form>
-
-              {internalNotes.length > 0 && (
-                <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {internalNotes.map((n) => (
-                    <div
-                      key={n.id}
-                      style={{
-                        padding: '8px 10px',
-                        background: '#f1f5f9',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        borderLeft: '3px solid #3b82f6',
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--muted)', marginBottom: '2px' }}>
-                        <span>{n.author}</span>
-                        <span>{n.timestamp}</span>
-                      </div>
-                      <div style={{ color: 'var(--text-primary)' }}>{n.text}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right Column: Traveler Profile Card & Quick Actions */}
-          <div>
-            {traveler ? (
-              <div
-                style={{
-                  background: '#f8fafc',
-                  borderRadius: '12px',
-                  padding: '20px',
-                  textAlign: 'center',
-                  border: '1px solid #e2e8f0',
-                  marginBottom: '16px',
-                }}
-              >
-                <div
-                  style={{
-                    width: '54px',
-                    height: '54px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#fff',
-                    fontSize: '22px',
-                    fontWeight: 800,
-                    margin: '0 auto 12px',
-                  }}
-                >
-                  {traveler.name ? traveler.name[0] : 'T'}
-                </div>
-                <div style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)' }}>
-                  {traveler.name}
-                </div>
-                <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
-                  Customer ID: TC00{traveler.travelerId || traveler.traveler_id || ticket.travelerId}
-                </div>
-
-                <div style={{ marginTop: '14px', textAlign: 'left', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--muted)' }}>Email:</span>
-                    <span style={{ fontWeight: 600 }}>{traveler.email || 'N/A'}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--muted)' }}>Phone:</span>
-                    <span style={{ fontWeight: 600 }}>{traveler.phone || 'N/A'}</span>
-                  </div>
-                </div>
-
-                {onNavigateToMessages && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      onNavigateToMessages(traveler.travelerId || traveler.traveler_id || ticket.travelerId);
-                    }}
-                    className="btn btn-primary btn-sm"
-                    style={{
-                      width: '100%',
-                      marginTop: '16px',
-                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                      border: 'none',
-                    }}
-                  >
-                    💬 Message Traveler
-                  </button>
-                )}
-              </div>
-            ) : (
+              {/* Category & Status Bar */}
               <div
                 style={{
                   background: '#f8fafc',
                   borderRadius: '12px',
                   padding: '16px',
-                  textAlign: 'center',
-                  border: '1px solid #e2e8f0',
+                  border: '1px solid var(--border-light, #e2e8f0)',
                   marginBottom: '16px',
-                  color: 'var(--muted)',
-                  fontSize: '13px',
                 }}
               >
-                No traveler profile linked (ID: #{ticket.travelerId || 'Agency'})
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>
+                    Issue Category
+                  </span>
+                  <StatusBadge status={ticket.status} />
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>
+                  {ticket.issueType}
+                </div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '4px' }}>
+                  Initial Problem Description
+                </div>
+                <p
+                  style={{
+                    fontSize: '14px',
+                    color: 'var(--text-primary)',
+                    lineHeight: '1.6',
+                    background: '#fff',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: '1px solid #e2e8f0',
+                    margin: 0,
+                    whiteSpace: 'pre-wrap',
+                  }}
+                >
+                  {ticket.description}
+                </p>
               </div>
-            )}
 
-            {/* Quick Actions */}
-            <div style={{ background: '#fff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '10px' }}>
-                Support Actions
+              {/* Status Transition Control */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
+                  Update Ticket Status
+                </label>
+                {statusError && (
+                  <div style={{ padding: '8px 12px', background: '#fee2e2', color: '#b91c1c', borderRadius: '6px', fontSize: '12px', marginBottom: '8px' }}>
+                    {statusError}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {validStatuses.map((st) => (
+                    <button
+                      key={st}
+                      type="button"
+                      disabled={updatingStatus}
+                      onClick={() => handleStatusChange(st)}
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        borderRadius: '8px',
+                        border: ticket.status === st ? '2px solid var(--primary, #10b981)' : '1px solid #d1d5db',
+                        background: ticket.status === st ? '#ecfdf5' : '#fff',
+                        color: ticket.status === st ? '#059669' : '#374151',
+                        cursor: updatingStatus ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {ticket.status === st ? `✓ ${st}` : st}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {onNavigateToRefunds && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      onNavigateToRefunds(ticket.travelerId);
-                    }}
-                    className="btn btn-secondary btn-sm"
-                    style={{ justifyContent: 'flex-start', padding: '8px 12px', fontSize: '13px' }}
-                  >
-                    💰 Review & Initiate Refund
-                  </button>
+
+              {/* Synchronized Conversation Thread with Traveler */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                    💬 Customer Conversation Thread ({replies.length})
+                  </label>
+                  <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>
+                    ● Synchronized with Traveler Portal
+                  </span>
+                </div>
+
+                {replyError && (
+                  <div style={{ padding: '8px 12px', background: '#fee2e2', color: '#b91c1c', borderRadius: '6px', fontSize: '12px', marginBottom: '10px' }}>
+                    {replyError}
+                  </div>
                 )}
-                {ticket.status !== 'Resolved' && (
-                  <button
-                    type="button"
-                    disabled={updatingStatus}
-                    onClick={() => handleStatusChange('Resolved')}
-                    className="btn btn-sm"
+
+                {/* Messages Container */}
+                <div
+                  style={{
+                    maxHeight: '260px',
+                    overflowY: 'auto',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '10px',
+                    background: '#f8fafc',
+                    padding: '12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    marginBottom: '12px',
+                  }}
+                >
+                  {replies.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '16px', color: 'var(--muted)', fontSize: '13px' }}>
+                      No messages in thread yet. Reply below to communicate with the customer.
+                    </div>
+                  ) : (
+                    replies.map((r, idx) => {
+                      const isSupport = r.senderRole === 'support';
+                      return (
+                        <div
+                          key={r.replyId || idx}
+                          style={{
+                            background: isSupport ? '#eff6ff' : '#ffffff',
+                            border: isSupport ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
+                            borderRadius: '10px',
+                            padding: '10px 14px',
+                            alignSelf: isSupport ? 'flex-end' : 'flex-start',
+                            maxWidth: '92%',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+                            <span
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                background: isSupport ? '#dbeafe' : '#e0f2fe',
+                                color: isSupport ? '#1e40af' : '#0369a1',
+                              }}
+                            >
+                              {isSupport ? '🎧 Support Desk' : '👤 Customer'} &bull; {r.senderName}
+                            </span>
+                            <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
+                              {formatTimestamp(r.createdAt)}
+                            </span>
+                          </div>
+                          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                            {r.message}
+                          </p>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Reply Form */}
+                <form onSubmit={handleSendReply} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <textarea
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="Type reply to customer (updates ticket thread in traveler portal)..."
+                    rows={2}
                     style={{
-                      background: '#ecfdf5',
-                      color: '#059669',
-                      border: '1px solid #a7f3d0',
-                      fontWeight: 700,
-                      padding: '8px 12px',
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
                       fontSize: '13px',
-                      cursor: updatingStatus ? 'not-allowed' : 'pointer',
+                      resize: 'vertical',
+                    }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
+                      Pressing send delivers this message directly to the customer's portal.
+                    </span>
+                    <button
+                      type="submit"
+                      disabled={sendingReply || !replyText.trim()}
+                      className="btn btn-primary btn-sm"
+                      style={{
+                        padding: '7px 16px',
+                        fontSize: '13px',
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        border: 'none',
+                        fontWeight: 700,
+                        opacity: sendingReply || !replyText.trim() ? 0.6 : 1,
+                      }}
+                    >
+                      {sendingReply ? 'Sending...' : '📨 Send Reply to Customer'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            {/* Right Column: Traveler Profile Card & Quick Actions */}
+            <div>
+              {traveler ? (
+                <div
+                  style={{
+                    background: '#f8fafc',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    textAlign: 'center',
+                    border: '1px solid #e2e8f0',
+                    marginBottom: '16px',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '54px',
+                      height: '54px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#fff',
+                      fontSize: '22px',
+                      fontWeight: 800,
+                      margin: '0 auto 12px',
                     }}
                   >
-                    ✅ Quick Mark as Resolved
-                  </button>
-                )}
+                    {traveler.name ? traveler.name[0] : 'T'}
+                  </div>
+                  <div style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)' }}>
+                    {traveler.name}
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
+                    Customer ID: TC00{traveler.travelerId || traveler.traveler_id || ticket.travelerId}
+                  </div>
+
+                  <div style={{ marginTop: '14px', textAlign: 'left', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: 'var(--muted)' }}>Email:</span>
+                      <span style={{ fontWeight: 600 }}>{traveler.email || 'N/A'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: 'var(--muted)' }}>Phone:</span>
+                      <span style={{ fontWeight: 600 }}>{traveler.phone || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  {onNavigateToMessages && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onNavigateToMessages(traveler.travelerId || traveler.traveler_id || ticket.travelerId);
+                      }}
+                      className="btn btn-primary btn-sm"
+                      style={{
+                        width: '100%',
+                        marginTop: '16px',
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        border: 'none',
+                      }}
+                    >
+                      💬 Message Traveler
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    background: '#f8fafc',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    textAlign: 'center',
+                    border: '1px solid #e2e8f0',
+                    marginBottom: '16px',
+                    color: 'var(--muted)',
+                    fontSize: '13px',
+                  }}
+                >
+                  No traveler profile linked (ID: #{ticket.travelerId || 'Agency'})
+                </div>
+              )}
+
+              {/* Quick Actions */}
+              <div style={{ background: '#fff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '10px' }}>
+                  Support Actions
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {onNavigateToRefunds && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onNavigateToRefunds(ticket.travelerId, ticket.bookingId || ticket.tripId);
+                      }}
+                      className="btn btn-secondary btn-sm"
+                      style={{ justifyContent: 'flex-start', padding: '8px 12px', fontSize: '13px' }}
+                    >
+                      💰 Review & Initiate Refund
+                    </button>
+                  )}
+                  {ticket.status !== 'Resolved' && (
+                    <button
+                      type="button"
+                      disabled={updatingStatus}
+                      onClick={() => handleStatusChange('Resolved')}
+                      className="btn btn-sm"
+                      style={{
+                        background: '#f0fdf4',
+                        color: '#166534',
+                        border: '1px solid #bbf7d0',
+                        fontWeight: 700,
+                        padding: '8px 12px',
+                        fontSize: '13px',
+                        textAlign: 'left',
+                      }}
+                    >
+                      ✓ Mark Ticket Resolved
+                    </button>
+                  )}
+                  {ticket.status !== 'Closed' && (
+                    <button
+                      type="button"
+                      disabled={updatingStatus}
+                      onClick={() => handleStatusChange('Closed')}
+                      className="btn btn-secondary btn-sm"
+                      style={{ padding: '8px 12px', fontSize: '13px', textAlign: 'left' }}
+                    >
+                      🔒 Close Case
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

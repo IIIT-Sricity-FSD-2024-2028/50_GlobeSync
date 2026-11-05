@@ -64,7 +64,6 @@ const ROLE_MENU_CONFIG = {
     { label: 'Trip Expenses', path: '/agency/expenses', icon: '🧾' },
     { label: 'Commission Ledger', path: '/agency/commission', icon: '💰' },
     { label: 'Payments', path: '/agency/payments', icon: '💳' },
-    { label: 'Subscriptions', path: '/agency/subscription', icon: '⭐' },
     { label: 'Messages', path: '/agency/messages', icon: '💬' },
     { label: 'Agency Profile', path: '/agency/profile', icon: '🏢' },
     { label: 'Support Desk', path: '/agency/support', icon: '🎧' },

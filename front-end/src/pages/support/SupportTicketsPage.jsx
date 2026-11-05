@@ -506,7 +506,8 @@ export default function SupportTicketsPage() {
           onClose={() => setSelectedTicket(null)}
           onStatusUpdate={handleStatusUpdate}
           onNavigateToMessages={(tId) => navigate(`/support/messages?travelerId=${tId}`)}
-          onNavigateToRefunds={() => navigate('/support/refunds')}
+          onNavigateToRefunds={(tId, bId) => navigate(tId ? `/support/refunds?travelerId=${tId}${bId ? `&bookingId=${bId}` : ''}` : '/support/refunds')}
+          onReplySent={() => loadTicketsData()}
         />
       )}
 

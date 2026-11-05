@@ -276,6 +276,7 @@ export default function TravelerSupportPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <TicketList
             tickets={tickets}
+            travelerName={user?.name || 'Traveler'}
             isLoading={loading}
             onRefresh={() => loadData()}
           />

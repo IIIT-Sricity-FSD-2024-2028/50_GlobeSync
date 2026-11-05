@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { supportTicketsApi } from '../../services/api';
 import StatusBadge from '../common/StatusBadge';
 
 /**
@@ -7,16 +8,24 @@ import StatusBadge from '../common/StatusBadge';
  * Features:
  * - Search by keyword (subject, description, ticket ID)
  * - Status filtering (All, Open, In Progress, Resolved, Closed)
- * - Clear empty and loading states
+ * - Synchronized live conversation thread with Customer Support replies
+ * - Interactive reply box allowing the traveler to reply back to the support desk
  * - Priority color tags (High, Medium, Low)
  */
 export default function TicketList({
   tickets = [],
+  travelerName = 'Traveler Client',
   isLoading = false,
   onRefresh,
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [expandedTicketId, setExpandedTicketId] = useState(null);
+
+  // Replying state per ticket
+  const [replyTextMap, setReplyTextMap] = useState({});
+  const [replyingId, setReplyingId] = useState(null);
+  const [replyErrorMap, setReplyErrorMap] = useState({});
 
   // Filter tickets by search and status
   const filteredTickets = tickets.filter((ticket) => {
@@ -51,7 +60,7 @@ export default function TicketList({
     if (!dateStr) return 'N/A';
     try {
       const d = new Date(dateStr);
-      return d.toLocaleDateString(undefined, {
+      return d.toLocaleDateString('en-IN', {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
@@ -60,6 +69,41 @@ export default function TicketList({
       });
     } catch {
       return dateStr;
+    }
+  };
+
+  const handleToggleExpand = (tId) => {
+    setExpandedTicketId((prev) => (prev === tId ? null : tId));
+  };
+
+  const handleSendReply = async (ticketId) => {
+    const text = (replyTextMap[ticketId] || '').trim();
+    if (!text || replyingId) return;
+
+    setReplyingId(ticketId);
+    setReplyErrorMap((prev) => ({ ...prev, [ticketId]: null }));
+
+    try {
+      await supportTicketsApi.reply(ticketId, {
+        message: text,
+        senderName: travelerName,
+      });
+
+      // Clear text for this ticket
+      setReplyTextMap((prev) => ({ ...prev, [ticketId]: '' }));
+
+      // Refresh list to pull updated thread from backend
+      if (onRefresh) {
+        await onRefresh();
+      }
+    } catch (err) {
+      console.error('Failed to post reply to support ticket:', err);
+      setReplyErrorMap((prev) => ({
+        ...prev,
+        [ticketId]: err.message || 'Failed to send reply. Please try again.',
+      }));
+    } finally {
+      setReplyingId(null);
     }
   };
 
@@ -179,6 +223,10 @@ export default function TicketList({
             .sort((a, b) => new Date(b.created || 0) - new Date(a.created || 0))
             .map((ticket) => {
               const priorityStyle = getPriorityStyle(ticket.priority);
+              const isExpanded = expandedTicketId === ticket.ticketId;
+              const repliesCount = Array.isArray(ticket.replies) ? ticket.replies.length : 0;
+              const replyError = replyErrorMap[ticket.ticketId];
+              const isReplyingThis = replyingId === ticket.ticketId;
 
               return (
                 <div
@@ -261,15 +309,17 @@ export default function TicketList({
                     {ticket.description}
                   </p>
 
-                  {/* Footer metadata */}
+                  {/* Footer metadata & Expand Conversation Toggle */}
                   <div
                     style={{
-                      marginTop: '12px',
-                      paddingTop: '10px',
+                      marginTop: '14px',
+                      paddingTop: '12px',
                       borderTop: '1px solid #f3f4f6',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '10px',
                       fontSize: '12px',
                       color: 'var(--muted)',
                     }}
@@ -277,10 +327,151 @@ export default function TicketList({
                     <span>
                       👤 Assigned Desk: <strong>{ticket.careId ? `Care Desk Queue #${ticket.careId}` : 'General Support Desk'}</strong>
                     </span>
-                    <span style={{ fontStyle: 'italic' }}>
-                      {ticket.status === 'Resolved' || ticket.status === 'Closed' ? '✓ Case resolved' : '⏳ In active queue'}
-                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => handleToggleExpand(ticket.ticketId)}
+                      style={{
+                        background: isExpanded ? '#ecfdf5' : '#f8fafc',
+                        border: isExpanded ? '1px solid #a7f3d0' : '1px solid #e2e8f0',
+                        color: isExpanded ? '#065f46' : '#1e293b',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      💬 {repliesCount > 0 ? `Discussion Thread (${repliesCount})` : 'Reply to Support'} {isExpanded ? '▲' : '▼'}
+                    </button>
                   </div>
+
+                  {/* Synchronized Thread Drawer */}
+                  {isExpanded && (
+                    <div
+                      style={{
+                        marginTop: '16px',
+                        padding: '16px',
+                        background: '#f8fafc',
+                        borderRadius: '10px',
+                        border: '1px solid #e2e8f0',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                          Conversation Thread with Customer Support
+                        </span>
+                        <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>
+                          ● Live Support Desk Connection
+                        </span>
+                      </div>
+
+                      {/* Messages Stream */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '10px',
+                          maxHeight: '260px',
+                          overflowY: 'auto',
+                          marginBottom: '14px',
+                        }}
+                      >
+                        {repliesCount === 0 ? (
+                          <div style={{ padding: '12px', background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', color: 'var(--muted)', textAlign: 'center' }}>
+                            Your ticket is queued with the support desk. Send an additional note below if you have more details.
+                          </div>
+                        ) : (
+                          ticket.replies.map((reply, idx) => {
+                            const isSupport = reply.senderRole === 'support';
+                            return (
+                              <div
+                                key={reply.replyId || idx}
+                                style={{
+                                  background: isSupport ? '#eff6ff' : '#ffffff',
+                                  border: isSupport ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
+                                  borderRadius: '10px',
+                                  padding: '10px 14px',
+                                  alignSelf: isSupport ? 'flex-start' : 'flex-end',
+                                  maxWidth: '92%',
+                                }}
+                              >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+                                  <span
+                                    style={{
+                                      fontSize: '11px',
+                                      fontWeight: 700,
+                                      padding: '1px 6px',
+                                      borderRadius: '4px',
+                                      background: isSupport ? '#dbeafe' : '#f0fdf4',
+                                      color: isSupport ? '#1e40af' : '#166534',
+                                    }}
+                                  >
+                                    {isSupport ? '🎧 Customer Support Specialist' : '👤 You (Traveler)'} &bull; {reply.senderName}
+                                  </span>
+                                  <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
+                                    {formatDate(reply.createdAt)}
+                                  </span>
+                                </div>
+                                <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                                  {reply.message}
+                                </p>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+
+                      {/* Reply Box */}
+                      {replyError && (
+                        <div style={{ padding: '8px 12px', background: '#fee2e2', color: '#b91c1c', borderRadius: '6px', fontSize: '12px', marginBottom: '8px' }}>
+                          ⚠️ {replyError}
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <textarea
+                          rows={2}
+                          placeholder="Type a follow-up message to Customer Support..."
+                          value={replyTextMap[ticket.ticketId] || ''}
+                          onChange={(e) =>
+                            setReplyTextMap((prev) => ({
+                              ...prev,
+                              [ticket.ticketId]: e.target.value,
+                            }))
+                          }
+                          style={{
+                            flex: 1,
+                            padding: '10px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid #cbd5e1',
+                            fontSize: '13px',
+                            resize: 'vertical',
+                          }}
+                        />
+                        <button
+                          type="button"
+                          disabled={isReplyingThis || !(replyTextMap[ticket.ticketId] || '').trim()}
+                          onClick={() => handleSendReply(ticket.ticketId)}
+                          className="btn btn-primary btn-sm"
+                          style={{
+                            alignSelf: 'flex-end',
+                            padding: '9px 18px',
+                            fontWeight: 700,
+                            fontSize: '13px',
+                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                            border: 'none',
+                            opacity: isReplyingThis || !(replyTextMap[ticket.ticketId] || '').trim() ? 0.6 : 1,
+                          }}
+                        >
+                          {isReplyingThis ? 'Sending...' : '📨 Send'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

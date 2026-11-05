@@ -39,7 +39,7 @@ export default function SupportRefundDetailModal({
 
   const formatCurrency = (val) => {
     const num = Number(val);
-    return isNaN(num) ? '$0.00' : `$${num.toFixed(2)}`;
+    return isNaN(num) ? '₹0' : `₹${num.toLocaleString('en-IN')}`;
   };
 
   return (
@@ -169,10 +169,10 @@ export default function SupportRefundDetailModal({
 
             <div>
               <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>
-                Recorded Booking Amount
+                Approved Refund Amount
               </span>
-              <div style={{ fontSize: '16px', fontWeight: 800, color: '#10b981', marginTop: '2px' }}>
-                {payment ? formatCurrency(payment.amount) : booking ? formatCurrency(booking.amount) : 'Recorded on File'}
+              <div style={{ fontSize: '18px', fontWeight: 800, color: '#10b981', marginTop: '2px' }}>
+                {refund.amount !== undefined ? formatCurrency(refund.amount) : payment ? formatCurrency(payment.amount) : 'Recorded on File'}
               </div>
             </div>
 
@@ -194,6 +194,31 @@ export default function SupportRefundDetailModal({
               </div>
             </div>
           </div>
+
+          {/* Reason & Investigation Notes (if provided) */}
+          {(refund.reason || refund.notes) && (
+            <div
+              style={{
+                background: '#f1f5f9',
+                borderRadius: '10px',
+                padding: '14px 18px',
+                marginBottom: '20px',
+                fontSize: '13px',
+                border: '1px solid #e2e8f0',
+              }}
+            >
+              {refund.reason && (
+                <div style={{ marginBottom: refund.notes ? '6px' : 0 }}>
+                  <strong style={{ color: '#334155' }}>Claim Reason:</strong> {refund.reason}
+                </div>
+              )}
+              {refund.notes && (
+                <div>
+                  <strong style={{ color: '#334155' }}>Investigation Notes:</strong> {refund.notes}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Status Decision Controls */}
           <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>

@@ -8423,6 +8423,18 @@
           "agencyId": {
             "type": "number",
             "example": 1
+          },
+          "amount": {
+            "type": "number",
+            "example": 5000
+          },
+          "reason": {
+            "type": "string",
+            "example": "Flight cancellation"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Approved by customer care"
           }
         },
         "required": [

@@ -67,10 +67,10 @@ export default function BookingDetailModal({
 
   // Handle Traveler Refund Request
   const handleRequestRefund = async (payment) => {
-    const confirmRefund = window.confirm(
-      `Request refund of ₹${Number(payment.amount).toLocaleString('en-IN')} for Payment #${payment.paymentId}?`
-    );
-    if (!confirmRefund) return;
+    // Direct refund submission
+
+
+
 
     setRefundSubmitting(true);
     setRefundError(null);

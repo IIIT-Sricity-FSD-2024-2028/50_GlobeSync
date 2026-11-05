@@ -31,6 +31,9 @@ export class RefundsService {
       refundTime: dto.refundTime || new Date().toTimeString().slice(0, 8),
       refundStatus: (dto.refundStatus as Refund['refundStatus']) || 'Processing',
       ...(dto.agencyId !== undefined && { agencyId: dto.agencyId }),
+      ...(dto.amount !== undefined && { amount: dto.amount }),
+      ...(dto.reason !== undefined && { reason: dto.reason }),
+      ...(dto.notes !== undefined && { notes: dto.notes }),
     };
     refunds.push(item);
     return item;

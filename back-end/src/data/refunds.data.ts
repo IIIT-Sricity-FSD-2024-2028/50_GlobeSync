@@ -12,8 +12,11 @@ export interface Refund {
   refundTime: string;
   refundStatus: 'Processing' | 'Completed' | 'Rejected';
   agencyId?: number;
+  amount?: number;
+  reason?: string;
+  notes?: string;
 }
 
 export const refunds: Refund[] = [
-  { refundId: 1, paymentId: 2, refundDate: '2026-03-06', refundTime: '14:30:00', refundStatus: 'Processing' },
+  { refundId: 1, paymentId: 2, refundDate: '2026-03-06', refundTime: '14:30:00', refundStatus: 'Processing', amount: 102000, reason: 'Hotel Lumiere booking cancellation' },
 ];

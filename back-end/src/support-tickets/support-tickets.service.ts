@@ -82,12 +82,17 @@ export class SupportTicketsService {
       ticketId,
       senderRole,
       senderId,
-      senderName: dto.senderName || (senderRole === 'support' ? 'Customer Support Specialist' : 'Agency Partner'),
+      senderName: dto.senderName || (senderRole === 'support' ? 'Customer Support Specialist' : senderRole === 'traveler' ? 'Traveler Client' : 'Agency Partner'),
       message: dto.message,
       createdAt: new Date().toISOString(),
     };
 
     ticket.replies.push(newReply);
+    if (senderRole === 'support' && ticket.status === 'Open') {
+      ticket.status = 'In Progress';
+    } else if (senderRole === 'traveler' && ticket.status === 'Resolved') {
+      ticket.status = 'In Progress';
+    }
     return newReply;
   }
 

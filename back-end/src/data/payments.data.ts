@@ -36,4 +36,6 @@ export const payments: Payment[] = [
   { paymentId: 17, amount: 93500, paymentDate: '2026-03-21', method: 'Card', status: 'Paid', bookingId: 17 },
   { paymentId: 18, amount: 175000, paymentDate: '2025-11-01', method: 'Card', status: 'Paid', tripId: 13, agencyId: 1 },
   { paymentId: 19, amount: 260000, paymentDate: '2026-07-01', method: 'Card', status: 'Paid', tripId: 21, agencyId: 1 },
+  { paymentId: 20, amount: 42000, paymentDate: '2026-04-10', method: 'Card', status: 'Paid', bookingId: 20 },
+  { paymentId: 21, amount: 53000, paymentDate: '2026-04-10', method: 'Card', status: 'Paid', bookingId: 21 },
 ];

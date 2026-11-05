@@ -8,6 +8,9 @@ export class CreateRefundDto {
   @ApiPropertyOptional({ example: 'Processing', enum: ['Processing', 'Completed', 'Rejected'] })
   @IsOptional() @IsString() @IsIn(['Processing', 'Completed', 'Rejected']) refundStatus?: string;
   @ApiPropertyOptional({ example: 1 }) @IsOptional() @IsNumber() agencyId?: number;
+  @ApiPropertyOptional({ example: 5000 }) @IsOptional() @IsNumber() amount?: number;
+  @ApiPropertyOptional({ example: 'Flight cancellation' }) @IsOptional() @IsString() reason?: string;
+  @ApiPropertyOptional({ example: 'Approved by customer care' }) @IsOptional() @IsString() notes?: string;
 }
 
 export class UpdateRefundStatusDto {

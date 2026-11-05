@@ -616,7 +616,7 @@ export class RolesGuard implements CanActivate {
       return;
     }
 
-    if (handlerName === 'findOne') {
+    if (handlerName === 'findOne' || handlerName === 'addReply') {
       const ticketId = this.parseNumericValue(request.params?.id);
       const ticket = supportTickets.find((item) => item.ticketId === ticketId);
 
@@ -644,7 +644,7 @@ export class RolesGuard implements CanActivate {
       return;
     }
 
-    if (handlerName === 'findOne') {
+    if (handlerName === 'findOne' || handlerName === 'addReply') {
       const ticketId = this.parseNumericValue(request.params?.id);
       const ticket = supportTickets.find((item) => item.ticketId === ticketId);
 
