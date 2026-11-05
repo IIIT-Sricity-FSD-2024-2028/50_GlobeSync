@@ -20,7 +20,7 @@ export class PaymentsController {
   findAll() { return this.paymentsService.findAll(); }
 
   @Get(':id')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.SUPPORT)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.SUPPORT, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Get payment by ID' })
   @ApiParam({ name: 'id', type: Number })
@@ -29,7 +29,7 @@ export class PaymentsController {
   findOne(@Param('id', ParseIntPipe) id: number) { return this.paymentsService.findOne(id); }
 
   @Get('booking/:bookingId')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.SUPPORT)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.SUPPORT, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Get payments by booking ID' })
   @ApiParam({ name: 'bookingId', type: Number })
@@ -49,7 +49,7 @@ export class PaymentsController {
   }
 
   @Post()
-  @Roles(Role.SUPERUSER, Role.TRAVELER)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Create a payment' })
   @ApiResponse({ status: 201, description: 'Payment created' })

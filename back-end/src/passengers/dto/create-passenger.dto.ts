@@ -26,4 +26,34 @@ export class CreatePassengerDto {
   @IsOptional()
   @IsNumber()
   agencyId?: number;
+
+  @ApiPropertyOptional({ example: 'jane.doe@example.com' })
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @ApiPropertyOptional({ example: '+91 98765 43210' })
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @ApiPropertyOptional({ example: '1995-05-15' })
+  @IsOptional()
+  @IsString()
+  dob?: string;
+
+  @ApiPropertyOptional({ example: 'Passport' })
+  @IsOptional()
+  @IsString()
+  idType?: string;
+
+  @ApiPropertyOptional({ example: 'Z1234567' })
+  @IsOptional()
+  @IsString()
+  idNumber?: string;
+
+  @ApiPropertyOptional({ example: 'Vegetarian meal, wheelchair assistance requested' })
+  @IsOptional()
+  @IsString()
+  specialNotes?: string;
 }

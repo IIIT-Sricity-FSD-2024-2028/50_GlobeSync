@@ -4,7 +4,7 @@ import { useSession } from '../../context/SessionContext';
 import { tripsApi, expensesApi } from '../../services/api';
 import SummaryCard from '../../components/common/SummaryCard';
 
-const EXPENSE_TYPES = ['Hotel', 'Flight', 'Transport', 'Food', 'Activity', 'Shopping'];
+const EXPENSE_TYPES = ['Hotel', 'Flight', 'Transport', 'Food', 'Activity', 'Shopping', 'Package'];
 
 /**
  * AgencyExpensesPage

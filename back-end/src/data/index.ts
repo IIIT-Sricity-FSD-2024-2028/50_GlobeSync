@@ -18,7 +18,7 @@ export { refunds, Refund } from './refunds.data';
 export { itineraries, Itinerary } from './itineraries.data';
 export { expenses, Expense } from './expenses.data';
 export { reviews, Review } from './reviews.data';
-export { supportTickets, SupportTicket } from './support-tickets.data';
+export { supportTickets, SupportTicket, TicketReply } from './support-tickets.data';
 export { messages, Message } from './messages.data';
 export { passengers, Passenger } from './passengers.data';
 export { packageBookings, PackageBooking } from './package-bookings.data';

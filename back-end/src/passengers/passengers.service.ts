@@ -37,6 +37,12 @@ export class PassengersService {
       gender: dto.gender,
       travelerId: dto.travelerId,
       agencyId: dto.agencyId,
+      email: dto.email,
+      phone: dto.phone,
+      dob: dto.dob,
+      idType: dto.idType,
+      idNumber: dto.idNumber,
+      specialNotes: dto.specialNotes,
     };
     passengers.push(newPassenger);
     return newPassenger;
@@ -63,6 +69,12 @@ export class PassengersService {
       ...(dto.gender !== undefined && { gender: dto.gender }),
       ...(dto.travelerId !== undefined && { travelerId: dto.travelerId }),
       ...(dto.agencyId !== undefined && { agencyId: dto.agencyId }),
+      ...(dto.email !== undefined && { email: dto.email }),
+      ...(dto.phone !== undefined && { phone: dto.phone }),
+      ...(dto.dob !== undefined && { dob: dto.dob }),
+      ...(dto.idType !== undefined && { idType: dto.idType }),
+      ...(dto.idNumber !== undefined && { idNumber: dto.idNumber }),
+      ...(dto.specialNotes !== undefined && { specialNotes: dto.specialNotes }),
     };
     passengers[idx] = updated;
     return updated;

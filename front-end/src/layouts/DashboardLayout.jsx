@@ -57,7 +57,8 @@ const ROLE_MENU_CONFIG = {
   agency: [
     { label: 'Dashboard', path: '/agency/dashboard', icon: '📊' },
     { label: 'Browse Packages', path: '/agency/packages', icon: '📦' },
-    { label: 'Create Itinerary', path: '/agency/create-itinerary', icon: '🗺️' },
+    { label: 'Client Trips', path: '/agency/trips', icon: '🗺️' },
+    { label: 'Create Client Trip', path: '/agency/create-trip', icon: '➕' },
     { label: 'Client Bookings', path: '/agency/bookings', icon: '🎫' },
     { label: 'Passenger Roster', path: '/agency/passengers', icon: '👥' },
     { label: 'Trip Expenses', path: '/agency/expenses', icon: '🧾' },
@@ -98,14 +99,20 @@ export default function DashboardLayout() {
           transition: 'margin-left 0.3s ease',
         }}
       >
-        {/* Shared Dashboard Header */}
-        <Header
-          isSidebarOpen={isSidebarOpen}
-          onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
-        />
+        {/* Responsive Header */}
+        <Header onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
 
-        {/* Dynamic Outlet for role pages */}
-        <main style={{ flex: 1, padding: '24px 32px' }}>
+        {/* Dynamic Nested Page Content */}
+        <main
+          className="dashboard-content"
+          style={{
+            flex: 1,
+            padding: '24px 32px',
+            maxWidth: '1440px',
+            width: '100%',
+            boxSizing: 'border-box',
+          }}
+        >
           <Outlet />
         </main>
       </div>

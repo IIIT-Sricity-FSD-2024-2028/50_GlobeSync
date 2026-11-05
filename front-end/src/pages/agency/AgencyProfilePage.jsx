@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { agenciesApi } from '../../services/api';
+import { agencyApi } from '../../services/api';
 import StatusBadge from '../../components/common/StatusBadge';
+import Toast from '../../components/common/Toast';
 
 /**
  * AgencyProfilePage
  * 
  * Manages travel agency partner details, verified business identity,
- * and contract commission attributes.
+ * GSTIN, office address, payout credentials, and contract commission attributes.
+ * Connects to GET /api/agency/profile and PATCH /api/agency/profile.
  */
 export default function AgencyProfilePage() {
   const { user, updateUser } = useSession();
@@ -16,29 +18,36 @@ export default function AgencyProfilePage() {
   const [agencyData, setAgencyData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
 
   // Controlled form state
   const [businessName, setBusinessName] = useState('');
+  const [contactPerson, setContactPerson] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
+  const [licenseGstin, setLicenseGstin] = useState('');
+  const [officeAddress, setOfficeAddress] = useState('');
+  const [payoutBankUpi, setPayoutBankUpi] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
   // UI state
   const [fieldErrors, setFieldErrors] = useState({});
   const [saving, setSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [saveError, setSaveError] = useState(null);
 
   const loadProfile = async (signal) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await agenciesApi.getById(agencyId, { signal });
+      const data = await agencyApi.getProfile({ signal });
       if (!signal?.aborted && data) {
         setAgencyData(data);
         setBusinessName(data.businessName || data.name || '');
+        setContactPerson(data.contactPerson || '');
         setContactEmail(data.contactEmail || data.email || '');
         setContactPhone(data.contactPhone || data.phone || '');
+        setLicenseGstin(data.licenseGstin || '');
+        setOfficeAddress(data.officeAddress || '');
+        setPayoutBankUpi(data.payoutBankUpi || '');
       }
     } catch (err) {
       if (!signal?.aborted) {
@@ -61,7 +70,7 @@ export default function AgencyProfilePage() {
   const validate = () => {
     const errs = {};
     if (!businessName.trim()) {
-      errs.businessName = 'Business name is required.';
+      errs.businessName = 'Agency / Business name is required.';
     }
     if (!contactEmail.trim()) {
       errs.contactEmail = 'Contact email is required.';
@@ -80,8 +89,6 @@ export default function AgencyProfilePage() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    setSaveSuccess(false);
-    setSaveError(null);
 
     if (!validate()) return;
 
@@ -89,16 +96,19 @@ export default function AgencyProfilePage() {
     try {
       const payload = {
         businessName: businessName.trim(),
+        contactPerson: contactPerson.trim(),
         contactEmail: contactEmail.trim(),
         contactPhone: contactPhone.trim(),
+        licenseGstin: licenseGstin.trim(),
+        officeAddress: officeAddress.trim(),
+        payoutBankUpi: payoutBankUpi.trim(),
       };
       if (newPassword.trim()) {
         payload.password = newPassword.trim();
       }
 
-      const updated = await agenciesApi.update(agencyId, payload);
+      const updated = await agencyApi.updateProfile(payload);
       setAgencyData(updated);
-      setSaveSuccess(true);
       setNewPassword('');
 
       // Propagate into active session context
@@ -109,11 +119,24 @@ export default function AgencyProfilePage() {
           name: updated.businessName,
           contactEmail: updated.contactEmail,
           email: updated.contactEmail,
+          contactPhone: updated.contactPhone,
+          contactPerson: updated.contactPerson,
+          licenseGstin: updated.licenseGstin,
+          officeAddress: updated.officeAddress,
+          payoutBankUpi: updated.payoutBankUpi,
         });
       }
+
+      setToast({
+        message: 'Agency profile and settlement settings successfully updated!',
+        type: 'success',
+      });
     } catch (err) {
       console.error('Profile update failed:', err);
-      setSaveError(err.message || 'Failed to save agency profile updates.');
+      setToast({
+        message: err.message || 'Failed to save agency profile updates.',
+        type: 'error',
+      });
     } finally {
       setSaving(false);
     }
@@ -124,30 +147,35 @@ export default function AgencyProfilePage() {
       ? `${agencyData.commissionRate}%`
       : user?.commissionRate !== undefined && user?.commissionRate !== null
       ? `${user.commissionRate}%`
-      : '1.5%';
+      : '10%';
 
   return (
     <div className="agency-profile-page" style={{ maxWidth: '1100px', margin: '0 auto' }}>
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
       {/* Top Title */}
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#0f172a', margin: '0 0 6px 0' }}>
-          Agency Profile & Settings
+          Agency Profile & B2B Partner Settings
         </h1>
         <p style={{ color: '#64748b', margin: 0, fontSize: '15px' }}>
-          Manage your verified business credentials, partner contacts, and view your contract terms.
+          Manage your verified enterprise credentials, tax GSTIN, payout settlement coordinates, and view contract terms.
         </p>
       </div>
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '60px', color: '#64748b' }}>
-          Loading profile...
+          Loading agency profile...
         </div>
       ) : error ? (
         <div style={{ textAlign: 'center', padding: '60px', color: '#ef4444' }}>
           <p style={{ margin: '0 0 16px 0', fontWeight: 600 }}>{error}</p>
           <button
             type="button"
-            onClick={() => loadProfile()}
+            onClick={() => {
+              const controller = new AbortController();
+              loadProfile(controller.signal);
+            }}
             style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#0d9488', color: '#fff', cursor: 'pointer' }}
           >
             Retry
@@ -157,7 +185,7 @@ export default function AgencyProfilePage() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gridTemplateColumns: '1fr 2fr',
             gap: '24px',
           }}
         >
@@ -212,12 +240,12 @@ export default function AgencyProfilePage() {
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px' }}>
-                  <span style={{ color: '#64748b' }}>Contract Commission:</span>
+                  <span style={{ color: '#64748b' }}>Assigned Commission:</span>
                   <span
                     style={{
                       background: '#f0fdfa',
                       border: '1px solid #99f6e4',
-                      padding: '2px 10px',
+                      padding: '3px 12px',
                       borderRadius: '12px',
                       color: '#0d9488',
                       fontWeight: 800,
@@ -226,6 +254,13 @@ export default function AgencyProfilePage() {
                   >
                     {commissionRateDisplay}
                   </span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px' }}>
+                  <span style={{ color: '#64748b' }}>License / GSTIN:</span>
+                  <strong style={{ color: '#0f172a', fontSize: '13px' }}>
+                    {agencyData?.licenseGstin || 'Not registered'}
+                  </strong>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px' }}>
@@ -267,125 +302,182 @@ export default function AgencyProfilePage() {
             }}
           >
             <h3 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 20px 0', color: '#0f172a' }}>
-              Business Profile Details
+              Business Profile & Settlement Details
             </h3>
 
-            {saveSuccess && (
-              <div
-                style={{
-                  background: '#f0fdf4',
-                  border: '1px solid #86efac',
-                  borderRadius: '10px',
-                  padding: '12px 16px',
-                  color: '#166534',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  marginBottom: '20px',
-                }}
-              >
-                ✓ Profile details successfully updated and saved to backend!
-              </div>
-            )}
-
-            {saveError && (
-              <div
-                style={{
-                  background: '#fef2f2',
-                  border: '1px solid #fecaca',
-                  borderRadius: '10px',
-                  padding: '12px 16px',
-                  color: '#b91c1c',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  marginBottom: '20px',
-                }}
-              >
-                ⚠️ {saveError}
-              </div>
-            )}
-
             <form onSubmit={handleSave}>
-              <div style={{ marginBottom: '18px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: '#334155' }}>
-                  Registered Business Name *
-                </label>
-                <input
-                  type="text"
-                  value={businessName}
-                  onChange={(e) => setBusinessName(e.target.value)}
-                  placeholder="e.g. Horizon Travel Partners"
-                  style={{
-                    width: '100%',
-                    padding: '11px 14px',
-                    borderRadius: '8px',
-                    border: fieldErrors.businessName ? '1.5px solid #ef4444' : '1.5px solid #cbd5e1',
-                    fontSize: '14px',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                {fieldErrors.businessName && (
-                  <span style={{ fontSize: '12px', color: '#ef4444', marginTop: '4px', display: 'block' }}>
-                    {fieldErrors.businessName}
-                  </span>
-                )}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '18px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: '#334155' }}>
+                    Agency / Business Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                    placeholder="e.g. Horizon Travel Partners"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: fieldErrors.businessName ? '1.5px solid #ef4444' : '1.5px solid #cbd5e1',
+                      fontSize: '14px',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  {fieldErrors.businessName && (
+                    <span style={{ fontSize: '12px', color: '#ef4444', marginTop: '4px', display: 'block' }}>
+                      {fieldErrors.businessName}
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: '#334155' }}>
+                    Primary Contact Person
+                  </label>
+                  <input
+                    type="text"
+                    value={contactPerson}
+                    onChange={(e) => setContactPerson(e.target.value)}
+                    placeholder="e.g. Vikram Sharma (Director)"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '14px',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '18px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: '#334155' }}>
+                    Primary Contact Email *
+                  </label>
+                  <input
+                    type="email"
+                    value={contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value)}
+                    placeholder="e.g. ops@horizontravel.com"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: fieldErrors.contactEmail ? '1.5px solid #ef4444' : '1.5px solid #cbd5e1',
+                      fontSize: '14px',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  {fieldErrors.contactEmail && (
+                    <span style={{ fontSize: '12px', color: '#ef4444', marginTop: '4px', display: 'block' }}>
+                      {fieldErrors.contactEmail}
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: '#334155' }}>
+                    Contact Phone / Hotline *
+                  </label>
+                  <input
+                    type="text"
+                    value={contactPhone}
+                    onChange={(e) => setContactPhone(e.target.value)}
+                    placeholder="e.g. +91 98765 43210"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: fieldErrors.contactPhone ? '1.5px solid #ef4444' : '1.5px solid #cbd5e1',
+                      fontSize: '14px',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  {fieldErrors.contactPhone && (
+                    <span style={{ fontSize: '12px', color: '#ef4444', marginTop: '4px', display: 'block' }}>
+                      {fieldErrors.contactPhone}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '18px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: '#334155' }}>
+                    License Number / GSTIN
+                  </label>
+                  <input
+                    type="text"
+                    value={licenseGstin}
+                    onChange={(e) => setLicenseGstin(e.target.value)}
+                    placeholder="e.g. 29ABCDE1234F1Z5"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '14px',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: '#334155' }}>
+                    Payout Bank Account / UPI ID
+                  </label>
+                  <input
+                    type="text"
+                    value={payoutBankUpi}
+                    onChange={(e) => setPayoutBankUpi(e.target.value)}
+                    placeholder="e.g. horizon@okhdfcbank or HDFC0001234"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '14px',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
               </div>
 
               <div style={{ marginBottom: '18px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: '#334155' }}>
-                  Primary Contact Email *
+                  Office / Registered Headquarters Address
                 </label>
-                <input
-                  type="email"
-                  value={contactEmail}
-                  onChange={(e) => setContactEmail(e.target.value)}
-                  placeholder="e.g. ops@horizontravel.com"
+                <textarea
+                  rows={2}
+                  value={officeAddress}
+                  onChange={(e) => setOfficeAddress(e.target.value)}
+                  placeholder="e.g. Suite 402, Trade Tower, MG Road, Bengaluru, KA 560001"
                   style={{
                     width: '100%',
-                    padding: '11px 14px',
+                    padding: '10px 14px',
                     borderRadius: '8px',
-                    border: fieldErrors.contactEmail ? '1.5px solid #ef4444' : '1.5px solid #cbd5e1',
+                    border: '1.5px solid #cbd5e1',
                     fontSize: '14px',
                     outline: 'none',
                     boxSizing: 'border-box',
+                    fontFamily: 'inherit',
                   }}
                 />
-                {fieldErrors.contactEmail && (
-                  <span style={{ fontSize: '12px', color: '#ef4444', marginTop: '4px', display: 'block' }}>
-                    {fieldErrors.contactEmail}
-                  </span>
-                )}
-              </div>
-
-              <div style={{ marginBottom: '18px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: '#334155' }}>
-                  Contact Phone / Hotline *
-                </label>
-                <input
-                  type="text"
-                  value={contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value)}
-                  placeholder="e.g. +91 98765 43210"
-                  style={{
-                    width: '100%',
-                    padding: '11px 14px',
-                    borderRadius: '8px',
-                    border: fieldErrors.contactPhone ? '1.5px solid #ef4444' : '1.5px solid #cbd5e1',
-                    fontSize: '14px',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                {fieldErrors.contactPhone && (
-                  <span style={{ fontSize: '12px', color: '#ef4444', marginTop: '4px', display: 'block' }}>
-                    {fieldErrors.contactPhone}
-                  </span>
-                )}
               </div>
 
               <div style={{ marginBottom: '24px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: '#334155' }}>
-                  Update Password (optional)
+                  Update Password (Optional)
                 </label>
                 <input
                   type="password"
@@ -394,7 +486,7 @@ export default function AgencyProfilePage() {
                   placeholder="Leave blank to keep current password"
                   style={{
                     width: '100%',
-                    padding: '11px 14px',
+                    padding: '10px 14px',
                     borderRadius: '8px',
                     border: fieldErrors.password ? '1.5px solid #ef4444' : '1.5px solid #cbd5e1',
                     fontSize: '14px',

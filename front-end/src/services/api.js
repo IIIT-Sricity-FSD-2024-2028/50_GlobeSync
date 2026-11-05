@@ -1,7 +1,7 @@
 // ==========================================================
 // GlobeSync — Central API Layer
 // ==========================================================
-// - Base URL loaded from VITE_API_BASE_URL (defaults to http://localhost:3000)
+// - Base URL loaded from VITE_API_BASE_URL (defaults to http://localhost:3001)
 // - Sends 'x-user-role' and 'x-user-id' headers required by RolesGuard
 // - Supports GET, POST, PUT, PATCH, DELETE with AbortSignal cancellation
 // - Parses NestJS GlobalExceptionFilter error responses
@@ -10,7 +10,7 @@
 // ==========================================================
 
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 /**
  * Custom error class wrapping backend error responses
@@ -296,6 +296,9 @@ export const tripsApi = {
   update: (id, tripData, options) =>
     apiPut(`/trips/${id}`, tripData, options),
 
+  patch: (id, tripData, options) =>
+    apiPatch(`/trips/${id}`, tripData, options),
+
   updateStatus: (id, status, options) =>
     apiPatch(`/trips/${id}/status`, { status }, options),
 
@@ -443,6 +446,9 @@ export const supportTicketsApi = {
 
   updateStatus: (id, status, options) =>
     apiPatch(`/support-tickets/${id}/status`, { status }, options),
+
+  reply: (id, replyData, options) =>
+    apiPost(`/support-tickets/${id}/reply`, replyData, options),
 };
 
 export const messagesApi = {
@@ -617,3 +623,13 @@ export const uploadsApi = {
 };
 
 
+
+export const agencyApi = {
+  getProfile: (options) => apiGet('/api/agency/profile', options),
+  updateProfile: (data, options) => apiPatch('/api/agency/profile', data, options),
+  getCommissions: (options) => apiGet('/api/agency/commissions', options),
+  getPassengers: (options) => apiGet('/api/agency/passengers', options),
+  updateTrip: (id, data, options) => apiPatch(`/api/agency/trips/${id}`, data, options),
+  getTicketThread: (id, options) => apiGet(`/api/agency/support/${id}`, options),
+  replyTicket: (id, data, options) => apiPost(`/api/agency/support/${id}/reply`, data, options),
+};

@@ -13,6 +13,9 @@ export class AgencyResponseDto {
   @ApiProperty({ example: 'Horizon Travel Partners' })
   businessName: string;
 
+  @ApiPropertyOptional({ example: 'Rajesh Mehra' })
+  contactPerson?: string;
+
   @ApiProperty({ example: 'ops@horizontravel.com' })
   contactEmail: string;
 
@@ -24,6 +27,15 @@ export class AgencyResponseDto {
 
   @ApiPropertyOptional({ example: 1.5 })
   commissionRate?: number;
+
+  @ApiPropertyOptional({ example: '07AAAAA0000A1Z5' })
+  licenseGstin?: string;
+
+  @ApiPropertyOptional({ example: 'Suite 402, Connaught Place, New Delhi, 110001' })
+  officeAddress?: string;
+
+  @ApiPropertyOptional({ example: 'horizon@hdfcbank' })
+  payoutBankUpi?: string;
 
   @ApiProperty({ example: '2024-01-15T08:00:00Z' })
   createdAt: string;

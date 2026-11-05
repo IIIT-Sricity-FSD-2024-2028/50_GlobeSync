@@ -1,3 +1,5 @@
+import { Passenger } from './passengers.data';
+
 /**
  * Trips seed data
  * Source: front-end/JS/mockData.js → DB.trips
@@ -9,6 +11,7 @@
  */
 export interface Trip {
   tripId: number;
+  title?: string;
   origin?: string;
   destination: string;
   startDate: string;
@@ -20,6 +23,13 @@ export interface Trip {
   packageId?: number;
   status: 'Planning' | 'Pending' | 'Confirmed' | 'Active' | 'Completed' | 'Cancelled';
   guideStatus?: 'Pending' | 'Accepted' | 'Declined';
+  passengerIds?: number[];
+  passengers?: Passenger[];
+  transportDetails?: Record<string, any>;
+  itineraryDays?: any[];
+  category?: string;
+  notes?: string;
+  travelersCount?: number;
 }
 
 export const trips: Trip[] = [
@@ -35,7 +45,7 @@ export const trips: Trip[] = [
   { tripId: 10, origin: 'New Delhi, India', destination: 'Rajasthan, India', startDate: '2026-06-01', endDate: '2026-06-10', budget: 25000, travelerId: 3, guideId: 1, packageId: 10, status: 'Planning', guideStatus: 'Pending' },
   { tripId: 11, origin: 'Kolkata, India', destination: 'Singapore', startDate: '2026-07-05', endDate: '2026-07-13', budget: 195000, travelerId: 1, guideId: 2, packageId: 9, status: 'Planning', guideStatus: 'Pending' },
   { tripId: 12, origin: 'Chennai, India', destination: 'Kerala, India', startDate: '2026-06-15', endDate: '2026-06-20', budget: 18500, travelerId: 2, guideId: 1, packageId: 8, status: 'Pending', guideStatus: 'Pending' },
-  { tripId: 13, origin: 'Mumbai, India', destination: 'Rome, Italy', startDate: '2025-12-05', endDate: '2025-12-12', budget: 175000, agencyId: 1, guideId: 1, packageId: 1, status: 'Completed', guideStatus: 'Accepted' },
+  { tripId: 13, title: 'European Roman Holiday', origin: 'Mumbai, India', destination: 'Rome, Italy', startDate: '2025-12-05', endDate: '2025-12-12', budget: 175000, agencyId: 1, guideId: 1, packageId: 1, status: 'Completed', guideStatus: 'Accepted', passengerIds: [3], travelersCount: 1 },
   { tripId: 14, origin: 'New Delhi, India', destination: 'Sydney, Australia', startDate: '2026-01-10', endDate: '2026-01-20', budget: 220000, travelerId: 2, guideId: 1, packageId: 2, status: 'Completed', guideStatus: 'Accepted' },
   { tripId: 15, origin: 'Bengaluru, India', destination: 'Cape Town, South Africa', startDate: '2025-11-15', endDate: '2025-11-22', budget: 160000, travelerId: 3, guideId: 1, packageId: 3, status: 'Completed', guideStatus: 'Accepted' },
   { tripId: 16, origin: 'Mumbai, India', destination: 'London, UK', startDate: '2025-08-10', endDate: '2025-08-17', budget: 195000, travelerId: 4, guideId: 1, packageId: 1, status: 'Completed', guideStatus: 'Accepted' },
@@ -43,4 +53,6 @@ export const trips: Trip[] = [
   { tripId: 18, origin: 'Bengaluru, India', destination: 'Machu Picchu, Peru', startDate: '2025-09-20', endDate: '2025-09-28', budget: 150000, travelerId: 2, guideId: 2, packageId: 4, status: 'Completed', guideStatus: 'Accepted' },
   { tripId: 19, origin: 'Mumbai, India', destination: 'Cairo, Egypt', startDate: '2025-10-15', endDate: '2025-10-22', budget: 140000, travelerId: 3, guideId: 1, packageId: 6, status: 'Completed', guideStatus: 'Accepted' },
   { tripId: 20, origin: 'New Delhi, India', destination: 'Reykjavik, Iceland', startDate: '2025-01-10', endDate: '2025-01-18', budget: 280000, travelerId: 4, guideId: 2, packageId: 5, status: 'Completed', guideStatus: 'Accepted' },
+  { tripId: 21, title: 'Switzerland Scenic Express', origin: 'Mumbai, India', destination: 'Swiss Alps', startDate: '2026-07-15', endDate: '2026-07-22', budget: 260000, agencyId: 1, guideId: 1, packageId: 3, status: 'Confirmed', guideStatus: 'Accepted', passengerIds: [3, 4], travelersCount: 2, transportDetails: { type: 'Flight', carrier: 'Air France XY123', price: 65000, lodgingTier: 'Deluxe' } },
+  { tripId: 22, title: 'Tokyo Autumn Adventure', origin: 'New Delhi, India', destination: 'Tokyo, Japan', startDate: '2026-10-05', endDate: '2026-10-12', budget: 195000, agencyId: 1, guideId: null, status: 'Planning', passengerIds: [5], travelersCount: 1, transportDetails: { type: 'Flight', carrier: 'ANA SkyWide', price: 48000, lodgingTier: 'Standard' } },
 ];

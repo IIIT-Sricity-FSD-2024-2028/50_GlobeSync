@@ -1,7 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsArray, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateTripDto {
+  @ApiPropertyOptional({ example: 'Alps Family Holiday' })
+  @IsOptional() @IsString()
+  title?: string;
+
   @ApiPropertyOptional({ example: 'New Delhi, India', description: 'Starting / departure city (From)' })
   @IsOptional() @IsString()
   origin?: string;
@@ -42,4 +46,28 @@ export class CreateTripDto {
   @IsOptional() @IsString()
   @IsIn(['Planning', 'Pending', 'Confirmed', 'Completed', 'Cancelled'])
   status?: string;
+
+  @ApiPropertyOptional({ example: [3, 4] })
+  @IsOptional() @IsArray()
+  passengerIds?: number[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  transportDetails?: Record<string, any>;
+
+  @ApiPropertyOptional()
+  @IsOptional() @IsArray()
+  itineraryDays?: any[];
+
+  @ApiPropertyOptional({ example: 'Family Leisure' })
+  @IsOptional() @IsString()
+  category?: string;
+
+  @ApiPropertyOptional({ example: 'Special dietary requests noted' })
+  @IsOptional() @IsString()
+  notes?: string;
+
+  @ApiPropertyOptional({ example: 2 })
+  @IsOptional() @IsNumber()
+  travelersCount?: number;
 }

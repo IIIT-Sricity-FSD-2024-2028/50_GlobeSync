@@ -159,7 +159,7 @@ export default function AgencyBookingsPage() {
         />
         <SummaryCard
           label="Total Client Billing"
-          value={loading ? '...' : `$${totalBilled.toLocaleString()}`}
+          value={loading ? '...' : `₹${totalBilled.toLocaleString('en-IN')}`}
           icon="💰"
           subtitle="Gross retail booked"
           color="#3b82f6"
@@ -256,10 +256,10 @@ export default function AgencyBookingsPage() {
                         {b.bookingDate || 'N/A'}
                       </td>
                       <td style={{ padding: '12px', fontWeight: 700 }}>
-                        ${amt.toFixed(2)}
+                        ₹{amt.toLocaleString('en-IN')}
                       </td>
                       <td style={{ padding: '12px', fontWeight: 700, color: '#059669' }}>
-                        +${comm.toFixed(2)}
+                        +₹{comm.toLocaleString('en-IN')}
                       </td>
                       <td style={{ padding: '12px' }}>
                         <StatusBadge status={b.status || 'Confirmed'} />

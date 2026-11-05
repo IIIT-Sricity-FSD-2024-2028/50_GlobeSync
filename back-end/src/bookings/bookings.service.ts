@@ -58,7 +58,7 @@ export class BookingsService {
 
     const newBooking: Booking = {
       bookingId: maxId + 1,
-      bookingDate: dto.bookingDate,
+      bookingDate: dto.bookingDate || new Date().toISOString().split('T')[0],
       status: (dto.status as Booking['status']) || 'Pending',
       tripId: dto.tripId,
       travelerId: dto.travelerId,

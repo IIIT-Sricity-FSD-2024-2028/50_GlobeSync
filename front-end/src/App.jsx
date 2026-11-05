@@ -45,6 +45,8 @@ import AgencyDashboardPage from './pages/agency/AgencyDashboardPage';
 import AgencyPackagesPage from './pages/agency/AgencyPackagesPage';
 import AgencyBookPackagePage from './pages/agency/AgencyBookPackagePage';
 import AgencyItineraryPage from './pages/agency/AgencyItineraryPage';
+import AgencyTripsPage from './pages/agency/AgencyTripsPage';
+import AgencyCreateTripPage from './pages/agency/AgencyCreateTripPage';
 import AgencyBookingsPage from './pages/agency/AgencyBookingsPage';
 import AgencyPassengersPage from './pages/agency/AgencyPassengersPage';
 import AgencyExpensesPage from './pages/agency/AgencyExpensesPage';
@@ -373,6 +375,22 @@ export default function App() {
               element={
                 <ProtectedRoute allowedRoles={['agency', 'superuser']}>
                   <AgencyBookPackagePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/agency/trips"
+              element={
+                <ProtectedRoute allowedRoles={['agency', 'superuser']}>
+                  <AgencyTripsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/agency/create-trip"
+              element={
+                <ProtectedRoute allowedRoles={['agency', 'superuser']}>
+                  <AgencyCreateTripPage />
                 </ProtectedRoute>
               }
             />

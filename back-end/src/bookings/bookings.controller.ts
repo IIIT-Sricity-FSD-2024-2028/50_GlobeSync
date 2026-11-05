@@ -20,7 +20,7 @@ export class BookingsController {
   findAll() { return this.bookingsService.findAll(); }
 
   @Get(':id')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.SUPPORT)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.SUPPORT, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Get booking by ID' })
   @ApiParam({ name: 'id', type: Number })

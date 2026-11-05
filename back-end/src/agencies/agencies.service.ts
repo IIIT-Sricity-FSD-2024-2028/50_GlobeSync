@@ -46,10 +46,14 @@ export class AgenciesService {
     const newAgency: Agency = {
       agencyId: maxId + 1,
       businessName: dto.businessName,
+      contactPerson: dto.contactPerson,
       contactEmail: dto.contactEmail,
       contactPhone: dto.contactPhone,
       password: dto.password,
       commissionRate: dto.commissionRate != null ? Number(dto.commissionRate) : 1.5,
+      licenseGstin: dto.licenseGstin,
+      officeAddress: dto.officeAddress,
+      payoutBankUpi: dto.payoutBankUpi,
       status: 'pending',
       createdAt: new Date().toISOString(),
     };
@@ -94,8 +98,12 @@ export class AgenciesService {
     const updated: Agency = {
       ...agencies[idx],
       ...(dto.businessName !== undefined && { businessName: dto.businessName }),
+      ...(dto.contactPerson !== undefined && { contactPerson: dto.contactPerson }),
       ...(dto.contactEmail !== undefined && { contactEmail: dto.contactEmail }),
       ...(dto.contactPhone !== undefined && { contactPhone: dto.contactPhone }),
+      ...(dto.licenseGstin !== undefined && { licenseGstin: dto.licenseGstin }),
+      ...(dto.officeAddress !== undefined && { officeAddress: dto.officeAddress }),
+      ...(dto.payoutBankUpi !== undefined && { payoutBankUpi: dto.payoutBankUpi }),
       // Password update is stored in the in-memory record for auth, but never returned
       ...(dto.password !== undefined && { password: dto.password }),
     };
@@ -123,11 +131,7 @@ export class AgenciesService {
     if (idx === -1) {
       throw new NotFoundException(`Agency with ID ${id} not found`);
     }
-    // Note: We deliberately do not cascade this delete to trips, passengers,
-    // or commission ledger entries. They are left in place as historical records
-    // (no cascade-delete precedent exists in this system for users/agencies).
     agencies.splice(idx, 1);
     return { message: 'Agency deleted successfully' };
   }
 }
-

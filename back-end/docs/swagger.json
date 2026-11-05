@@ -1042,6 +1042,67 @@
           "trips"
         ]
       },
+      "patch": {
+        "operationId": "TripsController_patch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTripDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Trip updated"
+          },
+          "404": {
+            "description": "Trip not found"
+          }
+        },
+        "summary": "Partial update a trip",
+        "tags": [
+          "trips"
+        ]
+      },
       "delete": {
         "operationId": "TripsController_remove",
         "parameters": [
@@ -4330,6 +4391,66 @@
         ]
       }
     },
+    "/support-tickets/{id}/reply": {
+      "post": {
+        "operationId": "SupportTicketsController_addReply",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "required": false,
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": false,
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTicketReplyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Reply posted"
+          }
+        },
+        "summary": "Reply to support ticket thread",
+        "tags": [
+          "support-tickets"
+        ]
+      }
+    },
     "/support-tickets/{id}/status": {
       "patch": {
         "operationId": "SupportTicketsController_updateStatus",
@@ -5363,20 +5484,10 @@
         ]
       }
     },
-    "/admins/{id}": {
+    "/api/agency/passengers": {
       "get": {
-        "description": "Returns the profile for the requesting admin or superuser. x-user-id must equal :id (self-scoped). Password is never returned.",
-        "operationId": "AdminsController_findOne",
+        "operationId": "AgencyApiController_getPassengers",
         "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Admin ID (must match x-user-id)",
-            "schema": {
-              "type": "number"
-            }
-          },
           {
             "name": "x-user-role",
             "in": "header",
@@ -5402,126 +5513,19 @@
             "schema": {
               "type": "string"
             }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Profile returned successfully"
-          },
-          "403": {
-            "description": "Forbidden — wrong role or mismatched ID",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Admin not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get admin/superuser profile",
-        "tags": [
-          "admins"
-        ]
-      },
-      "put": {
-        "description": "Updates name and/or email for the requesting admin or superuser. x-user-id must equal :id (self-scoped). Role and password cannot be changed here.",
-        "operationId": "AdminsController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Admin ID (must match x-user-id)",
-            "schema": {
-              "type": "number"
-            }
-          },
-          {
-            "name": "x-user-role",
-            "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "traveler",
-                "guide",
-                "support",
-                "admin",
-                "superuser",
-                "agency"
-              ]
-            }
           },
           {
             "name": "x-user-id",
+            "required": true,
             "in": "header",
-            "description": "User ID for ownership verification",
-            "required": false,
             "schema": {
               "type": "string"
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateAdminDto"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Profile updated successfully"
-          },
-          "400": {
-            "description": "Validation error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden — wrong role or mismatched ID",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Admin not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
+            "description": "Return agency passengers roster"
           }
         },
         "security": [
@@ -5529,26 +5533,16 @@
             "bearer": []
           }
         ],
-        "summary": "Update admin/superuser profile",
+        "summary": "Get saved passenger roster for the authenticated agency",
         "tags": [
-          "admins"
+          "agency-api"
         ]
       }
     },
-    "/support-users/{id}": {
+    "/api/agency/commissions": {
       "get": {
-        "description": "Returns the profile for a support user. SUPPORT role: x-user-id must equal :id (self-scoped). ADMIN and SUPERUSER may access any record. The careId is used as the record identifier. Password is never returned.",
-        "operationId": "SupportUsersController_findOne",
+        "operationId": "AgencyApiController_getCommissions",
         "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "careId — support user identifier",
-            "schema": {
-              "type": "number"
-            }
-          },
           {
             "name": "x-user-role",
             "in": "header",
@@ -5574,31 +5568,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Profile returned successfully"
-          },
-          "403": {
-            "description": "Forbidden — wrong role or mismatched careId",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Support user not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
+            "description": "Return commission ledger statement"
           }
         },
         "security": [
@@ -5606,24 +5588,16 @@
             "bearer": []
           }
         ],
-        "summary": "Get support-user profile",
+        "summary": "Get live commission entries joined with Trip and Booking details",
         "tags": [
-          "support-users"
+          "agency-api"
         ]
-      },
-      "put": {
-        "description": "Updates name, contact, and/or email for a support user. SUPPORT role: x-user-id must equal :id (self-scoped). ADMIN and SUPERUSER may update any record. Role and password cannot be changed through this endpoint.",
-        "operationId": "SupportUsersController_update",
+      }
+    },
+    "/api/agency/profile": {
+      "get": {
+        "operationId": "AgencyApiController_getProfile",
         "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "careId — support user identifier",
-            "schema": {
-              "type": "number"
-            }
-          },
           {
             "name": "x-user-role",
             "in": "header",
@@ -5646,6 +5620,67 @@
             "in": "header",
             "description": "User ID for ownership verification",
             "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return agency profile"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get profile of authenticated agency",
+        "tags": [
+          "agency-api"
+        ]
+      },
+      "patch": {
+        "operationId": "AgencyApiController_updateProfile",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
             "schema": {
               "type": "string"
             }
@@ -5656,44 +5691,14 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateSupportUserDto"
+                "$ref": "#/components/schemas/UpdateAgencyDto"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Profile updated successfully"
-          },
-          "400": {
-            "description": "Validation error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden — wrong role or mismatched careId",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Support user not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
+            "description": "Profile updated"
           }
         },
         "security": [
@@ -5701,9 +5706,242 @@
             "bearer": []
           }
         ],
-        "summary": "Update support-user profile",
+        "summary": "Update profile of authenticated agency",
         "tags": [
-          "support-users"
+          "agency-api"
+        ]
+      }
+    },
+    "/api/agency/trips/{id}": {
+      "patch": {
+        "operationId": "AgencyApiController_updateTrip",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTripDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Trip updated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update agency client trip and recalculate commission",
+        "tags": [
+          "agency-api"
+        ]
+      }
+    },
+    "/api/agency/support/{id}": {
+      "get": {
+        "operationId": "AgencyApiController_getTicketThread",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ticket found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get ticket details and conversation thread",
+        "tags": [
+          "agency-api"
+        ]
+      }
+    },
+    "/api/agency/support/{id}/reply": {
+      "post": {
+        "operationId": "AgencyApiController_replyTicket",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTicketReplyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Reply posted"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Post a reply to support ticket thread",
+        "tags": [
+          "agency-api"
         ]
       }
     },
@@ -6197,6 +6435,350 @@
         "summary": "Get passengers by agency ID (ownership checked via Guard)",
         "tags": [
           "passengers"
+        ]
+      }
+    },
+    "/admins/{id}": {
+      "get": {
+        "description": "Returns the profile for the requesting admin or superuser. x-user-id must equal :id (self-scoped). Password is never returned.",
+        "operationId": "AdminsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Admin ID (must match x-user-id)",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile returned successfully"
+          },
+          "403": {
+            "description": "Forbidden — wrong role or mismatched ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Admin not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get admin/superuser profile",
+        "tags": [
+          "admins"
+        ]
+      },
+      "put": {
+        "description": "Updates name and/or email for the requesting admin or superuser. x-user-id must equal :id (self-scoped). Role and password cannot be changed here.",
+        "operationId": "AdminsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Admin ID (must match x-user-id)",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — wrong role or mismatched ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Admin not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update admin/superuser profile",
+        "tags": [
+          "admins"
+        ]
+      }
+    },
+    "/support-users/{id}": {
+      "get": {
+        "description": "Returns the profile for a support user. SUPPORT role: x-user-id must equal :id (self-scoped). ADMIN and SUPERUSER may access any record. The careId is used as the record identifier. Password is never returned.",
+        "operationId": "SupportUsersController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "careId — support user identifier",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile returned successfully"
+          },
+          "403": {
+            "description": "Forbidden — wrong role or mismatched careId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Support user not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get support-user profile",
+        "tags": [
+          "support-users"
+        ]
+      },
+      "put": {
+        "description": "Updates name, contact, and/or email for a support user. SUPPORT role: x-user-id must equal :id (self-scoped). ADMIN and SUPERUSER may update any record. Role and password cannot be changed through this endpoint.",
+        "operationId": "SupportUsersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "careId — support user identifier",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSupportUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — wrong role or mismatched careId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Support user not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update support-user profile",
+        "tags": [
+          "support-users"
         ]
       }
     },
@@ -7061,6 +7643,10 @@
       "CreateTripDto": {
         "type": "object",
         "properties": {
+          "title": {
+            "type": "string",
+            "example": "Alps Family Holiday"
+          },
           "origin": {
             "type": "string",
             "example": "New Delhi, India",
@@ -7116,6 +7702,37 @@
               "Completed",
               "Cancelled"
             ]
+          },
+          "passengerIds": {
+            "example": [
+              3,
+              4
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "transportDetails": {
+            "type": "object"
+          },
+          "itineraryDays": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "category": {
+            "type": "string",
+            "example": "Family Leisure"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Special dietary requests noted"
+          },
+          "travelersCount": {
+            "type": "number",
+            "example": 2
           }
         },
         "required": [
@@ -7128,6 +7745,10 @@
       "UpdateTripDto": {
         "type": "object",
         "properties": {
+          "title": {
+            "type": "string",
+            "example": "Alps Family Holiday"
+          },
           "origin": {
             "type": "string",
             "example": "New Delhi, India",
@@ -7185,6 +7806,37 @@
               "Accepted",
               "Declined"
             ]
+          },
+          "passengerIds": {
+            "example": [
+              3,
+              4
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "transportDetails": {
+            "type": "object"
+          },
+          "itineraryDays": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "category": {
+            "type": "string",
+            "example": "Family Leisure"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Special dietary requests noted"
+          },
+          "travelersCount": {
+            "type": "number",
+            "example": 2
           }
         }
       },
@@ -7238,7 +7890,8 @@
               "Flight",
               "Hotel",
               "Transport",
-              "Activity"
+              "Activity",
+              "Package"
             ]
           },
           "amount": {
@@ -7280,7 +7933,6 @@
           }
         },
         "required": [
-          "bookingDate",
           "tripId",
           "service",
           "type",
@@ -7317,7 +7969,8 @@
               "Flight",
               "Hotel",
               "Transport",
-              "Activity"
+              "Activity",
+              "Package"
             ]
           },
           "amount": {
@@ -7450,7 +8103,8 @@
               "Transport",
               "Food",
               "Activity",
-              "Shopping"
+              "Shopping",
+              "Package"
             ]
           },
           "tripId": {
@@ -7485,7 +8139,8 @@
               "Transport",
               "Food",
               "Activity",
-              "Shopping"
+              "Shopping",
+              "Package"
             ]
           },
           "tripId": {
@@ -7848,6 +8503,10 @@
             "type": "number",
             "example": 1
           },
+          "tripId": {
+            "type": "number",
+            "example": 21
+          },
           "issueType": {
             "type": "string",
             "example": "Booking issue"
@@ -7883,6 +8542,22 @@
         "required": [
           "issueType",
           "description"
+        ]
+      },
+      "CreateTicketReplyDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Thank you for following up. We are waiting on confirmation."
+          },
+          "senderName": {
+            "type": "string",
+            "example": "Horizon Travel Partners"
+          }
+        },
+        "required": [
+          "message"
         ]
       },
       "UpdateTicketStatusDto": {
@@ -7954,6 +8629,10 @@
             "type": "string",
             "example": "Elite Travel Partners"
           },
+          "contactPerson": {
+            "type": "string",
+            "example": "Rajesh Mehra"
+          },
           "contactEmail": {
             "type": "string",
             "example": "contact@elitetravel.com"
@@ -7970,6 +8649,18 @@
             "type": "number",
             "example": 1.5,
             "description": "Requested commission rate (1.0 to 1.5)"
+          },
+          "licenseGstin": {
+            "type": "string",
+            "example": "07AAAAA0000A1Z5"
+          },
+          "officeAddress": {
+            "type": "string",
+            "example": "Suite 402, Connaught Place, New Delhi, 110001"
+          },
+          "payoutBankUpi": {
+            "type": "string",
+            "example": "horizon@hdfcbank"
           }
         },
         "required": [
@@ -7986,6 +8677,10 @@
             "type": "string",
             "example": "Elite Travel Partners"
           },
+          "contactPerson": {
+            "type": "string",
+            "example": "Rajesh Mehra"
+          },
           "contactEmail": {
             "type": "string",
             "example": "contact@elitetravel.com"
@@ -8002,6 +8697,18 @@
             "type": "number",
             "example": 1.5,
             "description": "Requested commission rate (1.0 to 1.5)"
+          },
+          "licenseGstin": {
+            "type": "string",
+            "example": "07AAAAA0000A1Z5"
+          },
+          "officeAddress": {
+            "type": "string",
+            "example": "Suite 402, Connaught Place, New Delhi, 110001"
+          },
+          "payoutBankUpi": {
+            "type": "string",
+            "example": "horizon@hdfcbank"
           },
           "status": {
             "type": "string",
@@ -8049,6 +8756,10 @@
             "type": "string",
             "example": "Elite Travel Partners"
           },
+          "contactPerson": {
+            "type": "string",
+            "example": "Rajesh Mehra"
+          },
           "contactEmail": {
             "type": "string",
             "example": "contact@elitetravel.com"
@@ -8065,6 +8776,121 @@
             "type": "number",
             "example": 1.5,
             "description": "Requested commission rate (1.0 to 1.5)"
+          },
+          "licenseGstin": {
+            "type": "string",
+            "example": "07AAAAA0000A1Z5"
+          },
+          "officeAddress": {
+            "type": "string",
+            "example": "Suite 402, Connaught Place, New Delhi, 110001"
+          },
+          "payoutBankUpi": {
+            "type": "string",
+            "example": "horizon@hdfcbank"
+          }
+        }
+      },
+      "CreatePassengerDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Jane Doe"
+          },
+          "age": {
+            "type": "number",
+            "example": 30
+          },
+          "gender": {
+            "type": "string",
+            "example": "Female"
+          },
+          "travelerId": {
+            "type": "number",
+            "example": 1
+          },
+          "agencyId": {
+            "type": "number",
+            "example": 1
+          },
+          "email": {
+            "type": "string",
+            "example": "jane.doe@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+91 98765 43210"
+          },
+          "dob": {
+            "type": "string",
+            "example": "1995-05-15"
+          },
+          "idType": {
+            "type": "string",
+            "example": "Passport"
+          },
+          "idNumber": {
+            "type": "string",
+            "example": "Z1234567"
+          },
+          "specialNotes": {
+            "type": "string",
+            "example": "Vegetarian meal, wheelchair assistance requested"
+          }
+        },
+        "required": [
+          "name",
+          "age",
+          "gender"
+        ]
+      },
+      "UpdatePassengerDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Jane Doe"
+          },
+          "age": {
+            "type": "number",
+            "example": 30
+          },
+          "gender": {
+            "type": "string",
+            "example": "Female"
+          },
+          "travelerId": {
+            "type": "number",
+            "example": 1
+          },
+          "agencyId": {
+            "type": "number",
+            "example": 1
+          },
+          "email": {
+            "type": "string",
+            "example": "jane.doe@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+91 98765 43210"
+          },
+          "dob": {
+            "type": "string",
+            "example": "1995-05-15"
+          },
+          "idType": {
+            "type": "string",
+            "example": "Passport"
+          },
+          "idNumber": {
+            "type": "string",
+            "example": "Z1234567"
+          },
+          "specialNotes": {
+            "type": "string",
+            "example": "Vegetarian meal, wheelchair assistance requested"
           }
         }
       },
@@ -8100,61 +8926,6 @@
             "type": "string",
             "example": "aisha@example.com",
             "description": "Email address"
-          }
-        }
-      },
-      "CreatePassengerDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "Jane Doe"
-          },
-          "age": {
-            "type": "number",
-            "example": 30
-          },
-          "gender": {
-            "type": "string",
-            "example": "Female"
-          },
-          "travelerId": {
-            "type": "number",
-            "example": 1
-          },
-          "agencyId": {
-            "type": "number",
-            "example": 1
-          }
-        },
-        "required": [
-          "name",
-          "age",
-          "gender"
-        ]
-      },
-      "UpdatePassengerDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "Jane Doe"
-          },
-          "age": {
-            "type": "number",
-            "example": 30
-          },
-          "gender": {
-            "type": "string",
-            "example": "Female"
-          },
-          "travelerId": {
-            "type": "number",
-            "example": 1
-          },
-          "agencyId": {
-            "type": "number",
-            "example": 1
           }
         }
       }

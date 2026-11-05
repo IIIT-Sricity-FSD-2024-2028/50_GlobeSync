@@ -122,7 +122,7 @@ export default function BookingDetailModal({
                 Billed Amount
               </div>
               <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', marginTop: '4px' }}>
-                ${amount.toFixed(2)}
+                ₹{amount.toLocaleString('en-IN')}
               </div>
             </div>
 
@@ -131,7 +131,7 @@ export default function BookingDetailModal({
                 Earned Commission ({commissionRate}%)
               </div>
               <div style={{ fontSize: '18px', fontWeight: 800, color: '#059669', marginTop: '4px' }}>
-                +${commission.toFixed(2)}
+                +₹{commission.toLocaleString('en-IN')}
               </div>
             </div>
 
@@ -140,7 +140,7 @@ export default function BookingDetailModal({
                 Travel Insurance
               </div>
               <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
-                {booking.insuranceSelected ? `Included ($${booking.insuranceAmount || 0})` : 'Standard'}
+                {booking.insuranceSelected ? `Included (₹${booking.insuranceAmount || 0})` : 'Standard'}
               </div>
             </div>
 
@@ -149,7 +149,7 @@ export default function BookingDetailModal({
                 Cancellation Protection
               </div>
               <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
-                {booking.cancellationProtectionSelected ? `Active ($${booking.cancellationFee || 0})` : 'None'}
+                {booking.cancellationProtectionSelected ? `Active (₹${booking.cancellationFee || 0})` : 'None'}
               </div>
             </div>
           </div>

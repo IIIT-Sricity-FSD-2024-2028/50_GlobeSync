@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, ParseIntPipe, Headers } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { SupportTicketsService } from './support-tickets.service';
-import { CreateTicketDto, UpdateTicketStatusDto } from './dto';
+import { CreateTicketDto, UpdateTicketStatusDto, CreateTicketReplyDto } from './dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { ApiUserHeaders } from '../common/decorators/api-user-headers.decorator';
 import { ApiRoleHeader } from '../common/decorators/api-role-header.decorator';
@@ -20,7 +20,7 @@ export class SupportTicketsController {
   findAll() { return this.ticketsService.findAll(); }
 
   @Get(':id')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.SUPPORT)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.AGENCY, Role.SUPPORT)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Get support ticket by ID' })
   @ApiParam({ name: 'id', type: Number })
@@ -55,6 +55,26 @@ export class SupportTicketsController {
   @ApiResponse({ status: 201, description: 'Ticket created' })
   @ApiResponse({ status: 400, description: 'Validation error' })
   create(@Body() dto: CreateTicketDto) { return this.ticketsService.create(dto); }
+
+  @Post(':id/reply')
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.AGENCY, Role.SUPPORT)
+  @ApiUserHeaders()
+  @ApiOperation({ summary: 'Reply to support ticket thread' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiResponse({ status: 201, description: 'Reply posted' })
+  addReply(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CreateTicketReplyDto,
+    @Headers('x-user-role') role: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    return this.ticketsService.addReply(
+      id,
+      role || 'agency',
+      Number(userId) || 1,
+      dto,
+    );
+  }
 
   @Patch(':id/status')
   @Roles(Role.SUPERUSER, Role.ADMIN, Role.SUPPORT)

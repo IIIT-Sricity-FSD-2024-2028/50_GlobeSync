@@ -1,44 +1,47 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import { passengersApi } from '../../services/api';
+import { passengersApi, tripsApi, agencyApi } from '../../services/api';
 import SummaryCard from '../../components/common/SummaryCard';
 import PassengerModal from '../../components/agency/PassengerModal';
 
-/**
- * AgencyPassengersPage
- * 
- * Manages the offline client passenger roster owned exclusively by this agency.
- * Enforces agency ownership scoping and provides full CRUD capabilities.
- */
 export default function AgencyPassengersPage() {
   const { user } = useSession();
-  const navigate = useNavigate();
   const agencyId = Number(user?.agencyId || user?.agency_id || user?.id || 1);
 
   const [passengers, setPassengers] = useState([]);
+  const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Modals
+  // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPassenger, setEditingPassenger] = useState(null);
-  const [deletingId, setDeletingId] = useState(null);
-  const [toastMessage, setToastMessage] = useState(null);
+  const [deletingPassenger, setDeletingPassenger] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
+  // Masked ID toggle set (by passId)
+  const [unmaskedIds, setUnmaskedIds] = useState(new Set());
+
+  // Non-blocking Toast state
+  const [toastMessage, setToastMessage] = useState(null);
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const loadPassengers = async (signal) => {
+  const loadData = async (signal) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await passengersApi.getByAgency(agencyId, { signal });
-      if (!signal?.aborted && Array.isArray(data)) {
-        setPassengers(data);
+      const [passData, tripsData] = await Promise.all([
+        passengersApi.getByAgency(agencyId, { signal }),
+        tripsApi.getByAgency(agencyId, { signal }).catch(() => []),
+      ]);
+
+      if (!signal?.aborted) {
+        setPassengers(Array.isArray(passData) ? passData : []);
+        setTrips(Array.isArray(tripsData) ? tripsData : []);
       }
     } catch (err) {
       if (!signal?.aborted) {
@@ -53,90 +56,121 @@ export default function AgencyPassengersPage() {
   useEffect(() => {
     const controller = new AbortController();
     if (agencyId) {
-      loadPassengers(controller.signal);
+      loadData(controller.signal);
     }
     return () => controller.abort();
   }, [agencyId]);
 
+  // Count trips booked for each passenger
+  const tripCountByPassenger = useMemo(() => {
+    const counts = new Map();
+    trips.forEach((t) => {
+      const pIds = t.passengerIds || [];
+      pIds.forEach((pId) => {
+        const id = Number(pId);
+        counts.set(id, (counts.get(id) || 0) + 1);
+      });
+    });
+    return counts;
+  }, [trips]);
+
   const handleCreateOrUpdate = async (payload, passId) => {
     if (passId) {
-      // Update
       await passengersApi.update(passId, payload);
-      showToast(`Passenger #${passId} updated! ✓`);
+      showToast(`Passenger #${passId} updated successfully! ✓`);
     } else {
-      // Create
       await passengersApi.create(payload);
-      showToast('New passenger added to agency roster! ✓');
+      showToast('New passenger saved to your agency roster! ✓');
     }
-    await loadPassengers();
+    await loadData();
   };
 
-  const handleDelete = async (passId) => {
-    if (!window.confirm(`Are you sure you want to remove passenger #${passId} from your agency roster?`)) {
-      return;
-    }
-    setDeletingId(passId);
+  const handleConfirmDelete = async () => {
+    if (!deletingPassenger) return;
+    const targetId = Number(deletingPassenger.passId || deletingPassenger.id);
+    setDeleting(true);
     try {
-      await passengersApi.delete(passId);
-      showToast(`Passenger #${passId} removed! ✓`);
-      await loadPassengers();
+      await passengersApi.delete(targetId);
+      showToast(`Passenger #${targetId} removed from roster. ✓`);
+      setDeletingPassenger(null);
+      await loadData();
     } catch (err) {
       console.error('Delete passenger error:', err);
       showToast(`Delete failed: ${err.message || 'Cannot delete passenger'}`);
     } finally {
-      setDeletingId(null);
+      setDeleting(false);
     }
+  };
+
+  const toggleMask = (passId) => {
+    const id = Number(passId);
+    setUnmaskedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const maskDocNumber = (num, passId) => {
+    if (!num) return '—';
+    const id = Number(passId);
+    if (unmaskedIds.has(id)) return num;
+    if (num.length <= 4) return '****';
+    return `${num.slice(0, 2)}****${num.slice(-2)}`;
   };
 
   const filteredPassengers = useMemo(() => {
     const search = searchTerm.toLowerCase().trim();
     if (!search) return passengers;
-    return passengers.filter(
-      (p) =>
+    return passengers.filter((p) => {
+      const pid = Number(p.passId || p.id);
+      return (
         p.name.toLowerCase().includes(search) ||
-        String(p.passId).includes(search) ||
-        p.gender.toLowerCase().includes(search) ||
-        String(p.age).includes(search)
-    );
+        String(pid).includes(search) ||
+        (p.email || '').toLowerCase().includes(search) ||
+        (p.phone || '').includes(search) ||
+        (p.idNumber || '').toLowerCase().includes(search) ||
+        (p.gender || '').toLowerCase().includes(search)
+      );
+    });
   }, [passengers, searchTerm]);
 
-  // Demographic stats
-  const totalPassengers = passengers.length;
-  const maleCount = passengers.filter((p) => p.gender?.toLowerCase() === 'male').length;
-  const femaleCount = passengers.filter((p) => p.gender?.toLowerCase() === 'female').length;
-
   return (
-    <div>
-      {/* Toast */}
+    <div className="agency-passengers-page" style={{ maxWidth: '1280px', margin: '0 auto' }}>
+      {/* Toast Notification */}
       {toastMessage && (
         <div
           style={{
             position: 'fixed',
-            top: '20px',
-            right: '20px',
-            background: '#19b6a6',
+            top: '24px',
+            right: '24px',
+            background: 'linear-gradient(135deg, #0d9488 0%, #0284c7 100%)',
             color: '#fff',
-            padding: '12px 20px',
-            borderRadius: '10px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            padding: '14px 22px',
+            borderRadius: '12px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
             zIndex: 9999,
             fontWeight: 700,
             fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
           }}
         >
-          {toastMessage}
+          <span>✓</span>
+          <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Top Header */}
+      {/* Top Banner */}
       <div
-        className="card"
         style={{
           padding: '24px 28px',
           borderRadius: '16px',
           marginBottom: '24px',
-          background: 'linear-gradient(135deg, #ffffff 0%, #f0fdfc 100%)',
-          border: '1px solid var(--border)',
+          background: 'linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%)',
+          border: '1px solid #ccfbf1',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -145,11 +179,11 @@ export default function AgencyPassengersPage() {
         }}
       >
         <div>
-          <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', margin: '0 0 4px 0' }}>
             Client Passenger Roster 👥
           </h2>
-          <p style={{ color: 'var(--muted)', fontSize: '14px' }}>
-            Registered offline clients and travelers managed by <strong>{user?.businessName || 'Agency'}</strong> (Agency #{agencyId}).
+          <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>
+            Maintain customer identity details, masked document numbers, and dietary notes for offline travelers.
           </p>
         </div>
 
@@ -159,229 +193,406 @@ export default function AgencyPassengersPage() {
             setEditingPassenger(null);
             setIsModalOpen(true);
           }}
-          className="btn btn-primary"
           style={{
-            background: 'linear-gradient(135deg, #19b6a6 0%, #0ea5e9 100%)',
+            background: 'linear-gradient(135deg, #0d9488 0%, #0284c7 100%)',
+            color: '#fff',
             border: 'none',
-            fontWeight: 700,
-            padding: '10px 18px',
+            fontWeight: 800,
+            padding: '11px 22px',
+            borderRadius: '10px',
+            fontSize: '14px',
+            cursor: 'pointer',
+            boxShadow: '0 4px 14px rgba(13,148,136,0.3)',
           }}
         >
-          + Add Client Passenger
+          + Add New Passenger
         </button>
       </div>
 
       {error && (
-        <div style={{ padding: '14px', background: '#fee2e2', color: '#b91c1c', borderRadius: '12px', marginBottom: '20px' }}>
+        <div style={{ padding: '14px 18px', background: '#fee2e2', color: '#b91c1c', borderRadius: '12px', marginBottom: '20px' }}>
           ⚠️ {error}
         </div>
       )}
 
-      {/* Stats Grid */}
+      {/* KPI Cards */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
           gap: '16px',
           marginBottom: '24px',
         }}
       >
         <SummaryCard
-          label="Total Passengers"
-          value={loading ? '...' : totalPassengers}
+          title="Total Passengers in Roster"
+          value={String(passengers.length)}
+          subtitle="Saved client records"
           icon="👥"
-          subtitle="Agency roster count"
-          color="#19b6a6"
         />
         <SummaryCard
-          label="Male Passengers"
-          value={loading ? '...' : maleCount}
-          icon="👨"
-          subtitle="Verified clients"
-          color="#3b82f6"
+          title="Active on Booked Trips"
+          value={String(Array.from(tripCountByPassenger.values()).filter((c) => c > 0).length)}
+          subtitle="Passengers with live itineraries"
+          icon="📍"
         />
         <SummaryCard
-          label="Female Passengers"
-          value={loading ? '...' : femaleCount}
-          icon="👩"
-          subtitle="Verified clients"
-          color="#ec4899"
+          title="Adult Travelers"
+          value={String(passengers.filter((p) => p.age >= 18).length)}
+          subtitle="Age 18 and above"
+          icon="🧑"
         />
         <SummaryCard
-          label="Agency Ownership"
-          value={`Agency #${agencyId}`}
-          icon="🛡️"
-          subtitle="Self-scoped & guarded"
-          color="#10b981"
+          title="Minor / Child Travelers"
+          value={String(passengers.filter((p) => p.age < 18).length)}
+          subtitle="Age under 18"
+          icon="🧒"
         />
       </div>
 
-      {/* Main Roster Table */}
-      <div className="card" style={{ padding: '24px', borderRadius: '16px' }}>
-        {/* Controls */}
+      {/* Search Bar */}
+      <div
+        style={{
+          padding: '14px 20px',
+          background: '#ffffff',
+          borderRadius: '14px',
+          border: '1px solid #e2e8f0',
+          marginBottom: '20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '16px',
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ flex: '1 1 300px' }}>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="🔍 Search passengers by name, phone, email, or document number..."
+            style={{
+              width: '100%',
+              padding: '9px 14px',
+              borderRadius: '8px',
+              border: '1px solid #cbd5e1',
+              fontSize: '13px',
+            }}
+          />
+        </div>
+        {searchTerm && (
+          <button
+            type="button"
+            onClick={() => setSearchTerm('')}
+            style={{
+              background: '#f1f5f9',
+              border: '1px solid #cbd5e1',
+              padding: '8px 14px',
+              borderRadius: '8px',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              color: '#475569',
+            }}
+          >
+            Clear Search
+          </button>
+        )}
+      </div>
+
+      {/* Passenger Table */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '60px', color: '#64748b' }}>
+          Loading passengers from backend...
+        </div>
+      ) : filteredPassengers.length === 0 ? (
         <div
           style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '12px',
-            marginBottom: '20px',
-            borderBottom: '1px solid #f1f5f9',
-            paddingBottom: '16px',
+            background: '#ffffff',
+            borderRadius: '16px',
+            padding: '60px',
+            textAlign: 'center',
+            border: '1px solid #e2e8f0',
           }}
         >
-          <div style={{ minWidth: '260px', flex: '1 1 260px' }}>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="🔍 Search passengers by name, ID, gender..."
-              className="form-control"
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: '10px',
-                border: '1px solid #cbd5e1',
-                fontSize: '14px',
-              }}
-            />
-          </div>
-
-          <div style={{ fontSize: '13px', color: 'var(--muted)' }}>
-            Showing <strong>{filteredPassengers.length}</strong> of {totalPassengers} passengers
-          </div>
-        </div>
-
-        {/* Table */}
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '48px', color: 'var(--muted)' }}>
-            Loading passenger roster...
-          </div>
-        ) : filteredPassengers.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '48px', color: 'var(--muted)' }}>
-            <div style={{ fontSize: '42px', marginBottom: '8px' }}>👥</div>
-            <h4 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              No passengers in roster
-            </h4>
-            <p style={{ fontSize: '13px', marginTop: '4px' }}>
-              Add client passengers to start booking tour packages and earning commissions.
-            </p>
+          <div style={{ fontSize: '42px', marginBottom: '10px' }}>👥</div>
+          <h4 style={{ margin: '0 0 6px 0', fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+            No Passengers Found
+          </h4>
+          <p style={{ color: '#64748b', fontSize: '13px', margin: '0 0 16px 0' }}>
+            {passengers.length === 0
+              ? 'Your agency passenger roster is currently empty.'
+              : 'No passengers match your search keyword.'}
+          </p>
+          {passengers.length === 0 && (
             <button
               type="button"
               onClick={() => {
                 setEditingPassenger(null);
                 setIsModalOpen(true);
               }}
-              className="btn btn-primary btn-sm"
-              style={{ marginTop: '14px', background: '#19b6a6', border: 'none' }}
+              style={{
+                background: '#0d9488',
+                color: '#fff',
+                border: 'none',
+                fontWeight: 700,
+                padding: '10px 20px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                cursor: 'pointer',
+              }}
             >
-              + Add First Passenger
+              Add First Passenger →
             </button>
-          </div>
-        ) : (
-          <div className="table-wrap">
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-              <thead>
-                <tr style={{ borderBottom: '1.5px solid #e2e8f0', textAlign: 'left', color: 'var(--muted)', fontSize: '12px', textTransform: 'uppercase' }}>
-                  <th style={{ padding: '10px 12px' }}>Pass ID</th>
-                  <th style={{ padding: '10px 12px' }}>Passenger Name</th>
-                  <th style={{ padding: '10px 12px' }}>Age</th>
-                  <th style={{ padding: '10px 12px' }}>Gender</th>
-                  <th style={{ padding: '10px 12px' }}>Agency Scoping</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPassengers.map((p) => (
-                  <tr key={p.passId} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '12px', fontWeight: 800, color: '#19b6a6' }}>
-                      PAX#{p.passId}
+          )}
+        </div>
+      ) : (
+        <div
+          style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0',
+            overflow: 'hidden',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+          }}
+        >
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+            <thead>
+              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700, textTransform: 'uppercase', fontSize: '11px' }}>
+                <th style={{ padding: '14px 18px' }}>Passenger Name & Contact</th>
+                <th style={{ padding: '14px 18px' }}>Age & Gender</th>
+                <th style={{ padding: '14px 18px' }}>ID / Passport</th>
+                <th style={{ padding: '14px 18px' }}>Special / Dietary Notes</th>
+                <th style={{ padding: '14px 18px' }}>Booked Trips</th>
+                <th style={{ padding: '14px 18px', textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredPassengers.map((p) => {
+                const passId = Number(p.passId || p.id);
+                const tripCount = tripCountByPassenger.get(passId) || 0;
+                return (
+                  <tr key={passId} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '14px 18px' }}>
+                      <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '14px' }}>
+                        {p.name}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                        {p.phone || 'No phone'} {p.email ? `· ${p.email}` : ''}
+                      </div>
                     </td>
-                    <td style={{ padding: '12px' }}>
-                      <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{p.name}</div>
+
+                    <td style={{ padding: '14px 18px', color: '#334155' }}>
+                      <div>{p.age} years old</div>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>
+                        {p.gender} {p.dob ? `(DOB: ${p.dob})` : ''}
+                      </div>
                     </td>
-                    <td style={{ padding: '12px', color: 'var(--text-primary)' }}>
-                      {p.age} yrs
+
+                    <td style={{ padding: '14px 18px' }}>
+                      <div style={{ fontWeight: 600, color: '#0f172a' }}>
+                        {p.idType || 'ID'}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#475569', marginTop: '2px' }}>
+                        <span>{maskDocNumber(p.idNumber, passId)}</span>
+                        {p.idNumber && (
+                          <button
+                            type="button"
+                            onClick={() => toggleMask(passId)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: 0,
+                              fontSize: '12px',
+                            }}
+                            title={unmaskedIds.has(passId) ? 'Mask Number' : 'Reveal Number'}
+                          >
+                            {unmaskedIds.has(passId) ? '🔒' : '👁️'}
+                          </button>
+                        )}
+                      </div>
                     </td>
-                    <td style={{ padding: '12px' }}>
+
+                    <td style={{ padding: '14px 18px', color: '#475569', maxWidth: '240px' }}>
+                      {p.specialNotes ? (
+                        <span style={{ background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600 }}>
+                          {p.specialNotes}
+                        </span>
+                      ) : (
+                        <span style={{ color: '#94a3b8' }}>None specified</span>
+                      )}
+                    </td>
+
+                    <td style={{ padding: '14px 18px' }}>
                       <span
                         style={{
-                          padding: '3px 8px',
-                          borderRadius: '10px',
-                          fontSize: '11px',
+                          background: tripCount > 0 ? '#ecfdf5' : '#f1f5f9',
+                          color: tripCount > 0 ? '#065f46' : '#64748b',
+                          padding: '3px 10px',
+                          borderRadius: '12px',
                           fontWeight: 700,
-                          background: p.gender === 'Female' ? '#fdf2f8' : '#eff6ff',
-                          color: p.gender === 'Female' ? '#db2777' : '#2563eb',
+                          fontSize: '12px',
                         }}
                       >
-                        {p.gender}
+                        {tripCount} {tripCount === 1 ? 'Trip' : 'Trips'}
                       </span>
                     </td>
-                    <td style={{ padding: '12px', color: 'var(--muted)', fontSize: '12px' }}>
-                      Agency #{p.agencyId}
-                    </td>
-                    <td style={{ padding: '12px', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/agency/book-package?passengerId=${p.passId}`)}
-                          className="btn btn-sm"
-                          style={{
-                            background: '#f0fdfc',
-                            color: '#0f766e',
-                            border: '1px solid #99f6e4',
-                            padding: '4px 8px',
-                            fontSize: '12px',
-                            fontWeight: 700,
-                          }}
-                        >
-                          Book Tour
-                        </button>
+
+                    <td style={{ padding: '14px 18px', textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: '8px' }}>
                         <button
                           type="button"
                           onClick={() => {
                             setEditingPassenger(p);
                             setIsModalOpen(true);
                           }}
-                          className="btn btn-secondary btn-sm"
-                          style={{ padding: '4px 8px', fontSize: '12px' }}
+                          style={{
+                            background: '#f8fafc',
+                            border: '1px solid #cbd5e1',
+                            color: '#334155',
+                            padding: '5px 10px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
                         >
                           ✏️ Edit
                         </button>
                         <button
                           type="button"
-                          disabled={deletingId === p.passId}
-                          onClick={() => handleDelete(p.passId)}
-                          className="btn btn-sm"
+                          onClick={() => setDeletingPassenger(p)}
                           style={{
                             background: '#fee2e2',
-                            color: '#b91c1c',
-                            border: '1px solid #fecaca',
-                            padding: '4px 8px',
+                            border: '1px solid #fca5a5',
+                            color: '#991b1b',
+                            padding: '5px 10px',
+                            borderRadius: '6px',
                             fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
                           }}
                         >
-                          {deletingId === p.passId ? '...' : '🗑️'}
+                          ✕ Delete
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-      {/* Passenger Modal */}
-      <PassengerModal
-        isOpen={isModalOpen}
-        passenger={editingPassenger}
-        agencyId={agencyId}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleCreateOrUpdate}
-      />
+      {/* Edit / Create Passenger Modal */}
+      {isModalOpen && (
+        <PassengerModal
+          isOpen={isModalOpen}
+          passenger={editingPassenger}
+          agencyId={agencyId}
+          onClose={() => {
+            setIsModalOpen(false);
+            setEditingPassenger(null);
+          }}
+          onSubmit={handleCreateOrUpdate}
+        />
+      )}
+
+      {/* Delete Confirmation Modal (Clean React modal without window.confirm) */}
+      {deletingPassenger && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1100,
+            padding: '20px',
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '440px',
+              padding: '24px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+              <div
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  background: '#fee2e2',
+                  color: '#b91c1c',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '18px',
+                }}
+              >
+                ⚠️
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+                  Delete Passenger?
+                </h3>
+                <span style={{ fontSize: '12px', color: '#64748b' }}>
+                  {deletingPassenger.name} (#{deletingPassenger.passId || deletingPassenger.id})
+                </span>
+              </div>
+            </div>
+
+            <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5', margin: '0 0 20px 0' }}>
+              Are you sure you want to permanently remove <strong>{deletingPassenger.name}</strong> from your agency roster?
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setDeletingPassenger(null)}
+                disabled={deleting}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  background: '#fff',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+                style={{
+                  padding: '8px 18px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: '#dc2626',
+                  color: '#fff',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  opacity: deleting ? 0.7 : 1,
+                }}
+              >
+                {deleting ? 'Deleting...' : 'Confirm Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

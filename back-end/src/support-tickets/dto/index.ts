@@ -1,1 +1,1 @@
-export { CreateTicketDto, UpdateTicketStatusDto } from './ticket.dto';
+export { CreateTicketDto, UpdateTicketStatusDto, CreateTicketReplyDto } from './ticket.dto';

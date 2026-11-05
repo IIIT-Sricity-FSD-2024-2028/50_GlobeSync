@@ -3,8 +3,7 @@ import React, { useState, useEffect } from 'react';
 /**
  * PassengerModal
  * 
- * Controlled modal for adding and updating agency-owned passengers.
- * Enforces field validations and agency ownership scoping.
+ * Controlled modal for adding and updating agency-owned passengers with full profile attributes.
  */
 export default function PassengerModal({
   isOpen,
@@ -18,7 +17,13 @@ export default function PassengerModal({
   const [formData, setFormData] = useState({
     name: '',
     age: '',
+    dob: '',
     gender: 'Male',
+    email: '',
+    phone: '',
+    idType: 'Passport',
+    idNumber: '',
+    specialNotes: '',
   });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -29,13 +34,25 @@ export default function PassengerModal({
       setFormData({
         name: passenger.name || '',
         age: passenger.age ? String(passenger.age) : '',
+        dob: passenger.dob || '',
         gender: passenger.gender || 'Male',
+        email: passenger.email || '',
+        phone: passenger.phone || '',
+        idType: passenger.idType || 'Passport',
+        idNumber: passenger.idNumber || '',
+        specialNotes: passenger.specialNotes || '',
       });
     } else {
       setFormData({
         name: '',
         age: '',
+        dob: '',
         gender: 'Male',
+        email: '',
+        phone: '',
+        idType: 'Passport',
+        idNumber: '',
+        specialNotes: '',
       });
     }
     setErrors({});
@@ -56,6 +73,9 @@ export default function PassengerModal({
     if (!formData.gender) {
       errs.gender = 'Gender is required';
     }
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      errs.email = 'Please enter a valid email address';
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -71,11 +91,17 @@ export default function PassengerModal({
       const payload = {
         name: formData.name.trim(),
         age: parseInt(formData.age, 10),
+        dob: formData.dob || undefined,
         gender: formData.gender,
+        email: formData.email.trim() || undefined,
+        phone: formData.phone.trim() || undefined,
+        idType: formData.idType,
+        idNumber: formData.idNumber.trim() || undefined,
+        specialNotes: formData.specialNotes.trim() || undefined,
         agencyId: Number(agencyId),
       };
 
-      await onSubmit(payload, passenger?.passId);
+      await onSubmit(payload, passenger?.passId || passenger?.id);
       onClose();
     } catch (err) {
       console.error('Passenger submit error:', err);
@@ -87,116 +113,92 @@ export default function PassengerModal({
 
   return (
     <div
-      className="modal-overlay"
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.5)',
+        background: 'rgba(15, 23, 42, 0.6)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 1100,
         padding: '20px',
       }}
-      onClick={onClose}
     >
       <div
-        className="card"
         style={{
-          background: '#fff',
+          background: '#ffffff',
           borderRadius: '16px',
           width: '100%',
-          maxWidth: '500px',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
-          padding: 0,
+          maxWidth: '560px',
+          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+          overflow: 'hidden',
         }}
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div
           style={{
-            padding: '20px 24px',
-            borderBottom: '1px solid var(--border-light, #eee)',
+            padding: '18px 24px',
+            borderBottom: '1px solid #e2e8f0',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            background: 'var(--bg-soft, #fafafa)',
-            borderTopLeftRadius: '16px',
-            borderTopRightRadius: '16px',
+            background: '#f8fafc',
           }}
         >
           <div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
-              {isEdit ? `Edit Passenger #${passenger.passId}` : 'Add New Client Passenger 👥'}
-            </div>
-            <p style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
-              Scoped to agency #{agencyId} roster
-            </p>
+            <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+              {isEdit ? `Edit Passenger #${passenger.passId}` : 'Add Passenger to Agency Roster'}
+            </h3>
+            <span style={{ fontSize: '12px', color: '#64748b' }}>
+              Save offline client traveler identity for rapid itinerary booking.
+            </span>
           </div>
           <button
+            type="button"
             onClick={onClose}
             style={{
               background: 'transparent',
               border: 'none',
-              fontSize: '22px',
+              fontSize: '20px',
+              color: '#94a3b8',
               cursor: 'pointer',
-              color: 'var(--text-secondary)',
             }}
           >
             ✕
           </button>
         </div>
 
-        {/* Body */}
-        <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} style={{ padding: '24px', maxHeight: '75vh', overflowY: 'auto' }}>
           {submitError && (
-            <div
-              style={{
-                padding: '10px 14px',
-                background: '#fee2e2',
-                color: '#b91c1c',
-                borderRadius: '8px',
-                fontSize: '13px',
-                marginBottom: '16px',
-              }}
-            >
+            <div style={{ padding: '10px 14px', background: '#fee2e2', color: '#b91c1c', borderRadius: '8px', fontSize: '13px', marginBottom: '16px' }}>
               ⚠️ {submitError}
             </div>
           )}
 
-          {/* Full Name */}
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
+          <div style={{ marginBottom: '14px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
               Full Name *
             </label>
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => {
-                setFormData((prev) => ({ ...prev, name: e.target.value }));
-                if (errors.name) setErrors((prev) => ({ ...prev, name: null }));
-              }}
-              placeholder="e.g. Rahul Sharma"
-              className="form-control"
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="e.g. Vikram Sharma"
               style={{
                 width: '100%',
-                padding: '10px 12px',
+                padding: '9px 12px',
                 borderRadius: '8px',
-                border: errors.name ? '1px solid #ef4444' : '1px solid #cbd5e1',
-                fontSize: '14px',
+                border: errors.name ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
+                fontSize: '13px',
               }}
             />
-            {errors.name && (
-              <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                {errors.name}
-              </span>
-            )}
+            {errors.name && <span style={{ color: '#ef4444', fontSize: '11px', marginTop: '3px', display: 'block' }}>{errors.name}</span>}
           </div>
 
-          {/* Age & Gender */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '14px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
                 Age *
               </label>
               <input
@@ -204,42 +206,39 @@ export default function PassengerModal({
                 min="1"
                 max="120"
                 value={formData.age}
-                onChange={(e) => {
-                  setFormData((prev) => ({ ...prev, age: e.target.value }));
-                  if (errors.age) setErrors((prev) => ({ ...prev, age: null }));
-                }}
-                placeholder="e.g. 28"
-                className="form-control"
+                onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                placeholder="e.g. 34"
                 style={{
                   width: '100%',
-                  padding: '10px 12px',
+                  padding: '9px 12px',
                   borderRadius: '8px',
-                  border: errors.age ? '1px solid #ef4444' : '1px solid #cbd5e1',
-                  fontSize: '14px',
+                  border: errors.age ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
+                  fontSize: '13px',
                 }}
               />
-              {errors.age && (
-                <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                  {errors.age}
-                </span>
-              )}
+              {errors.age && <span style={{ color: '#ef4444', fontSize: '11px', marginTop: '3px', display: 'block' }}>{errors.age}</span>}
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                Date of Birth
+              </label>
+              <input
+                type="date"
+                value={formData.dob}
+                onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
                 Gender *
               </label>
               <select
                 value={formData.gender}
-                onChange={(e) => setFormData((prev) => ({ ...prev, gender: e.target.value }))}
-                className="form-control"
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '14px',
-                }}
+                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
               >
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
@@ -248,31 +247,118 @@ export default function PassengerModal({
             </div>
           </div>
 
-          {/* Actions */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                Phone Number
+              </label>
+              <input
+                type="text"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="+91 98765 43210"
+                style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="passenger@example.com"
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  border: errors.email ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
+                  fontSize: '13px',
+                }}
+              />
+              {errors.email && <span style={{ color: '#ef4444', fontSize: '11px', marginTop: '3px', display: 'block' }}>{errors.email}</span>}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                ID / Document Type
+              </label>
+              <select
+                value={formData.idType}
+                onChange={(e) => setFormData({ ...formData, idType: e.target.value })}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+              >
+                <option value="Passport">Passport</option>
+                <option value="Aadhaar">Aadhaar</option>
+                <option value="Driving License">Driving License</option>
+                <option value="National ID">National ID</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                ID / Document Number
+              </label>
+              <input
+                type="text"
+                value={formData.idNumber}
+                onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
+                placeholder="e.g. Z9876543"
+                style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+              />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+              Dietary, Accessibility & Special Notes
+            </label>
+            <textarea
+              rows="2"
+              value={formData.specialNotes}
+              onChange={(e) => setFormData({ ...formData, specialNotes: e.target.value })}
+              placeholder="e.g. Vegetarian meal, wheelchair assistance, aisle seat preference"
+              style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+            />
+          </div>
+
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
             <button
               type="button"
-              disabled={submitting}
               onClick={onClose}
-              className="btn btn-secondary"
-              style={{ padding: '10px 18px', fontSize: '14px' }}
+              disabled={submitting}
+              style={{
+                padding: '9px 16px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                background: '#fff',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="btn btn-primary"
               style={{
-                padding: '10px 22px',
-                fontSize: '14px',
-                background: 'linear-gradient(135deg, #19b6a6 0%, #0ea5e9 100%)',
+                padding: '9px 20px',
+                borderRadius: '8px',
                 border: 'none',
+                background: '#0d9488',
+                color: '#fff',
+                fontSize: '13px',
                 fontWeight: 700,
+                cursor: submitting ? 'not-allowed' : 'pointer',
                 opacity: submitting ? 0.7 : 1,
               }}
             >
-              {submitting ? 'Saving...' : (isEdit ? 'Update Passenger ✓' : 'Add Passenger ✓')}
+              {submitting ? 'Saving...' : isEdit ? '✓ Update Passenger' : '✓ Add Passenger'}
             </button>
           </div>
         </form>

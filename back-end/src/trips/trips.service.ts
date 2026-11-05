@@ -34,6 +34,18 @@ const TRIP_STATUS_TRANSITIONS: Record<string, string[]> = {
   Cancelled: [],
 };
 
+function normalizeStatus(status?: string): string | undefined {
+  if (!status) return undefined;
+  const s = status.trim().toLowerCase();
+  if (s === 'planning' || s === 'planned') return 'Planning';
+  if (s === 'pending') return 'Pending';
+  if (s === 'confirmed' || s === 'paid') return 'Confirmed';
+  if (s === 'active') return 'Active';
+  if (s === 'completed') return 'Completed';
+  if (s === 'cancelled' || s === 'canceled') return 'Cancelled';
+  return status;
+}
+
 /**
  * Validate that a status transition is allowed.
  * Returns a readable error message if invalid, or null if valid.
@@ -86,8 +98,11 @@ export class TripsService {
     }
 
     const maxId = trips.length > 0 ? Math.max(...trips.map((t) => t.tripId)) : 0;
+    const initialStatus = (normalizeStatus(dto.status) as Trip['status']) || 'Planning';
+
     const newTrip: Trip = {
       tripId: maxId + 1,
+      title: dto.title,
       origin: dto.origin || 'New Delhi, India',
       destination: dto.destination,
       startDate: dto.startDate,
@@ -97,27 +112,52 @@ export class TripsService {
       agencyId: dto.agencyId,
       guideId: dto.guideId ?? null,
       packageId: dto.packageId,
-      status: (dto.status as Trip['status']) || 'Planning',
-      // Fix 3: Initialize guideStatus consistently when a guide is assigned at creation
+      status: initialStatus,
+      passengerIds: dto.passengerIds,
+      transportDetails: dto.transportDetails,
+      itineraryDays: dto.itineraryDays,
+      category: dto.category,
+      notes: dto.notes,
+      travelersCount: dto.travelersCount || (dto.passengerIds?.length || 1),
       ...(dto.guideId != null && { guideStatus: 'Pending' as Trip['guideStatus'] }),
     };
     trips.push(newTrip);
 
+    // If day-by-day itinerary array is provided, persist it to itineraries collection as well
+    if (Array.isArray(dto.itineraryDays) && dto.itineraryDays.length > 0) {
+      dto.itineraryDays.forEach((day, index) => {
+        const dayNumber = day.dayNumber || index + 1;
+        const activities = day.activities || (day.title ? [day.title] : ['Exploration & Sightseeing']);
+        activities.forEach((act: string, actIdx: number) => {
+          const maxItinId = itineraries.length > 0 ? Math.max(...itineraries.map((i) => i.itineraryId)) : 0;
+          itineraries.push({
+            itineraryId: maxItinId + 1,
+            tripId: newTrip.tripId,
+            city: day.city || newTrip.destination,
+            dayNumber,
+            activity: typeof act === 'string' ? act : JSON.stringify(act),
+            activityStatus: 'Confirmed',
+            time: day.time || (actIdx === 0 ? '09:00' : actIdx === 1 ? '14:00' : '19:00'),
+          });
+        });
+      });
+    }
+
     if (dto.agencyId) {
       const agency = agencies.find(a => a.agencyId === dto.agencyId);
-      if (agency && agency.commissionRate != null) {
-        const commAmount = (dto.budget * agency.commissionRate) / 100;
-        const commId = commissionLedger.length > 0 ? Math.max(...commissionLedger.map(c => c.commissionId)) : 0;
-        commissionLedger.push({
-          commissionId: commId + 1,
-          agencyId: dto.agencyId,
-          tripId: newTrip.tripId,
-          grossAmount: dto.budget,
-          commissionAmount: commAmount,
-          status: 'pending',
-          createdAt: new Date().toISOString()
-        });
-      }
+      const commissionRate = agency?.commissionRate != null ? agency.commissionRate : 1.5;
+      const commAmount = (dto.budget * commissionRate) / 100;
+      const commId = commissionLedger.length > 0 ? Math.max(...commissionLedger.map(c => c.commissionId)) : 0;
+      commissionLedger.push({
+        commissionId: commId + 1,
+        agencyId: dto.agencyId,
+        tripId: newTrip.tripId,
+        grossAmount: dto.budget,
+        commissionAmount: commAmount,
+        rate: commissionRate,
+        status: initialStatus === 'Confirmed' || initialStatus === 'Active' ? 'earned' : 'pending',
+        createdAt: new Date().toISOString()
+      });
 
       // Create Payment record for agency-owned trip
       const paymentId = payments.length > 0 ? Math.max(...payments.map(p => p.paymentId)) : 0;
@@ -125,8 +165,8 @@ export class TripsService {
         paymentId: paymentId + 1,
         amount: dto.budget,
         paymentDate: new Date().toISOString().split('T')[0],
-        method: 'Card', // default/assumed for agency platform billing
-        status: 'Paid',
+        method: 'Card',
+        status: initialStatus === 'Confirmed' || initialStatus === 'Active' ? 'Paid' : 'Pending',
         tripId: newTrip.tripId,
         agencyId: dto.agencyId
       });
@@ -140,21 +180,23 @@ export class TripsService {
     if (idx === -1) throw new NotFoundException(`Trip with ID ${id} not found`);
 
     const current = trips[idx];
+    const targetStatus = normalizeStatus(dto.status);
 
-    // Fix 2: Validate status transition if a new status is provided
-    if (dto.status !== undefined && dto.status !== current.status) {
-      const error = validateStatusTransition(current.status, dto.status);
+    // Validate status transition if a new status is provided
+    if (targetStatus !== undefined && targetStatus !== current.status) {
+      const error = validateStatusTransition(current.status, targetStatus);
       if (error) {
         throw new BadRequestException(error);
       }
     }
 
-    // Fix 3: When guideId changes, reset guideStatus to 'Pending'
+    // When guideId changes, reset guideStatus to 'Pending'
     const guideChanged =
       dto.guideId !== undefined && dto.guideId !== current.guideId;
 
     const updated: Trip = {
       ...current,
+      ...(dto.title !== undefined && { title: dto.title }),
       ...(dto.origin !== undefined && { origin: dto.origin }),
       ...(dto.destination !== undefined && { destination: dto.destination }),
       ...(dto.startDate !== undefined && { startDate: dto.startDate }),
@@ -164,23 +206,54 @@ export class TripsService {
       ...(dto.agencyId !== undefined && { agencyId: dto.agencyId }),
       ...(dto.guideId !== undefined && { guideId: dto.guideId }),
       ...(dto.packageId !== undefined && { packageId: dto.packageId }),
-      ...(dto.status !== undefined && { status: dto.status as Trip['status'] }),
-      // If a new guideStatus is explicitly provided and guide didn't change, apply it
+      ...(targetStatus !== undefined && { status: targetStatus as Trip['status'] }),
       ...(dto.guideStatus !== undefined && !guideChanged && { guideStatus: dto.guideStatus as Trip['guideStatus'] }),
-      // If guide assignment changed, reset guideStatus regardless of any explicit value
       ...(guideChanged && {
         guideStatus: dto.guideId === null
-          ? undefined  // no guide assigned → clear guideStatus
+          ? undefined
           : 'Pending' as Trip['guideStatus'],
       }),
+      ...(dto.passengerIds !== undefined && { passengerIds: dto.passengerIds }),
+      ...(dto.transportDetails !== undefined && { transportDetails: dto.transportDetails }),
+      ...(dto.itineraryDays !== undefined && { itineraryDays: dto.itineraryDays }),
+      ...(dto.category !== undefined && { category: dto.category }),
+      ...(dto.notes !== undefined && { notes: dto.notes }),
+      ...(dto.travelersCount !== undefined && { travelersCount: dto.travelersCount }),
     };
     trips[idx] = updated;
 
-    // When a trip is updated to completed, settle all pending commission entries for it
-    if (dto.status === 'Completed') {
+    // Recalculate commission ledger if budget changed for an agency trip
+    if (dto.budget !== undefined && current.agencyId) {
+      const agency = agencies.find(a => a.agencyId === current.agencyId);
+      const rate = agency?.commissionRate ?? 1.5;
+      commissionLedger.forEach((entry, i) => {
+        if (entry.tripId === id) {
+          commissionLedger[i] = {
+            ...entry,
+            grossAmount: dto.budget!,
+            commissionAmount: (dto.budget! * (entry.rate || rate)) / 100,
+          };
+        }
+      });
+    }
+
+    // Settle / earn / void commission on status updates
+    if (targetStatus === 'Completed') {
+      commissionLedger.forEach((entry, i) => {
+        if (entry.tripId === id) {
+          commissionLedger[i] = { ...entry, status: 'settled' };
+        }
+      });
+    } else if (targetStatus === 'Confirmed' || targetStatus === 'Active') {
       commissionLedger.forEach((entry, i) => {
         if (entry.tripId === id && entry.status === 'pending') {
-          commissionLedger[i] = { ...entry, status: 'settled' };
+          commissionLedger[i] = { ...entry, status: 'earned' };
+        }
+      });
+    } else if (targetStatus === 'Cancelled') {
+      commissionLedger.forEach((entry, i) => {
+        if (entry.tripId === id) {
+          commissionLedger[i] = { ...entry, status: 'cancelled' };
         }
       });
     }
@@ -193,20 +266,33 @@ export class TripsService {
     if (idx === -1) throw new NotFoundException(`Trip with ID ${id} not found`);
 
     const current = trips[idx];
+    const targetStatus = normalizeStatus(status) || status;
 
-    // Fix 2: Validate status transition using shared rules
-    const error = validateStatusTransition(current.status, status);
+    // Validate status transition using shared rules
+    const error = validateStatusTransition(current.status, targetStatus);
     if (error) {
       throw new BadRequestException(error);
     }
 
-    trips[idx] = { ...current, status: status as Trip['status'] };
+    trips[idx] = { ...current, status: targetStatus as Trip['status'] };
 
-    // When a trip is completed, settle all pending commission entries for it
-    if (status === 'Completed') {
+    // Settle / earn / void commission on status updates
+    if (targetStatus === 'Completed') {
+      commissionLedger.forEach((entry, i) => {
+        if (entry.tripId === id) {
+          commissionLedger[i] = { ...entry, status: 'settled' };
+        }
+      });
+    } else if (targetStatus === 'Confirmed' || targetStatus === 'Active') {
       commissionLedger.forEach((entry, i) => {
         if (entry.tripId === id && entry.status === 'pending') {
-          commissionLedger[i] = { ...entry, status: 'settled' };
+          commissionLedger[i] = { ...entry, status: 'earned' };
+        }
+      });
+    } else if (targetStatus === 'Cancelled') {
+      commissionLedger.forEach((entry, i) => {
+        if (entry.tripId === id) {
+          commissionLedger[i] = { ...entry, status: 'cancelled' };
         }
       });
     }

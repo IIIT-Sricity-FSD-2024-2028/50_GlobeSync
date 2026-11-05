@@ -7,6 +7,11 @@ export class CreateAgencyDto {
   @IsString()
   businessName: string;
 
+  @ApiPropertyOptional({ example: 'Rajesh Mehra' })
+  @IsOptional()
+  @IsString()
+  contactPerson?: string;
+
   @ApiProperty({ example: 'contact@elitetravel.com' })
   @IsEmail()
   contactEmail: string;
@@ -28,4 +33,19 @@ export class CreateAgencyDto {
   @Min(1.0)
   @Max(1.5)
   commissionRate?: number;
+
+  @ApiPropertyOptional({ example: '07AAAAA0000A1Z5' })
+  @IsOptional()
+  @IsString()
+  licenseGstin?: string;
+
+  @ApiPropertyOptional({ example: 'Suite 402, Connaught Place, New Delhi, 110001' })
+  @IsOptional()
+  @IsString()
+  officeAddress?: string;
+
+  @ApiPropertyOptional({ example: 'horizon@hdfcbank' })
+  @IsOptional()
+  @IsString()
+  payoutBankUpi?: string;
 }

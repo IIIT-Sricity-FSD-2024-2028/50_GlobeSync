@@ -21,7 +21,7 @@ export class TripsController {
   findAll() { return this.tripsService.findAll(); }
 
   @Get(':id')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.SUPPORT)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY, Role.SUPPORT)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Get trip by ID' })
   @ApiParam({ name: 'id', type: Number })
@@ -75,6 +75,17 @@ export class TripsController {
   @ApiResponse({ status: 200, description: 'Trip updated' })
   @ApiResponse({ status: 404, description: 'Trip not found' })
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateTripDto) {
+    return this.tripsService.update(id, dto);
+  }
+
+  @Patch(':id')
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.AGENCY, Role.GUIDE)
+  @ApiUserHeaders()
+  @ApiOperation({ summary: 'Partial update a trip' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiResponse({ status: 200, description: 'Trip updated' })
+  @ApiResponse({ status: 404, description: 'Trip not found' })
+  patch(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateTripDto) {
     return this.tripsService.update(id, dto);
   }
 

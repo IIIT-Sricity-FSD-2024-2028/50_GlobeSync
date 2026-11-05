@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import { packagesApi, passengersApi, tripsApi, bookingsApi } from '../../services/api';
+import { packagesApi, passengersApi, tripsApi, bookingsApi, paymentsApi } from '../../services/api';
 
 /**
  * AgencyBookPackagePage
@@ -42,17 +42,17 @@ export default function AgencyBookPackagePage() {
   const [completedBooking, setCompletedBooking] = useState(null);
 
   useEffect(() => {
-    let isMounted = true;
-    const loadResources = async () => {
+    const controller = new AbortController();
+    const loadResources = async (signal) => {
       setLoading(true);
       setError(null);
       try {
         const [pkgsRes, passRes] = await Promise.allSettled([
-          packagesApi.getAll(),
-          passengersApi.getByAgency(agencyId),
+          packagesApi.getAll({ signal }),
+          passengersApi.getByAgency(agencyId, { signal }),
         ]);
 
-        if (!isMounted) return;
+        if (signal?.aborted) return;
 
         if (pkgsRes.status === 'fulfilled' && Array.isArray(pkgsRes.value)) {
           setPackages(pkgsRes.value);
@@ -63,24 +63,22 @@ export default function AgencyBookPackagePage() {
         if (passRes.status === 'fulfilled' && Array.isArray(passRes.value)) {
           setPassengers(passRes.value);
           if (!selectedPassId && passRes.value.length > 0) {
-            setSelectedPassId(String(passRes.value[0].passId));
+            setSelectedPassId(String(passRes.value[0].passId || passRes.value[0].id));
           }
         }
       } catch (err) {
-        if (isMounted) {
+        if (!signal?.aborted) {
           setError(err.message || 'Failed to load booking resources.');
         }
       } finally {
-        if (isMounted) setLoading(false);
+        if (!signal?.aborted) setLoading(false);
       }
     };
 
     if (agencyId) {
-      loadResources();
+      loadResources(controller.signal);
     }
-    return () => {
-      isMounted = false;
-    };
+    return () => controller.abort();
   }, [agencyId]);
 
   // Selected package details
@@ -92,7 +90,7 @@ export default function AgencyBookPackagePage() {
   // Selected passenger details
   const selectedPassenger = useMemo(() => {
     if (!selectedPassId) return null;
-    return passengers.find((p) => String(p.passId) === String(selectedPassId));
+    return passengers.find((p) => String(p.passId || p.id) === String(selectedPassId));
   }, [passengers, selectedPassId]);
 
   // Calculate End Date
@@ -110,7 +108,7 @@ export default function AgencyBookPackagePage() {
 
   // Pricing & Commission Breakdown
   const pricing = useMemo(() => {
-    const basePrice = Number(selectedPackage?.price) || 0;
+    const basePrice = Number(selectedPackage?.budget ?? selectedPackage?.price ?? 0);
     const insuranceAmount = Math.round(basePrice * 0.07 * 100) / 100;
 
     let cancellationFee = 0;
@@ -154,14 +152,25 @@ export default function AgencyBookPackagePage() {
 
     try {
       // 1. Create or link trip for this agency booking
+      const passengerIdNum = Number(selectedPassenger.passId || selectedPassenger.id);
       const tripPayload = {
         agencyId,
         packageId: Number(selectedPackage.packageId || selectedPackage.id),
-        destination: selectedPackage.destination || 'Global Destination',
+        title: `${selectedPackage.name || selectedPackage.title || 'Tour Package'} (${selectedPassenger.name})`,
+        destination: selectedPackage.destinations || selectedPackage.destination || 'Global Destination',
+        origin: 'New Delhi, India',
         startDate,
         endDate,
         budget: pricing.totalAmount,
         status: 'Confirmed',
+        passengerIds: [passengerIdNum],
+        travelersCount: 1,
+        transportDetails: {
+          transportType: transportMode,
+          carrier: 'Standard Carrier',
+          carrierPrice: 0,
+          lodgingTier: 'Deluxe',
+        },
       };
 
       const trip = await tripsApi.create(tripPayload);
@@ -171,7 +180,7 @@ export default function AgencyBookPackagePage() {
       const bookingPayload = {
         agencyId,
         tripId,
-        service: `${selectedPackage.title} (${selectedPassenger.name})`,
+        service: `${selectedPackage.name || selectedPackage.title || "Tour Package"} (${selectedPassenger.name})`,
         type: 'Package',
         amount: pricing.basePrice,
         status: 'Confirmed',
@@ -186,11 +195,26 @@ export default function AgencyBookPackagePage() {
 
       const booking = await bookingsApi.create(bookingPayload);
 
+      // 3. Record corporate payment ledger transaction
+      try {
+        const bId = Number(booking.bookingId || booking.id);
+        await paymentsApi.create({
+          agencyId,
+          ...(bId ? { bookingId: bId } : { tripId }),
+          amount: pricing.netRemittance,
+          paymentDate: new Date().toISOString().split('T')[0],
+          method: 'Card',
+          status: 'Paid',
+        });
+      } catch (pErr) {
+        console.warn('Payment transaction notice:', pErr);
+      }
+
       setCompletedBooking({
         bookingId: booking.bookingId || booking.id,
         tripId,
         passengerName: selectedPassenger.name,
-        packageTitle: selectedPackage.title,
+        packageTitle: selectedPackage.name || selectedPackage.title || "Tour Package",
         amount: pricing.totalAmount,
         commission: pricing.earnedCommission,
       });
@@ -238,11 +262,11 @@ export default function AgencyBookPackagePage() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ color: 'var(--muted)' }}>Total Billed:</span>
-              <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>${completedBooking.amount.toFixed(2)}</span>
+              <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>₹{completedBooking.amount.toLocaleString("en-IN")}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid #99f6e4' }}>
               <span style={{ color: '#0f766e', fontWeight: 700 }}>Reseller Earned Commission:</span>
-              <span style={{ color: '#059669', fontWeight: 800, fontSize: '16px' }}>+${completedBooking.commission.toFixed(2)}</span>
+              <span style={{ color: '#059669', fontWeight: 800, fontSize: '16px' }}>+₹{completedBooking.commission.toLocaleString("en-IN")}</span>
             </div>
           </div>
 
@@ -459,7 +483,7 @@ export default function AgencyBookPackagePage() {
                     Add Flexible Cancellation Protection
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--muted)' }}>
-                    {transportMode === 'Flight' ? '+$100 protection fee' : transportMode === 'Bus' ? '+$70 protection fee' : '+$50 protection fee'} (Allows penalty-free trip rescheduling)
+                    {transportMode === 'Flight' ? '+₹100 protection fee' : transportMode === 'Bus' ? '+₹70 protection fee' : '+₹50 protection fee'} (Allows penalty-free trip rescheduling)
                   </div>
                 </div>
               </label>
@@ -497,7 +521,7 @@ export default function AgencyBookPackagePage() {
                 opacity: submitting ? 0.7 : 1,
               }}
             >
-              {submitting ? 'Confirming Tour Booking...' : `Confirm Client Booking ($${pricing.totalAmount.toFixed(2)}) →`}
+              {submitting ? 'Confirming Tour Booking...' : `Confirm Client Booking (₹${pricing.totalAmount.toLocaleString("en-IN")}) →`}
             </button>
           </form>
         </div>
@@ -511,24 +535,24 @@ export default function AgencyBookPackagePage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '14px', marginBottom: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ color: 'var(--muted)' }}>Base Package Price:</span>
-              <span style={{ fontWeight: 600 }}>${pricing.basePrice.toFixed(2)}</span>
+              <span style={{ fontWeight: 600 }}>₹{pricing.basePrice.toLocaleString("en-IN")}</span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ color: 'var(--muted)' }}>Travel Insurance (7% mandatory):</span>
-              <span style={{ fontWeight: 600 }}>+${pricing.insuranceAmount.toFixed(2)}</span>
+              <span style={{ fontWeight: 600 }}>+₹{pricing.insuranceAmount.toLocaleString("en-IN")}</span>
             </div>
 
             {cancellationProtection && (
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--muted)' }}>Cancellation Protection:</span>
-                <span style={{ fontWeight: 600 }}>+${pricing.cancellationFee.toFixed(2)}</span>
+                <span style={{ fontWeight: 600 }}>+₹{pricing.cancellationFee.toLocaleString("en-IN")}</span>
               </div>
             )}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid #e2e8f0', fontSize: '16px', fontWeight: 800 }}>
               <span>Total Client Retail:</span>
-              <span>${pricing.totalAmount.toFixed(2)}</span>
+              <span>₹{pricing.totalAmount.toLocaleString("en-IN")}</span>
             </div>
           </div>
 
@@ -546,7 +570,7 @@ export default function AgencyBookPackagePage() {
               Agency Earned Margin ({commissionRate}%)
             </div>
             <div style={{ fontSize: '26px', fontWeight: 800, color: '#059669', margin: '6px 0' }}>
-              +${pricing.earnedCommission.toFixed(2)}
+              +₹{pricing.earnedCommission.toLocaleString("en-IN")}
             </div>
             <div style={{ fontSize: '12px', color: '#047857' }}>
               Credited directly to Agency #{agencyId} commission ledger upon booking confirmation.

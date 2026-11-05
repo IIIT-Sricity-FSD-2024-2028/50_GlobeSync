@@ -14,7 +14,7 @@ export interface Booking {
   travelerId?: number;
   agencyId?: number;
   service: string;
-  type: 'Flight' | 'Hotel' | 'Transport' | 'Activity';
+  type: 'Flight' | 'Hotel' | 'Transport' | 'Activity' | 'Package';
   amount: number;
   insuranceSelected?: boolean;
   insuranceRate?: number;
@@ -41,4 +41,6 @@ export const bookings: Booking[] = [
   { bookingId: 15, bookingDate: '2026-03-25', status: 'Pending', tripId: 7, travelerId: 4, service: 'Ubud Hanging Gardens', type: 'Hotel', amount: 42000 },
   { bookingId: 16, bookingDate: '2026-03-20', status: 'Confirmed', tripId: 4, travelerId: 3, service: 'Delta DL-185 BOM→JFK', type: 'Flight', amount: 78000 },
   { bookingId: 17, bookingDate: '2026-03-20', status: 'Confirmed', tripId: 4, travelerId: 3, service: 'The Roosevelt Hotel', type: 'Hotel', amount: 85000 },
+  { bookingId: 18, bookingDate: '2025-12-05', status: 'Confirmed', tripId: 13, agencyId: 1, service: 'European Roman Holiday — Wholesale Package', type: 'Package', amount: 175000 },
+  { bookingId: 19, bookingDate: '2026-07-01', status: 'Confirmed', tripId: 21, agencyId: 1, service: 'Switzerland Scenic Express — Client Resell', type: 'Package', amount: 260000 },
 ];
