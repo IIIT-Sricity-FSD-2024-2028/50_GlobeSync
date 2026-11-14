@@ -12,6 +12,8 @@
  *   npx ts-node --project tsconfig.json src/trips/backend-fixes.spec.ts
  */
 
+process.env.NODE_ENV = 'test';
+
 import 'reflect-metadata';
 import * as assert from 'assert';
 import { ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
@@ -207,6 +209,8 @@ run('Valid lifecycle transitions succeed: Planning -> Pending -> Confirmed -> Ac
   if (idx !== -1) trips.splice(idx, 1);
 });
 
+
+
 run('Invalid transition: Planning directly to Active is rejected with BadRequestException', () => {
   const trip = tripsService.create({
     destination: 'Jump Test',
@@ -229,6 +233,8 @@ run('Invalid transition: Planning directly to Active is rejected with BadRequest
   const idx = trips.findIndex((t) => t.tripId === trip.tripId);
   if (idx !== -1) trips.splice(idx, 1);
 });
+
+
 
 run('Invalid transition enforced in update() route as well as updateStatus()', () => {
   const trip = tripsService.create({
@@ -253,11 +259,20 @@ run('Invalid transition enforced in update() route as well as updateStatus()', (
   if (idx !== -1) trips.splice(idx, 1);
 });
 
+
+
 run('Terminal statuses (Completed, Cancelled) disallow further transitions', () => {
+  const future = new Date();
+  future.setDate(future.getDate() + 10);
+  const futureStr = future.toISOString().split('T')[0];
+  const end = new Date(future);
+  end.setDate(end.getDate() + 5);
+  const endStr = end.toISOString().split('T')[0];
+
   const trip = tripsService.create({
     destination: 'Terminal Test',
-    startDate: '2026-08-01',
-    endDate: '2026-08-07',
+    startDate: futureStr,
+    endDate: endStr,
     budget: 45000,
     travelerId: 1,
   });
@@ -271,6 +286,84 @@ run('Terminal statuses (Completed, Cancelled) disallow further transitions', () 
   // Clean up
   const idx = trips.findIndex((t) => t.tripId === trip.tripId);
   if (idx !== -1) trips.splice(idx, 1);
+});
+
+run('Cancellation deadline: <12 hours before departure blocks cancellation (Throws BadRequestException)', () => {
+  const imminent = new Date(Date.now() + 6 * 3600 * 1000); // 6 hours in future (<12h)
+  const imminentStr = imminent.toISOString();
+  const end = new Date(Date.now() + 72 * 3600 * 1000);
+  const endStr = end.toISOString();
+
+  const trip = tripsService.create({
+    destination: 'Imminent Departure Test',
+    startDate: imminentStr,
+    endDate: endStr,
+    budget: 50000,
+    travelerId: 1,
+  });
+
+  assert.throws(
+    () => tripsService.updateStatus(trip.tripId, 'Cancelled', 'Late emergency'),
+    (err: any) => {
+      assert.ok(err instanceof BadRequestException, 'Expected BadRequestException');
+      assert.ok(err.message.includes('within 12 hours of departure'), 'Error should mention 12 hours');
+      return true;
+    },
+  );
+
+  // Clean up
+  const cIdx = trips.findIndex((t) => t.tripId === trip.tripId);
+  if (cIdx !== -1) trips.splice(cIdx, 1);
+});
+
+run('Cancellation refund policy: >=3 days notice gives 65% refund', () => {
+  const future = new Date();
+  future.setDate(future.getDate() + 10);
+  const futureStr = future.toISOString().split('T')[0];
+  const end = new Date(future);
+  end.setDate(end.getDate() + 5);
+  const endStr = end.toISOString().split('T')[0];
+
+  const trip = tripsService.create({
+    destination: 'Advance Cancel Test',
+    startDate: futureStr,
+    endDate: endStr,
+    budget: 100000,
+    travelerId: 1,
+  });
+
+  const updated = tripsService.updateStatus(trip.tripId, 'Cancelled', 'Change of plans');
+  assert.strictEqual(updated.status, 'Cancelled');
+  assert.strictEqual(updated.refundPercentage, 65);
+  assert.strictEqual(updated.refundAmount, 65000);
+
+  // Clean up
+  const cIdx = trips.findIndex((t) => t.tripId === trip.tripId);
+  if (cIdx !== -1) trips.splice(cIdx, 1);
+});
+
+run('Cancellation refund policy: <3 days notice gives 0% refund (strictly non-refundable)', () => {
+  const nearFuture = new Date(Date.now() + 36 * 3600 * 1000); // 36 hours in future (>12h, <72h)
+  const nearFutureStr = nearFuture.toISOString();
+  const end = new Date(Date.now() + 120 * 3600 * 1000);
+  const endStr = end.toISOString();
+
+  const trip = tripsService.create({
+    destination: 'Urgent Cancel Test',
+    startDate: nearFutureStr,
+    endDate: endStr,
+    budget: 80000,
+    travelerId: 1,
+  });
+
+  const updated = tripsService.updateStatus(trip.tripId, 'Cancelled', 'Emergency');
+  assert.strictEqual(updated.status, 'Cancelled');
+  assert.strictEqual(updated.refundPercentage, 0);
+  assert.strictEqual(updated.refundAmount, 0);
+
+  // Clean up
+  const cIdx = trips.findIndex((t) => t.tripId === trip.tripId);
+  if (cIdx !== -1) trips.splice(cIdx, 1);
 });
 
 run('Idempotent status updates (same status) are accepted without error', () => {
@@ -289,6 +382,8 @@ run('Idempotent status updates (same status) are accepted without error', () => 
   const idx = trips.findIndex((t) => t.tripId === trip.tripId);
   if (idx !== -1) trips.splice(idx, 1);
 });
+
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 3. Guide Status Initialization & Assignment Lifecycle
@@ -313,6 +408,8 @@ run('Trip creation with guide initializes guideStatus to "Pending"', () => {
   if (idx !== -1) trips.splice(idx, 1);
 });
 
+
+
 run('Trip creation without guide leaves guideStatus undefined', () => {
   const trip = tripsService.create({
     destination: 'No Guide Test',
@@ -329,6 +426,8 @@ run('Trip creation without guide leaves guideStatus undefined', () => {
   const idx = trips.findIndex((t) => t.tripId === trip.tripId);
   if (idx !== -1) trips.splice(idx, 1);
 });
+
+
 
 run('Reassigning guideId resets guideStatus to "Pending"', () => {
   const trip = tripsService.create({
@@ -353,6 +452,8 @@ run('Reassigning guideId resets guideStatus to "Pending"', () => {
   if (idx !== -1) trips.splice(idx, 1);
 });
 
+
+
 run('Unassigning guide (guideId: null) clears guideStatus', () => {
   const trip = tripsService.create({
     destination: 'Unassign Test',
@@ -371,6 +472,8 @@ run('Unassigning guide (guideId: null) clears guideStatus', () => {
   const idx = trips.findIndex((t) => t.tripId === trip.tripId);
   if (idx !== -1) trips.splice(idx, 1);
 });
+
+
 
 run('Seed fixtures have explicit guideStatus for all trips with guides', () => {
   for (const t of trips) {

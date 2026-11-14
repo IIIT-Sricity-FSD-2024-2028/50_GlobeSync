@@ -505,9 +505,9 @@
           },
           {
             "name": "x-user-role",
+            "required": false,
             "in": "header",
             "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
-            "required": false,
             "schema": {
               "type": "string",
               "enum": [
@@ -1301,7 +1301,7 @@
     },
     "/trips/{id}/status": {
       "patch": {
-        "description": "Updates only the status of a trip. Guides can update status of assigned trips. Travelers can update status after payment.",
+        "description": "Updates only the status of a trip. Guides can update status of assigned trips. Travelers can update status after payment or cancel.",
         "operationId": "TripsController_updateStatus",
         "parameters": [
           {
@@ -4105,6 +4105,47 @@
           }
         },
         "summary": "Get reviews by trip ID",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/reviews/guide/{guideId}": {
+      "get": {
+        "operationId": "ReviewsController_findByGuide",
+        "parameters": [
+          {
+            "name": "guideId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reviews for guide"
+          }
+        },
+        "summary": "Get reviews by guide ID",
         "tags": [
           "reviews"
         ]
@@ -7551,6 +7592,27 @@
             "type": "number",
             "example": 1,
             "description": "Assigned admin ID"
+          },
+          "bio": {
+            "type": "string",
+            "example": "Passionate local guide...",
+            "description": "Guide bio and introduction"
+          },
+          "specialties": {
+            "example": [
+              "Heritage Walks",
+              "Food Tours"
+            ],
+            "description": "Tour specialties",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "availability": {
+            "type": "string",
+            "example": "available",
+            "description": "Availability status"
           }
         }
       },
@@ -7837,6 +7899,22 @@
           "travelersCount": {
             "type": "number",
             "example": 2
+          },
+          "cancellationReason": {
+            "type": "string",
+            "example": "Medical emergency"
+          },
+          "cancelledAt": {
+            "type": "string",
+            "example": "2026-11-13T10:00:00Z"
+          },
+          "refundPercentage": {
+            "type": "number",
+            "example": 65
+          },
+          "refundAmount": {
+            "type": "number",
+            "example": 120250
           }
         }
       },
@@ -7854,6 +7932,21 @@
               "Completed",
               "Cancelled"
             ]
+          },
+          "cancellationReason": {
+            "type": "string",
+            "example": "Change of travel plans",
+            "description": "Mandatory or explanatory reason when status is Cancelled"
+          },
+          "refundPercentage": {
+            "type": "number",
+            "example": 65,
+            "description": "Eligible refund percentage (100% if >= 3 days before start, 65% if within 3 days)"
+          },
+          "refundAmount": {
+            "type": "number",
+            "example": 120250,
+            "description": "Calculated refund amount in INR"
           }
         },
         "required": [
@@ -8009,6 +8102,14 @@
           "transportMode": {
             "type": "string",
             "example": "Flight"
+          },
+          "cancellationReason": {
+            "type": "string",
+            "example": "Trip reschedule"
+          },
+          "cancelledAt": {
+            "type": "string",
+            "example": "2026-11-13T10:00:00Z"
           }
         }
       },

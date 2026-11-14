@@ -22,4 +22,8 @@ export class UpdateTripDto {
   @ApiPropertyOptional({ example: 'Family Leisure' }) @IsOptional() @IsString() category?: string;
   @ApiPropertyOptional({ example: 'Special dietary requests noted' }) @IsOptional() @IsString() notes?: string;
   @ApiPropertyOptional({ example: 2 }) @IsOptional() @IsNumber() travelersCount?: number;
+  @ApiPropertyOptional({ example: 'Medical emergency' }) @IsOptional() @IsString() cancellationReason?: string;
+  @ApiPropertyOptional({ example: '2026-11-13T10:00:00Z' }) @IsOptional() @IsString() cancelledAt?: string;
+  @ApiPropertyOptional({ example: 65 }) @IsOptional() @IsNumber() refundPercentage?: number;
+  @ApiPropertyOptional({ example: 120250 }) @IsOptional() @IsNumber() refundAmount?: number;
 }

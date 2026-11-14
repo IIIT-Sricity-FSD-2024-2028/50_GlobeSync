@@ -59,6 +59,9 @@ export class GuidesService {
       ...(dto.pricePerTrip !== undefined && { pricePerTrip: dto.pricePerTrip }),
       ...(dto.contact !== undefined && { contact: dto.contact }),
       ...(dto.adminId !== undefined && { adminId: dto.adminId }),
+      ...(dto.bio !== undefined && { bio: dto.bio }),
+      ...(dto.specialties !== undefined && { specialties: dto.specialties }),
+      ...(dto.availability !== undefined && { availability: dto.availability }),
     };
 
     guides[index] = updated;

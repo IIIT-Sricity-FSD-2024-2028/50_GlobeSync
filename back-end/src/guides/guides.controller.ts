@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, ParseIntPipe, Headers } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { GuidesService } from './guides.service';
 import { CreateGuideDto, UpdateGuideDto } from './dto';
@@ -53,7 +53,18 @@ export class GuidesController {
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 404, description: 'Guide not found' })
   @ApiResponse({ status: 403, description: 'Forbidden — insufficient role' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateGuideDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateGuideDto,
+    @Headers('x-user-role') role?: string,
+  ) {
+    // Contract: Price per Trip, Rating, and Experience cannot be modified by Guide.
+    if (role === Role.GUIDE) {
+      delete dto.pricePerTrip;
+      delete dto.rating;
+      delete dto.experience;
+      delete dto.adminId;
+    }
     return this.guidesService.update(id, dto);
   }
 

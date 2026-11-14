@@ -16,6 +16,7 @@ import GuideDashboardPage from './pages/guide/GuideDashboardPage';
 import GuideRequestsPage from './pages/guide/GuideRequestsPage';
 import GuideTravelersPage from './pages/guide/GuideTravelersPage';
 import GuideCompletedTripsPage from './pages/guide/GuideCompletedTripsPage';
+import GuideReviewsPage from './pages/guide/GuideReviewsPage';
 import GuideMessagesPage from './pages/guide/GuideMessagesPage';
 import GuideProfilePage from './pages/guide/GuideProfilePage';
 import SupportDashboardPage from './pages/support/SupportDashboardPage';
@@ -206,6 +207,14 @@ export default function App() {
               element={
                 <ProtectedRoute allowedRoles={['guide', 'superuser']}>
                   <GuideCompletedTripsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/guide/reviews"
+              element={
+                <ProtectedRoute allowedRoles={['guide', 'superuser']}>
+                  <GuideReviewsPage />
                 </ProtectedRoute>
               }
             />

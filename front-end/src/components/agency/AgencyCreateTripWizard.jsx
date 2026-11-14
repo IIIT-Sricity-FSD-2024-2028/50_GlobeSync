@@ -66,15 +66,36 @@ export default function AgencyCreateTripWizard({
     return diff > 0 ? diff : 1;
   })();
 
+  const tomorrowStr = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  })();
+
+  const minEndDateStr = (() => {
+    if (startDate) {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + 1);
+      if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+    }
+    const d = new Date();
+    d.setDate(d.getDate() + 2);
+    return d.toISOString().split('T')[0];
+  })();
+
   const validateStep = (step) => {
     const errs = {};
     if (step === 1) {
+      const todayStr = new Date().toISOString().split('T')[0];
       if (!title.trim()) errs.title = 'Trip title is required';
       if (!destination.trim()) errs.destination = 'Destination is required';
       if (!startDate) errs.startDate = 'Start date is required';
+      else if (startDate <= todayStr) {
+        errs.startDate = 'Trip start date must be a future date (cannot be today or a past date).';
+      }
       if (!endDate) errs.endDate = 'End date is required';
-      else if (new Date(endDate) < new Date(startDate)) {
-        errs.endDate = 'End date cannot precede start date';
+      else if (new Date(endDate) <= new Date(startDate)) {
+        errs.endDate = 'End date must be strictly after start date';
       }
       const bNum = parseFloat(baseBudget);
       if (!baseBudget || isNaN(bNum) || bNum < 0) {
@@ -291,10 +312,11 @@ export default function AgencyCreateTripWizard({
 
             <div>
               <label style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: '6px' }}>
-                Start Date *
+                Start Date * (Advance Booking)
               </label>
               <input
                 type="date"
+                min={tomorrowStr}
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 style={{
@@ -314,6 +336,7 @@ export default function AgencyCreateTripWizard({
               </label>
               <input
                 type="date"
+                min={minEndDateStr}
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 style={{

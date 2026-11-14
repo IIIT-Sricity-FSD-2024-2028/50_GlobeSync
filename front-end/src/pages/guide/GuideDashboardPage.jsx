@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
 import { dashboardApi, guidesApi } from '../../services/api';
 import GuideStatsGrid from '../../components/guide/GuideStatsGrid';
@@ -161,6 +162,65 @@ export default function GuideDashboardPage() {
 
           {/* Verified Guide Profile (no invented ratings or prices) */}
           <GuideProfileCard guide={guideProfile || user} guideId={guideId} />
+
+          {/* Quick Reviews & Feedback Card */}
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: '12px',
+              border: '1px solid var(--border-light, #f0f0f0)',
+              padding: '18px 24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              marginTop: '16px',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '10px',
+                  background: '#fef3c7',
+                  color: '#d97706',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '22px',
+                }}
+              >
+                ⭐
+              </div>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>
+                  Traveler Reviews & Star Ratings
+                </h4>
+                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>
+                  See feedback left by travelers on your completed tours, star breakdowns, and post public replies.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/guide/reviews"
+              className="btn btn-secondary"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 16px',
+                fontWeight: 700,
+                fontSize: '13px',
+                textDecoration: 'none',
+              }}
+            >
+              <span>⭐</span>
+              <span>Open Reviews Hub →</span>
+            </Link>
+          </div>
 
           {/* Navigation Links to All Portal Modules */}
           <GuideQuickActions />

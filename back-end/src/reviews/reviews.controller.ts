@@ -38,6 +38,16 @@ export class ReviewsController {
     return this.reviewsService.findByTrip(tripId);
   }
 
+  @Get('guide/:guideId')
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE)
+  @ApiRoleHeader()
+  @ApiOperation({ summary: 'Get reviews by guide ID' })
+  @ApiParam({ name: 'guideId', type: Number })
+  @ApiResponse({ status: 200, description: 'Reviews for guide' })
+  findByGuide(@Param('guideId', ParseIntPipe) guideId: number) {
+    return this.reviewsService.findByGuide(guideId);
+  }
+
   @Post()
   @Roles(Role.SUPERUSER, Role.TRAVELER)
   @ApiUserHeaders()

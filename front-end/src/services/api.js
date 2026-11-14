@@ -299,8 +299,10 @@ export const tripsApi = {
   patch: (id, tripData, options) =>
     apiPatch(`/trips/${id}`, tripData, options),
 
-  updateStatus: (id, status, options) =>
-    apiPatch(`/trips/${id}/status`, { status }, options),
+  updateStatus: (id, statusOrPayload, options) => {
+    const payload = typeof statusOrPayload === 'object' ? statusOrPayload : { status: statusOrPayload };
+    return apiPatch(`/trips/${id}/status`, payload, options);
+  },
 
   delete: (id, options) =>
     apiDelete(`/trips/${id}`, options),
@@ -420,6 +422,9 @@ export const reviewsApi = {
 
   getByTrip: (tripId, options) =>
     apiGet(`/reviews/trip/${tripId}`, options),
+
+  getByGuide: (guideId, options) =>
+    apiGet(`/reviews/guide/${guideId}`, options),
 
   create: (reviewData, options) =>
     apiPost('/reviews', reviewData, options),

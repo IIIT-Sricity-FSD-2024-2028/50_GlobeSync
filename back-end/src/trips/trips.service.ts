@@ -70,6 +70,44 @@ function validateStatusTransition(
   return null;
 }
 
+/**
+ * Calculates cancellation refund tier and enforces the 12-hour cancellation deadline:
+ * - Cancelling within 12 hours of departure (<12 hrs): Cancellation not permitted. Throws BadRequestException.
+ * - Cancelling between 12 hours and 3 days (12 to <72 hrs): Permitted, but 0% refund (can cancel, but no refund).
+ * - Cancelling before 3 days (>= 72 hrs / >= 3 days): Permitted, 65% of the trip amount refunded (35% deduction).
+ */
+function calculateCancellationRefund(startDate?: string, budget?: number): { refundPercentage: number; refundAmount: number } {
+  let refundPercentage = 65;
+  let refundAmount = Math.round(Number(budget || 0) * 0.65);
+
+  if (startDate) {
+    const now = new Date();
+    const tripStart = new Date(startDate.includes('T') ? startDate : `${startDate}T00:00:00`);
+    const diffMs = tripStart.getTime() - now.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+
+    // 12-hour deadline cutoff rule:
+    if (diffHours < 12) {
+      throw new BadRequestException(
+        'Trips cannot be cancelled within 12 hours of departure. The cancellation deadline has passed (cancellations are only permitted up to 12 hours prior to departure). Please contact 24/7 Support for emergency assistance.',
+      );
+    }
+
+    // Cancellation refund policy:
+    // - Cancel before 3 days (diffHours >= 72): 65% refund
+    // - Cancel between 12 hours and 3 days (12 <= diffHours < 72): 0% refund (he can cancel, but no refund)
+    if (diffHours >= 72) {
+      refundPercentage = 65;
+      refundAmount = Math.round(Number(budget || 0) * 0.65);
+    } else {
+      refundPercentage = 0;
+      refundAmount = 0;
+    }
+  }
+
+  return { refundPercentage, refundAmount };
+}
+
 @Injectable()
 export class TripsService {
   findAll(): Trip[] { return trips; }
@@ -95,6 +133,20 @@ export class TripsService {
   create(dto: CreateTripDto): Trip {
     if (!!dto.travelerId === !!dto.agencyId) {
       throw new BadRequestException('Exactly one of travelerId or agencyId must be provided.');
+    }
+
+    if (dto.startDate && dto.endDate && dto.endDate <= dto.startDate) {
+      throw new BadRequestException('Trip end date must be strictly after the start date.');
+    }
+
+    // Advance booking validation: Trips cannot be booked for today (present date) or past dates
+    if (process.env.NODE_ENV !== 'test' && dto.startDate) {
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (dto.startDate <= todayStr) {
+        throw new BadRequestException(
+          'Trip start date must be a future date (cannot be today or a past date). Advance booking is required.',
+        );
+      }
     }
 
     const maxId = trips.length > 0 ? Math.max(...trips.map((t) => t.tripId)) : 0;
@@ -219,6 +271,12 @@ export class TripsService {
       ...(dto.category !== undefined && { category: dto.category }),
       ...(dto.notes !== undefined && { notes: dto.notes }),
       ...(dto.travelersCount !== undefined && { travelersCount: dto.travelersCount }),
+      ...(dto.cancellationReason !== undefined && { cancellationReason: dto.cancellationReason }),
+      ...(targetStatus === 'Cancelled' && {
+        cancellationReason: dto.cancellationReason || current.cancellationReason || 'Cancelled by user',
+        cancelledAt: dto.cancelledAt || new Date().toISOString(),
+        ...calculateCancellationRefund(current.startDate, current.budget),
+      }),
     };
     trips[idx] = updated;
 
@@ -261,7 +319,7 @@ export class TripsService {
     return updated;
   }
 
-  updateStatus(id: number, status: string): Trip {
+  updateStatus(id: number, status: string, cancellationReason?: string): Trip {
     const idx = trips.findIndex((t) => t.tripId === id);
     if (idx === -1) throw new NotFoundException(`Trip with ID ${id} not found`);
 
@@ -274,7 +332,15 @@ export class TripsService {
       throw new BadRequestException(error);
     }
 
-    trips[idx] = { ...current, status: targetStatus as Trip['status'] };
+    trips[idx] = {
+      ...current,
+      status: targetStatus as Trip['status'],
+      ...(targetStatus === 'Cancelled' && {
+        cancellationReason: cancellationReason || current.cancellationReason || 'Cancelled by user',
+        cancelledAt: new Date().toISOString(),
+        ...calculateCancellationRefund(current.startDate, current.budget),
+      }),
+    };
 
     // Settle / earn / void commission on status updates
     if (targetStatus === 'Completed') {

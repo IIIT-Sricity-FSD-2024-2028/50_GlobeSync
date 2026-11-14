@@ -21,14 +21,16 @@ export interface Booking {
   insuranceAmount?: number;
   cancellationProtectionSelected?: boolean;
   cancellationFee?: number;
+  cancellationReason?: string;
+  cancelledAt?: string;
 }
 
 export const bookings: Booking[] = [
-  { bookingId: 1, bookingDate: '2026-03-01', status: 'Confirmed', tripId: 1, travelerId: 1, service: 'Air France XY123', type: 'Flight', amount: 48000 },
-  { bookingId: 2, bookingDate: '2026-03-01', status: 'Confirmed', tripId: 1, travelerId: 1, service: 'Hotel Lumiere', type: 'Hotel', amount: 56000 },
-  { bookingId: 3, bookingDate: '2026-03-03', status: 'Pending', tripId: 1, travelerId: 1, service: 'Paris Metro Pass', type: 'Transport', amount: 2500 },
-  { bookingId: 4, bookingDate: '2026-03-10', status: 'Confirmed', tripId: 2, travelerId: 1, service: 'ANA Flight NH101', type: 'Flight', amount: 65000 },
-  { bookingId: 5, bookingDate: '2026-03-10', status: 'Confirmed', tripId: 2, travelerId: 1, service: 'Hotel Shinjuku Grand', type: 'Hotel', amount: 78000 },
+  { bookingId: 1, bookingDate: '2026-11-25', status: 'Confirmed', tripId: 1, travelerId: 1, service: 'Air France XY123', type: 'Flight', amount: 48000 },
+  { bookingId: 2, bookingDate: '2026-11-25', status: 'Confirmed', tripId: 1, travelerId: 1, service: 'Hotel Lumiere', type: 'Hotel', amount: 56000 },
+  { bookingId: 3, bookingDate: '2026-11-26', status: 'Pending', tripId: 1, travelerId: 1, service: 'Paris Metro Pass', type: 'Transport', amount: 2500 },
+  { bookingId: 4, bookingDate: '2026-11-16', status: 'Confirmed', tripId: 2, travelerId: 1, service: 'ANA Flight NH101', type: 'Flight', amount: 65000 },
+  { bookingId: 5, bookingDate: '2026-11-16', status: 'Confirmed', tripId: 2, travelerId: 1, service: 'Hotel Shinjuku Grand', type: 'Hotel', amount: 78000 },
   { bookingId: 6, bookingDate: '2026-02-05', status: 'Confirmed', tripId: 5, travelerId: 4, service: 'IndiGo 6E-231 DEL→GOI', type: 'Flight', amount: 12500 },
   { bookingId: 7, bookingDate: '2026-02-05', status: 'Confirmed', tripId: 5, travelerId: 4, service: 'Taj Fort Aguada Resort', type: 'Hotel', amount: 24000 },
   { bookingId: 8, bookingDate: '2026-02-06', status: 'Confirmed', tripId: 5, travelerId: 4, service: 'Scooter Rental (4 days)', type: 'Transport', amount: 1800 },

@@ -127,9 +127,13 @@ export default function AdminBookingsPage() {
     setSelectedBooking(null);
   };
 
-  const handleUpdateBookingStatus = (bookingId, nextStatus) => {
+  const handleUpdateBookingStatus = (bookingId, nextStatus, cancellationReason) => {
+    const payload = nextStatus === 'Cancelled' && cancellationReason
+      ? { status: nextStatus, cancellationReason, cancelledAt: new Date().toISOString() }
+      : { status: nextStatus };
+
     resource.run(
-      () => bookingsApi.update(bookingId, { status: nextStatus }),
+      () => bookingsApi.update(bookingId, payload),
       `Booking #${bookingId} status updated to '${nextStatus}'.`,
       () => {
         setSelectedBooking(null);

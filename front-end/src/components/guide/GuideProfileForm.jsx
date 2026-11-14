@@ -25,10 +25,12 @@ export default function GuideProfileForm({ profile, onSave, isSaving, saveError,
   const [name, setName]               = useState('');
   const [email, setEmail]             = useState('');
   const [contact, setContact]         = useState('');
-  const [experience, setExperience]   = useState('');
-  const [pricePerTrip, setPricePerTrip] = useState('');
   // Languages are shown as a comma-separated string for easy editing.
   const [languagesRaw, setLanguagesRaw] = useState('');
+  // Professional bio & specialties (real app guide features)
+  const [bio, setBio]                 = useState('');
+  const [specialtiesRaw, setSpecialtiesRaw] = useState('');
+  const [availability, setAvailability] = useState('available');
   // Password fields — only sent when the guide types a new value.
   const [newPassword, setNewPassword]   = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -42,14 +44,16 @@ export default function GuideProfileForm({ profile, onSave, isSaving, saveError,
     setName(profile.name || '');
     setEmail(profile.email || '');
     setContact(profile.contact || '');
-    setExperience(profile.experience !== undefined && profile.experience !== null
-      ? String(profile.experience) : '');
-    setPricePerTrip(profile.pricePerTrip !== undefined && profile.pricePerTrip !== null
-      ? String(profile.pricePerTrip) : '');
     const langs = Array.isArray(profile.languages)
       ? profile.languages.join(', ')
       : (typeof profile.languages === 'string' ? profile.languages : '');
     setLanguagesRaw(langs);
+    setBio(profile.bio || '');
+    const specs = Array.isArray(profile.specialties)
+      ? profile.specialties.join(', ')
+      : (typeof profile.specialties === 'string' ? profile.specialties : '');
+    setSpecialtiesRaw(specs);
+    setAvailability(profile.availability || 'available');
     setNewPassword('');
     setConfirmPassword('');
     setValidationErrors({});
@@ -67,16 +71,6 @@ export default function GuideProfileForm({ profile, onSave, isSaving, saveError,
       errors.email = 'Email is required.';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       errors.email = 'Please enter a valid email address.';
-    }
-
-    const expNum = parseFloat(experience);
-    if (experience.trim() !== '' && (Number.isNaN(expNum) || expNum < 0)) {
-      errors.experience = 'Experience must be a number ≥ 0.';
-    }
-
-    const priceNum = parseFloat(pricePerTrip);
-    if (pricePerTrip.trim() !== '' && (Number.isNaN(priceNum) || priceNum < 0)) {
-      errors.pricePerTrip = 'Price per trip must be a number ≥ 0.';
     }
 
     if (newPassword && newPassword.length < 6) {
@@ -104,22 +98,23 @@ export default function GuideProfileForm({ profile, onSave, isSaving, saveError,
       .map((l) => l.trim())
       .filter(Boolean);
 
-    // Construct only the fields the DTO accepts for guide self-edit.
-    // rating and adminId are intentionally excluded.
+    // Build clean array of specialties
+    const specialties = specialtiesRaw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    // Real App Contract:
+    // Price per trip, experience, rating and adminId are fixed/verified by Admin and NOT self-editable by guide.
     const payload = {
       name: name.trim(),
       email: email.trim(),
       contact: contact.trim(),
       languages,
+      bio: bio.trim(),
+      specialties,
+      availability,
     };
-
-    if (experience.trim() !== '') {
-      payload.experience = Number(experience);
-    }
-
-    if (pricePerTrip.trim() !== '') {
-      payload.pricePerTrip = Number(pricePerTrip);
-    }
 
     // Only include password when the guide typed something new.
     if (newPassword) {
@@ -209,40 +204,126 @@ export default function GuideProfileForm({ profile, onSave, isSaving, saveError,
       <fieldset className="guide-profile-fieldset">
         <legend className="guide-profile-legend">Professional Information</legend>
 
+        {/* Real App Parity: Certified Experience is Verified by Platform Admin (Read-Only for Guide) */}
         <div className="guide-profile-field">
           <label className="guide-profile-label" htmlFor="gp-experience">
-            Years of Experience
+            Years of Experience <span style={{ color: '#15803d', fontWeight: 700, fontSize: '11px', marginLeft: '6px' }}>🛡️ Verified Credential</span>
           </label>
-          <input
-            id="gp-experience"
-            type="number"
-            className={`guide-profile-input${validationErrors.experience ? ' invalid' : ''}`}
-            value={experience}
-            onChange={(e) => setExperience(e.target.value)}
-            disabled={isSaving}
-            min="0"
-            step="1"
-          />
-          <FieldError name="experience" />
+          <div
+            style={{
+              padding: '10px 14px',
+              background: '#f8fafc',
+              border: '1px solid #cbd5e1',
+              borderRadius: '8px',
+              color: '#334155',
+              fontWeight: 600,
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <span>{profile?.experience != null ? `${profile.experience} years of verified tour experience` : 'Not specified'}</span>
+            <span style={{ fontSize: '11px', background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '12px', fontWeight: 700 }}>
+              ✓ Admin Authenticated
+            </span>
+          </div>
+          <span className="guide-profile-hint">
+            ℹ️ In production platforms, guide experience is authenticated by administrators during KYC. Contact admin to submit updated certifications.
+          </span>
         </div>
 
+        {/* Professional Bio / Introduction */}
         <div className="guide-profile-field">
-          <label className="guide-profile-label" htmlFor="gp-price">
-            Price per Trip (₹)
+          <label className="guide-profile-label" htmlFor="gp-bio">
+            Professional Bio & Tour Style
+          </label>
+          <textarea
+            id="gp-bio"
+            rows={3}
+            className="guide-profile-input"
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            disabled={isSaving}
+            placeholder="Tell travelers about yourself, your local knowledge, and what makes your tours unique..."
+            maxLength={500}
+            style={{ resize: 'vertical' }}
+          />
+          <span className="guide-profile-hint">
+            Visible to travelers when browsing guides and reviewing tour offers.
+          </span>
+        </div>
+
+        {/* Tour Specialties */}
+        <div className="guide-profile-field">
+          <label className="guide-profile-label" htmlFor="gp-specialties">
+            Tour Specialties & Focus Areas
           </label>
           <input
-            id="gp-price"
-            type="number"
-            className={`guide-profile-input${validationErrors.pricePerTrip ? ' invalid' : ''}`}
-            value={pricePerTrip}
-            onChange={(e) => setPricePerTrip(e.target.value)}
+            id="gp-specialties"
+            type="text"
+            className="guide-profile-input"
+            value={specialtiesRaw}
+            onChange={(e) => setSpecialtiesRaw(e.target.value)}
             disabled={isSaving}
-            min="0"
-            step="1"
+            placeholder="e.g. Heritage Walks, Culinary Tours, Architecture, Nature Photography"
           />
-          <FieldError name="pricePerTrip" />
           <span className="guide-profile-hint">
-            This is your fee per individual trip, not a daily rate.
+            Separate specialties with commas.
+          </span>
+        </div>
+
+        {/* Working Availability Status */}
+        <div className="guide-profile-field">
+          <label className="guide-profile-label" htmlFor="gp-availability">
+            Availability Status
+          </label>
+          <select
+            id="gp-availability"
+            className="guide-profile-input"
+            value={availability}
+            onChange={(e) => setAvailability(e.target.value)}
+            disabled={isSaving}
+          >
+            <option value="available">🟢 Available for New Tours</option>
+            <option value="on_tour">🔵 Currently on Tour</option>
+            <option value="away">⚪ Away / On Leave</option>
+          </select>
+          <span className="guide-profile-hint">
+            Signals whether you are actively accepting new tour assignments.
+          </span>
+        </div>
+
+        {/* Price per Trip: Fixed Contract Rate (Admin-Managed) */}
+        <div className="guide-profile-field">
+          <label className="guide-profile-label" htmlFor="gp-price">
+            Contracted Price per Trip (₹) <span style={{ color: '#0369a1', fontWeight: 700, fontSize: '11px', marginLeft: '6px' }}>🔒 Contracted Platform Rate</span>
+          </label>
+          <div
+            style={{
+              padding: '10px 14px',
+              background: '#f8fafc',
+              border: '1px solid #cbd5e1',
+              borderRadius: '8px',
+              color: '#0f172a',
+              fontWeight: 700,
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <span>
+              {profile?.pricePerTrip != null
+                ? `₹${Number(profile.pricePerTrip).toLocaleString('en-IN')} per trip`
+                : 'Not set'}
+            </span>
+            <span style={{ fontSize: '11px', background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '12px', fontWeight: 700 }}>
+              Fixed by Admin
+            </span>
+          </div>
+          <span className="guide-profile-hint">
+            ℹ️ Your tour guide compensation rate is contractually set by GlobeSync Administrators and cannot be modified by the guide. Contact your administrator to request a contract rate update.
           </span>
         </div>
 

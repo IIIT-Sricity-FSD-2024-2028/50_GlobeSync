@@ -42,12 +42,14 @@ export default function TripStatusModal({
   onSubmit,
 }) {
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [cancellationReason, setCancellationReason] = useState('');
   const [validationNote, setValidationNote] = useState(null);
 
   // Sync draft status whenever dialog opens with a new trip
   useEffect(() => {
     if (isOpen && trip) {
       setSelectedStatus(trip.status || 'Planning');
+      setCancellationReason(trip.cancellationReason || '');
       setValidationNote(null);
     }
   }, [isOpen, trip]);
@@ -86,7 +88,7 @@ export default function TripStatusModal({
       onClose();
       return;
     }
-    onSubmit(trip.tripId, selectedStatus);
+    onSubmit(trip.tripId, selectedStatus, cancellationReason);
   };
 
   const detailsEntries = [
@@ -134,6 +136,28 @@ export default function TripStatusModal({
             style={{ marginBottom: '14px' }}
           >
             {validationNote}
+          </div>
+        )}
+
+        {selectedStatus === 'Cancelled' && (
+          <div style={{ marginBottom: '14px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
+              Cancellation Reason *
+            </label>
+            <input
+              type="text"
+              value={cancellationReason}
+              onChange={(e) => setCancellationReason(e.target.value)}
+              placeholder="e.g. Cancelled per customer request"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '13px',
+                boxSizing: 'border-box',
+              }}
+            />
           </div>
         )}
 

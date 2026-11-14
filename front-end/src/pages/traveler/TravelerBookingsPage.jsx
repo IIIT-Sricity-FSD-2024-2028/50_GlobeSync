@@ -5,6 +5,7 @@ import BookingList from '../../components/bookings/BookingList';
 import BookingStats from '../../components/bookings/BookingStats';
 import PaymentModal from '../../components/bookings/PaymentModal';
 import BookingDetailModal from '../../components/bookings/BookingDetailModal';
+import BookingCancelModal from '../../components/bookings/BookingCancelModal';
 import Toast from '../../components/common/Toast';
 
 /**
@@ -34,6 +35,9 @@ export default function TravelerBookingsPage() {
   // 3. Modal Dialog State
   const [payingBooking, setPayingBooking] = useState(null);
   const [viewingBooking, setViewingBooking] = useState(null);
+  const [cancellingBooking, setCancellingBooking] = useState(null);
+  const [isCancellingBooking, setIsCancellingBooking] = useState(false);
+  const [cancelBookingError, setCancelBookingError] = useState(null);
 
   // 4. Feedback & Partial Success Recovery State
   const [actionMessage, setActionMessage] = useState(null);
@@ -191,12 +195,15 @@ export default function TravelerBookingsPage() {
     }
   };
 
-  const handleCancelBooking = async (booking) => {
+  const handleCancelBooking = (booking) => {
+    setCancellingBooking(booking);
+    setCancelBookingError(null);
+  };
+
+  const handleConfirmCancelBooking = async (booking, cancellationReason) => {
     const bookingId = Number(booking.bookingId || booking.id);
-    const confirmCancel = window.confirm(
-      `Are you sure you want to cancel booking: "${booking.service}" (BK00${bookingId})?`
-    );
-    if (!confirmCancel) return;
+    setIsCancellingBooking(true);
+    setCancelBookingError(null);
 
     try {
       const payload = {
@@ -207,19 +214,27 @@ export default function TravelerBookingsPage() {
         type: booking.type,
         amount: booking.amount,
         status: 'Cancelled',
+        cancellationReason,
+        cancelledAt: new Date().toISOString(),
       };
 
       await bookingsApi.update(bookingId, payload);
 
       setBookings((prev) =>
-        prev.map((b) => ((b.bookingId || b.id) === bookingId ? { ...b, status: 'Cancelled' } : b))
+        prev.map((b) =>
+          (b.bookingId || b.id) === bookingId
+            ? { ...b, status: 'Cancelled', cancellationReason }
+            : b
+        )
       );
 
-      setActionMessage(`Booking BK00${bookingId} has been cancelled.`);
-      setTimeout(() => setActionMessage(null), 4000);
+      setCancellingBooking(null);
+      showToast(`Booking BK00${bookingId} cancelled successfully.`);
     } catch (err) {
       console.error('[TravelerBookingsPage] Cancel failed:', err);
-      showToast(`Could not cancel booking: ${err.message}`, 'error');
+      setCancelBookingError(err.message || 'Could not cancel booking.');
+    } finally {
+      setIsCancellingBooking(false);
     }
   };
 
@@ -448,6 +463,21 @@ export default function TravelerBookingsPage() {
             setViewingBooking(null);
             setPayingBooking(b);
           }}
+        />
+      )}
+
+      {/* Controlled Booking Cancellation Modal with Reason */}
+      {cancellingBooking && (
+        <BookingCancelModal
+          isOpen={Boolean(cancellingBooking)}
+          booking={cancellingBooking}
+          onClose={() => {
+            setCancellingBooking(null);
+            setCancelBookingError(null);
+          }}
+          onConfirm={handleConfirmCancelBooking}
+          isCancelling={isCancellingBooking}
+          error={cancelBookingError}
         />
       )}
 

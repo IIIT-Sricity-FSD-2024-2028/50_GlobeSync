@@ -16,6 +16,10 @@ export class ReviewsService {
     return reviews.filter((r) => r.tripId === tripId);
   }
 
+  findByGuide(guideId: number): Review[] {
+    return reviews.filter((r) => r.guideId === guideId);
+  }
+
   create(dto: CreateReviewDto): Review {
     const maxId = reviews.length > 0 ? Math.max(...reviews.map((r) => r.reviewId)) : 0;
     const item: Review = {

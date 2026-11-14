@@ -282,10 +282,13 @@ export default function TravelerCreateTripPage() {
     const newErrors = {};
 
     if (step === 1) {
+      const todayStr = new Date().toISOString().split('T')[0];
       if (!formData.startDate) {
         newErrors.startDate = 'Start date is required.';
       } else if (isNaN(new Date(formData.startDate).getTime())) {
         newErrors.startDate = 'Please enter a valid start date.';
+      } else if (formData.startDate <= todayStr) {
+        newErrors.startDate = 'Trip start date must be a future date (cannot be today or a past date). Advance booking is required.';
       }
 
       if (!formData.endDate) {
@@ -333,8 +336,11 @@ export default function TravelerCreateTripPage() {
     if (!formData.destination || !formData.destination.trim()) {
       newErrors.destination = 'Destination is required.';
     }
+    const todayStr = new Date().toISOString().split('T')[0];
     if (!formData.startDate || isNaN(new Date(formData.startDate).getTime())) {
       newErrors.startDate = 'Please enter a valid start date.';
+    } else if (formData.startDate <= todayStr) {
+      newErrors.startDate = 'Trip start date must be a future date (cannot be today or a past date). Advance booking is required.';
     }
     if (!formData.endDate || isNaN(new Date(formData.endDate).getTime())) {
       newErrors.endDate = 'Please enter a valid end date.';

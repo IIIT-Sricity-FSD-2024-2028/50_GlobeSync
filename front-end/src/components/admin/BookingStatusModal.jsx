@@ -46,10 +46,12 @@ export default function BookingStatusModal({
   onSubmit,
 }) {
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [cancellationReason, setCancellationReason] = useState('');
 
   useEffect(() => {
     if (isOpen && booking) {
       setSelectedStatus(booking.status || 'Pending');
+      setCancellationReason(booking.cancellationReason || '');
     }
   }, [isOpen, booking]);
 
@@ -64,7 +66,7 @@ export default function BookingStatusModal({
       onClose();
       return;
     }
-    onSubmit(booking.bookingId, selectedStatus);
+    onSubmit(booking.bookingId, selectedStatus, cancellationReason);
   };
 
   const paymentDisplay = payment ? (
@@ -147,6 +149,28 @@ export default function BookingStatusModal({
           disabled={isBusy}
           helperText="Pending = awaiting confirmation; Confirmed = reservation active; Cancelled = reservation released."
         />
+
+        {selectedStatus === 'Cancelled' && (
+          <div style={{ marginBottom: '14px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
+              Cancellation Reason *
+            </label>
+            <input
+              type="text"
+              value={cancellationReason}
+              onChange={(e) => setCancellationReason(e.target.value)}
+              placeholder="e.g. Cancelled upon customer request"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '13px',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+        )}
 
         {selectedStatus === 'Cancelled' && currentStatus !== 'Cancelled' && (
           <div

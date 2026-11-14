@@ -50,4 +50,19 @@ export class UpdateGuideDto {
   @IsOptional()
   @IsNumber()
   adminId?: number;
+
+  @ApiPropertyOptional({ example: 'Passionate local guide...', description: 'Guide bio and introduction' })
+  @IsOptional()
+  @IsString()
+  bio?: string;
+
+  @ApiPropertyOptional({ example: ['Heritage Walks', 'Food Tours'], description: 'Tour specialties', type: [String] })
+  @IsOptional()
+  @IsArray()
+  specialties?: string[];
+
+  @ApiPropertyOptional({ example: 'available', description: 'Availability status' })
+  @IsOptional()
+  @IsString()
+  availability?: 'available' | 'on_tour' | 'away';
 }

@@ -22,6 +22,7 @@ const ROLE_MENU_CONFIG = {
     { label: 'Trip Requests', path: '/guide/requests', icon: '📥' },
     { label: 'Assigned Travelers', path: '/guide/travelers', icon: '👥' },
     { label: 'Completed Trips', path: '/guide/completed-trips', icon: '✅' },
+    { label: 'Reviews & Ratings', path: '/guide/reviews', icon: '⭐' },
     { label: 'Messages', path: '/guide/messages', icon: '💬' },
     { label: 'Profile', path: '/guide/profile', icon: '👤' },
   ],

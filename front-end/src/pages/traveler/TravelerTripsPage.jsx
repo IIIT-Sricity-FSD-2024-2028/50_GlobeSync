@@ -6,6 +6,7 @@ import TripList from '../../components/trips/TripList';
 import TripFilterBar from '../../components/trips/TripFilterBar';
 import ActiveTripHeader from '../../components/trips/ActiveTripHeader';
 import TripEditModal from '../../components/trips/TripEditModal';
+import TripCancelModal from '../../components/trips/TripCancelModal';
 import ItineraryList from '../../components/itineraries/ItineraryList';
 import ItineraryForm from '../../components/itineraries/ItineraryForm';
 import Toast from '../../components/common/Toast';
@@ -35,8 +36,11 @@ export default function TravelerTripsPage() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 3. Trip Edit Modal State
+  // 3. Trip Edit & Cancel Modal State
   const [editingTrip, setEditingTrip] = useState(null);
+  const [cancellingTrip, setCancellingTrip] = useState(null);
+  const [isCancellingTrip, setIsCancellingTrip] = useState(false);
+  const [cancelTripError, setCancelTripError] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
 
   // Toast Notification State
@@ -235,28 +239,42 @@ export default function TravelerTripsPage() {
     setTimeout(() => setActionMessage(null), 4000);
   };
 
-  const handleCancelTrip = async (trip) => {
-    const confirmCancel = window.confirm(
-      `Are you sure you want to cancel your trip to ${trip.destination} (Trip #${trip.tripId})?`
-    );
-    if (!confirmCancel) return;
+  const handleCancelTrip = (trip) => {
+    setCancellingTrip(trip);
+    setCancelTripError(null);
+  };
+
+  const handleConfirmCancelTrip = async (trip, cancellationReason) => {
+    setIsCancellingTrip(true);
+    setCancelTripError(null);
 
     try {
-      await tripsApi.updateStatus(trip.tripId, 'Cancelled');
+      await tripsApi.updateStatus(trip.tripId, {
+        status: 'Cancelled',
+        cancellationReason,
+      });
 
       setTrips((prevTrips) =>
-        prevTrips.map((t) => (t.tripId === trip.tripId ? { ...t, status: 'Cancelled' } : t))
+        prevTrips.map((t) =>
+          t.tripId === trip.tripId
+            ? { ...t, status: 'Cancelled', cancellationReason }
+            : t
+        )
       );
 
       if (selectedTrip?.tripId === trip.tripId) {
-        setSelectedTrip((prev) => (prev ? { ...prev, status: 'Cancelled' } : null));
+        setSelectedTrip((prev) =>
+          prev ? { ...prev, status: 'Cancelled', cancellationReason } : null
+        );
       }
 
-      setActionMessage(`Trip #${trip.tripId} has been cancelled.`);
-      setTimeout(() => setActionMessage(null), 4000);
+      setCancellingTrip(null);
+      showToast(`Trip #${trip.tripId} has been cancelled.`);
     } catch (err) {
       console.error('[TravelerTripsPage] Failed to cancel trip:', err);
-      showToast(`Error cancelling trip: ${err.message}`, 'error');
+      setCancelTripError(err.message || 'Failed to cancel trip.');
+    } finally {
+      setIsCancellingTrip(false);
     }
   };
 
@@ -497,6 +515,21 @@ export default function TravelerTripsPage() {
           trip={editingTrip}
           onClose={() => setEditingTrip(null)}
           onSave={handleTripUpdated}
+        />
+      )}
+
+      {/* Controlled Trip Cancellation Modal with Reason */}
+      {cancellingTrip && (
+        <TripCancelModal
+          isOpen={Boolean(cancellingTrip)}
+          trip={cancellingTrip}
+          onClose={() => {
+            setCancellingTrip(null);
+            setCancelTripError(null);
+          }}
+          onConfirm={handleConfirmCancelTrip}
+          isCancelling={isCancellingTrip}
+          error={cancelTripError}
         />
       )}
 

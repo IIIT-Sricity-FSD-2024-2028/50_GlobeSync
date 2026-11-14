@@ -198,6 +198,23 @@ export default function BookingDetailModal({
                 ₹{Number(booking.amount || 0).toLocaleString('en-IN')}
               </span>
             </div>
+
+            {booking.status === 'Cancelled' && booking.cancellationReason && (
+              <div
+                style={{
+                  gridColumn: 'span 2',
+                  marginTop: '6px',
+                  padding: '10px 14px',
+                  background: '#fef2f2',
+                  border: '1px solid #fee2e2',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  color: '#991b1b',
+                }}
+              >
+                <strong>Cancellation Reason:</strong> {booking.cancellationReason}
+              </div>
+            )}
           </div>
 
           {/* Refund Status Banner */}

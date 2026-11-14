@@ -127,9 +127,13 @@ export default function AdminTripsPage() {
     setStatusTrip(null);
   };
 
-  const handleUpdateTripStatus = (tripId, nextStatus) => {
+  const handleUpdateTripStatus = (tripId, nextStatus, cancellationReason) => {
+    const payload = nextStatus === 'Cancelled' && cancellationReason
+      ? { status: nextStatus, cancellationReason }
+      : nextStatus;
+
     resource.run(
-      () => tripsApi.updateStatus(tripId, nextStatus),
+      () => tripsApi.updateStatus(tripId, payload),
       `Trip #${tripId} status updated to '${nextStatus}'.`,
       () => {
         setStatusTrip(null);

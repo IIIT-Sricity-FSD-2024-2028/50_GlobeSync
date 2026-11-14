@@ -67,6 +67,45 @@ export default function TripCard({
               📦 Pre-Planned Package #{trip.packageId}
             </div>
           )}
+          {trip.status === 'Cancelled' && (
+            <div
+              style={{
+                marginTop: '6px',
+                padding: '10px 12px',
+                background: '#fef2f2',
+                border: '1px solid #fee2e2',
+                borderRadius: '8px',
+                fontSize: '12px',
+                color: '#991b1b',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+              }}
+            >
+              <div><strong>Cancellation Reason:</strong> {trip.cancellationReason || 'Cancelled by user'}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    padding: '2px 7px',
+                    borderRadius: '10px',
+                    background: trip.refundPercentage === 65 || trip.cancellationReason?.includes('65%') ? '#dcfce7' : '#fee2e2',
+                    color: trip.refundPercentage === 65 || trip.cancellationReason?.includes('65%') ? '#15803d' : '#b91c1c',
+                  }}
+                >
+                  {trip.refundPercentage === 65 || trip.cancellationReason?.includes('65%')
+                    ? '65% Refund (Cancelled ≥3 days prior)'
+                    : '0% Refund (Cancelled before 12h cutoff — No refund)'}
+                </span>
+                {trip.refundAmount !== undefined && (
+                  <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                    • Refund Amount: ₹{Number(trip.refundAmount).toLocaleString('en-IN')}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

@@ -115,6 +115,11 @@ export default function BookingList({
                       <div>
                         <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{b.service}</div>
                         <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{b.type}</div>
+                        {b.status === 'Cancelled' && b.cancellationReason && (
+                          <div style={{ fontSize: '11px', color: '#b91c1c', marginTop: '2px', fontWeight: 600 }}>
+                            Reason: {b.cancellationReason}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>

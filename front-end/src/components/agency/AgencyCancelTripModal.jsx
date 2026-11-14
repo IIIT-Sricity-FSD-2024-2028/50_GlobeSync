@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
 import { tripsApi } from '../../services/api';
 
+const AGENCY_CANCEL_REASONS = [
+  'Client requested cancellation',
+  'Client payment default / non-fulfillment',
+  'Weather / Travel advisory / Force Majeure',
+  'Schedule conflict / Rescheduling',
+  'Operational / Provider disruption',
+  'Other reason',
+];
+
 export default function AgencyCancelTripModal({
   isOpen,
   trip,
@@ -12,12 +21,21 @@ export default function AgencyCancelTripModal({
 
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState(null);
+  const [selectedReason, setSelectedReason] = useState(AGENCY_CANCEL_REASONS[0]);
+  const [comments, setComments] = useState('');
 
   const handleConfirmCancel = async () => {
     setCancelling(true);
     setError(null);
     try {
-      const updated = await tripsApi.updateStatus(trip.tripId, 'Cancelled');
+      const finalReason = comments.trim()
+        ? `${selectedReason}: ${comments.trim()}`
+        : selectedReason;
+
+      const updated = await tripsApi.updateStatus(trip.tripId, {
+        status: 'Cancelled',
+        cancellationReason: finalReason,
+      });
       if (showToast) {
         showToast(`Trip #${trip.tripId} cancelled. Linked commission entry has been marked VOID. ✓`);
       }
@@ -88,11 +106,56 @@ export default function AgencyCancelTripModal({
           </div>
         )}
 
-        <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5', margin: '0 0 20px 0' }}>
+        <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.5', margin: '0 0 16px 0' }}>
           Are you sure you want to cancel this client trip? The status will permanently transition to{' '}
           <strong style={{ color: '#b91c1c' }}>Cancelled</strong>, and any associated commission ledger entry will be marked as{' '}
           <strong>VOID / CANCELLED</strong>.
         </p>
+
+        <div style={{ marginBottom: '14px' }}>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+            Cancellation Reason *
+          </label>
+          <select
+            value={selectedReason}
+            onChange={(e) => setSelectedReason(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: '1px solid #cbd5e1',
+              fontSize: '13px',
+              background: '#fff',
+            }}
+          >
+            {AGENCY_CANCEL_REASONS.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+            Internal / Client Notes
+          </label>
+          <textarea
+            rows={2}
+            value={comments}
+            onChange={(e) => setComments(e.target.value)}
+            placeholder="Add cancellation notes or context..."
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: '1px solid #cbd5e1',
+              fontSize: '12px',
+              fontFamily: 'inherit',
+              boxSizing: 'border-box',
+            }}
+          />
+        </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
           <button

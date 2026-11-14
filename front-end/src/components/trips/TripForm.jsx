@@ -37,6 +37,25 @@ export default function TripForm({
   onGuideSelect,
   onSubmit,
 }) {
+  const tomorrowStr = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  })();
+
+  const minEndDateStr = (() => {
+    if (formData.startDate) {
+      const d = new Date(formData.startDate);
+      d.setDate(d.getDate() + 1);
+      if (!isNaN(d.getTime())) {
+        return d.toISOString().split('T')[0];
+      }
+    }
+    const d = new Date();
+    d.setDate(d.getDate() + 2);
+    return d.toISOString().split('T')[0];
+  })();
+
   // Named event handler for advancing to next step with validation
   const handleNextStep = () => {
     if (onStepAdvance) {
@@ -200,16 +219,17 @@ export default function TripForm({
                 Trip Schedule & Passenger Count
               </h3>
               <p style={{ color: 'var(--muted)', fontSize: '13px', marginBottom: '20px' }}>
-                Specify travel dates and group size. End date must be strictly after start date.
+                Specify travel dates and group size. Advance booking required: trip start date must be a future date (cannot be today/present date). End date must be strictly after start date.
               </p>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
-                    Start Date *
+                    Start Date * (Advance Booking)
                   </label>
                   <input
                     type="date"
+                    min={tomorrowStr}
                     value={formData.startDate}
                     onChange={(e) => onInputChange('startDate', e.target.value)}
                     style={{
@@ -233,6 +253,7 @@ export default function TripForm({
                   </label>
                   <input
                     type="date"
+                    min={minEndDateStr}
                     value={formData.endDate}
                     onChange={(e) => onInputChange('endDate', e.target.value)}
                     style={{

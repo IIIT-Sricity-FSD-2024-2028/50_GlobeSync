@@ -95,6 +95,9 @@ export default function GuideProfilePage() {
         languages:    updated.languages,
         experience:   updated.experience,
         pricePerTrip: updated.pricePerTrip,
+        bio:          updated.bio,
+        specialties:  updated.specialties,
+        availability: updated.availability,
       };
       updateUser(sessionFields);
 
@@ -227,14 +230,60 @@ export default function GuideProfilePage() {
               <div className="guide-profile-detail-grid">
                 <ProfileField label="Email"            value={profile.email || '—'} />
                 <ProfileField label="Contact"          value={profile.contact || '—'} />
-                <ProfileField label="Experience"       value={formatExperience(profile.experience)} />
-                <ProfileField label="Price per Trip"   value={formatPrice(profile.pricePerTrip)} />
+                <ProfileField
+                  label="Verified Experience"
+                  value={
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <strong>{formatExperience(profile.experience)}</strong>
+                      <span style={{ fontSize: '11px', background: '#dcfce7', color: '#15803d', padding: '1px 7px', borderRadius: '10px', fontWeight: 700 }}>
+                        ✓ Admin Verified
+                      </span>
+                    </span>
+                  }
+                />
+                <ProfileField
+                  label="Contracted Price per Trip"
+                  value={
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <strong>{formatPrice(profile.pricePerTrip)}</strong>
+                      <span style={{ fontSize: '11px', background: '#e0f2fe', color: '#0369a1', padding: '1px 7px', borderRadius: '10px', fontWeight: 700 }}>
+                        Fixed by Admin
+                      </span>
+                    </span>
+                  }
+                />
+                <ProfileField
+                  label="Availability"
+                  value={
+                    profile.availability === 'on_tour' ? (
+                      <span style={{ color: '#0284c7', fontWeight: 600 }}>🔵 On Tour</span>
+                    ) : profile.availability === 'away' ? (
+                      <span style={{ color: '#64748b', fontWeight: 600 }}>⚪ Away / On Leave</span>
+                    ) : (
+                      <span style={{ color: '#15803d', fontWeight: 600 }}>🟢 Available for New Tours</span>
+                    )
+                  }
+                />
                 <ProfileField label="Languages Spoken" value={formatLanguages(profile.languages)} wide />
+                {profile.specialties && profile.specialties.length > 0 && (
+                  <ProfileField
+                    label="Tour Specialties"
+                    value={Array.isArray(profile.specialties) ? profile.specialties.join(', ') : profile.specialties}
+                    wide
+                  />
+                )}
+                {profile.bio && (
+                  <ProfileField
+                    label="Professional Bio"
+                    value={<span style={{ fontStyle: 'italic', lineHeight: 1.5 }}>"{profile.bio}"</span>}
+                    wide
+                  />
+                )}
               </div>
 
               {/* Read-only note about admin-managed fields */}
               <p className="guide-profile-admin-note">
-                ℹ️ Rating is managed by your administrator and cannot be changed here.
+                ℹ️ Rating, Certified Experience, and Contracted Price per Trip are managed and authenticated by GlobeSync Administrators and cannot be modified by the guide.
               </p>
             </div>
           )}

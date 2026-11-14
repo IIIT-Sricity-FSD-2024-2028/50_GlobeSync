@@ -19,4 +19,6 @@ export class UpdateBookingDto {
   @ApiPropertyOptional({ example: 7 }) @IsOptional() @IsNumber() insuranceRate?: number;
   @ApiPropertyOptional({ example: 150 }) @IsOptional() @IsNumber() insuranceAmount?: number;
   @ApiPropertyOptional({ example: 'Flight' }) @IsOptional() @IsString() transportMode?: string;
+  @ApiPropertyOptional({ example: 'Trip reschedule' }) @IsOptional() @IsString() cancellationReason?: string;
+  @ApiPropertyOptional({ example: '2026-11-13T10:00:00Z' }) @IsOptional() @IsString() cancelledAt?: string;
 }

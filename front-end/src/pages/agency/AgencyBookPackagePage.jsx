@@ -41,6 +41,12 @@ export default function AgencyBookPackagePage() {
   const [submitError, setSubmitError] = useState(null);
   const [completedBooking, setCompletedBooking] = useState(null);
 
+  const tomorrowStr = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  })();
+
   useEffect(() => {
     const controller = new AbortController();
     const loadResources = async (signal) => {
@@ -144,6 +150,11 @@ export default function AgencyBookPackagePage() {
     }
     if (!startDate) {
       setSubmitError('Please select a trip start date.');
+      return;
+    }
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (startDate <= todayStr) {
+      setSubmitError('Trip start date must be a future date (cannot be today or a past date). Advance booking is required.');
       return;
     }
 
@@ -406,10 +417,11 @@ export default function AgencyBookPackagePage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
-                  Trip Start Date *
+                  Trip Start Date * (Advance Booking)
                 </label>
                 <input
                   type="date"
+                  min={tomorrowStr}
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                   className="form-control"

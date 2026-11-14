@@ -23,7 +23,13 @@ export default function GuideQuickActions() {
       title: 'Completed Trips',
       path: '/guide/completed-trips',
       icon: '✅',
-      description: 'Access tour history, past itineraries, and traveler reviews for finished tours.',
+      description: 'Access tour history, past itineraries, and verified trip records.',
+    },
+    {
+      title: 'Reviews & Ratings',
+      path: '/guide/reviews',
+      icon: '⭐',
+      description: 'View verified traveler feedback, star ratings, and post acknowledgments.',
     },
     {
       title: 'Messages',

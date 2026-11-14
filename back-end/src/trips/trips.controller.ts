@@ -92,12 +92,12 @@ export class TripsController {
   @Patch(':id/status')
   @Roles(Role.SUPERUSER, Role.ADMIN, Role.GUIDE, Role.TRAVELER, Role.AGENCY)
   @ApiUserHeaders()
-  @ApiOperation({ summary: 'Update trip status', description: 'Updates only the status of a trip. Guides can update status of assigned trips. Travelers can update status after payment.' })
+  @ApiOperation({ summary: 'Update trip status', description: 'Updates only the status of a trip. Guides can update status of assigned trips. Travelers can update status after payment or cancel.' })
   @ApiParam({ name: 'id', type: Number })
   @ApiResponse({ status: 200, description: 'Trip status updated' })
   @ApiResponse({ status: 404, description: 'Trip not found' })
   updateStatus(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateTripStatusDto) {
-    return this.tripsService.updateStatus(id, dto.status);
+    return this.tripsService.updateStatus(id, dto.status, dto.cancellationReason);
   }
 
   @Delete(':id')

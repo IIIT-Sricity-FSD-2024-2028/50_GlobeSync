@@ -95,6 +95,11 @@ export class BookingsService {
       ...(dto.amount !== undefined && { amount: dto.amount }),
       ...(dto.cancellationProtectionSelected !== undefined && { cancellationProtectionSelected: dto.cancellationProtectionSelected }),
       ...(dto.cancellationFee !== undefined && { cancellationFee: dto.cancellationFee }),
+      ...(dto.cancellationReason !== undefined && { cancellationReason: dto.cancellationReason }),
+      ...(dto.status === 'Cancelled' && {
+        cancellationReason: dto.cancellationReason || bookings[idx].cancellationReason || 'Cancelled by user',
+        cancelledAt: dto.cancelledAt || new Date().toISOString(),
+      }),
     };
     bookings[idx] = updated;
     return updated;
