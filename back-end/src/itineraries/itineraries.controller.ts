@@ -27,7 +27,7 @@ export class ItinerariesController {
   }
 
   @Post()
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.AGENCY)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Create an itinerary item' })
   @ApiResponse({ status: 201, description: 'Itinerary created' })
@@ -35,7 +35,7 @@ export class ItinerariesController {
   create(@Body() dto: CreateItineraryDto) { return this.itinerariesService.create(dto); }
 
   @Put(':id')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.AGENCY)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Update an itinerary item' })
   @ApiParam({ name: 'id', type: Number })
@@ -46,8 +46,8 @@ export class ItinerariesController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPERUSER, Role.ADMIN)
-  @ApiRoleHeader()
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.AGENCY)
+  @ApiUserHeaders()
   @ApiOperation({ summary: 'Delete an itinerary item' })
   @ApiParam({ name: 'id', type: Number })
   @ApiResponse({ status: 200, description: 'Itinerary deleted' })

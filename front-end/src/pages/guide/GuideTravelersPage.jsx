@@ -420,10 +420,19 @@ export default function GuideTravelersPage() {
         content: messageContent,
       });
 
+      if (suggestionData?.createdItinerary) {
+        setItineraries((prev) => [...prev, suggestionData.createdItinerary]);
+      } else {
+        try {
+          const fresh = await itinerariesApi.getByTrip(currentTrip.tripId);
+          setItineraries(Array.isArray(fresh) ? fresh : fresh?.data || []);
+        } catch {}
+      }
+
       setSuggestModalOpen(false);
       setFeedback({
         type: 'success',
-        text: `Itinerary suggestion dispatched to ${currentContact.name}! This proposal was sent as a message and does not modify the confirmed itinerary until agreed upon.`,
+        text: `Itinerary suggestion logged for trip review and dispatched to ${currentContact.name}!`,
       });
     } catch (err) {
       console.error('[GuideTravelersPage] Failed to send itinerary suggestion:', err);

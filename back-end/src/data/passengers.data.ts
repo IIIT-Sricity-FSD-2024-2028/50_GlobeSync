@@ -10,6 +10,7 @@ export interface Passenger {
   dob?: string;
   idType?: string;
   idNumber?: string;
+  passengerCategory?: string;
   specialNotes?: string;
 }
 

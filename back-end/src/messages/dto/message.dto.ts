@@ -47,6 +47,11 @@ export class ConversationQueryDto {
   @IsString()
   sender?: string;
 
+  @ApiPropertyOptional({ example: 'traveler' })
+  @IsOptional()
+  @IsString()
+  senderType?: string;
+
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @Type(() => Number)
@@ -57,6 +62,11 @@ export class ConversationQueryDto {
   @IsOptional()
   @IsString()
   receiver?: string;
+
+  @ApiPropertyOptional({ example: 'guide' })
+  @IsOptional()
+  @IsString()
+  receiverType?: string;
 
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()

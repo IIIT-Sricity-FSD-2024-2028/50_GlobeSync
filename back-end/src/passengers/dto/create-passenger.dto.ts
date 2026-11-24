@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString, IsIn, Min, Max } from 'class-validator';
 
 export class CreatePassengerDto {
   @ApiProperty({ example: 'Jane Doe' })
@@ -10,12 +10,19 @@ export class CreatePassengerDto {
   @ApiProperty({ example: 30 })
   @IsNotEmpty()
   @IsNumber()
+  @Min(0)
+  @Max(120)
   age: number;
 
   @ApiProperty({ example: 'Female' })
   @IsNotEmpty()
   @IsString()
   gender: string;
+
+  @ApiPropertyOptional({ example: 'Adult', enum: ['Adult', 'Child', 'Infant'] })
+  @IsOptional()
+  @IsIn(['Adult', 'Child', 'Infant'])
+  passengerCategory?: string;
 
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
@@ -42,9 +49,12 @@ export class CreatePassengerDto {
   @IsString()
   dob?: string;
 
-  @ApiPropertyOptional({ example: 'Passport' })
+  @ApiPropertyOptional({
+    example: 'Passport',
+    enum: ['Passport', 'Aadhaar', 'Driving License', 'PAN Card', 'Voter ID'],
+  })
   @IsOptional()
-  @IsString()
+  @IsIn(['Passport', 'Aadhaar', 'Driving License', 'PAN Card', 'Voter ID'])
   idType?: string;
 
   @ApiPropertyOptional({ example: 'Z1234567' })

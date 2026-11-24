@@ -160,19 +160,81 @@ export default function GuideTripItineraryManager({
                         </div>
 
                         <div className="guide-itin-item-details">
-                          <div className="guide-itin-item-title-row">
+                          <div className="guide-itin-item-title-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                             <span className="guide-itin-item-title">
                               {item.activity}
                             </span>
                             <span className={`guide-status-pill status-${status.toLowerCase()}`}>
                               {status}
                             </span>
+
+                            {/* Source and Proposal Status Badges */}
+                            {item.suggestedBy === 'guide' ? (
+                              <span
+                                style={{
+                                  padding: '2px 8px',
+                                  borderRadius: '12px',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  background:
+                                    item.suggestionStatus === 'Approved'
+                                      ? '#dcfce7'
+                                      : item.suggestionStatus === 'Rejected'
+                                      ? '#fee2e2'
+                                      : '#fef3c7',
+                                  color:
+                                    item.suggestionStatus === 'Approved'
+                                      ? '#15803d'
+                                      : item.suggestionStatus === 'Rejected'
+                                      ? '#b91c1c'
+                                      : '#b45309',
+                                  border: `1px solid ${
+                                    item.suggestionStatus === 'Approved'
+                                      ? '#86efac'
+                                      : item.suggestionStatus === 'Rejected'
+                                      ? '#fca5a5'
+                                      : '#fde68a'
+                                  }`,
+                                }}
+                              >
+                                {item.suggestionStatus === 'Approved'
+                                  ? '✓ Guide Suggestion (Approved)'
+                                  : item.suggestionStatus === 'Rejected'
+                                  ? '✕ Guide Suggestion (Rejected)'
+                                  : '💡 Guide Suggestion (Pending Review)'}
+                              </span>
+                            ) : (
+                              <span
+                                style={{
+                                  padding: '2px 8px',
+                                  borderRadius: '12px',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  background: '#e0f2fe',
+                                  color: '#0369a1',
+                                  border: '1px solid #bae6fd',
+                                }}
+                              >
+                                🏢 Agency Confirmed Activity
+                              </span>
+                            )}
                           </div>
 
                           <div className="guide-itin-item-meta">
                             <span>🕒 {item.time || 'Flexible'}</span>
                             {item.city && <span>📍 {item.city}</span>}
+                            {item.estimatedCost ? (
+                              <span style={{ color: '#059669', fontWeight: 600 }}>
+                                💰 Est: ₹{Number(item.estimatedCost).toLocaleString('en-IN')}
+                              </span>
+                            ) : null}
                           </div>
+
+                          {item.notes && item.notes !== item.activity && (
+                            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                              📝 Note: {item.notes}
+                            </div>
+                          )}
                         </div>
 
                         <div className="guide-itin-item-actions">
@@ -206,7 +268,7 @@ export default function GuideTripItineraryManager({
 
       {/* Explicit Backend Deletion Restriction Documentation Notice */}
       <div className="guide-itin-deletion-notice">
-        🔒 <strong>Policy Note:</strong> Itinerary entry deletion is restricted to Platform Administrators to ensure audit preservation. Guides can freely edit, reschedule, or mark activities as Completed.
+        🔒 <strong>Policy Note:</strong> Tour activities and guide suggestions are synchronized in real-time with the Agency portal. Guides can suggest additions, update completion progress, or reschedule activities.
       </div>
     </div>
   );

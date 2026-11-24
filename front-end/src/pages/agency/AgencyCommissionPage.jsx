@@ -29,7 +29,7 @@ export default function AgencyCommissionPage() {
     setError(null);
     try {
       const [commData, profData] = await Promise.all([
-        agencyApi.getCommissions({ signal }).catch(() => []),
+        agencyApi.getCommissions({ signal }),
         agenciesApi.getById(agencyId, { signal }).catch(() => null),
       ]);
 
@@ -69,26 +69,38 @@ export default function AgencyCommissionPage() {
   // Aggregate stats
   const totalGrossSales = useMemo(() => {
     return commissions
-      .filter((c) => c.status !== 'cancelled' && c.status !== 'void')
+      .filter((c) => {
+        const st = (c.status || '').toLowerCase();
+        return st !== 'cancelled' && st !== 'void';
+      })
       .reduce((sum, item) => sum + Number(item.grossAmount || 0), 0);
   }, [commissions]);
 
   const earnedCommission = useMemo(() => {
     return commissions
-      .filter((c) => c.status === 'earned' || c.status === 'settled')
+      .filter((c) => {
+        const st = (c.status || '').toLowerCase();
+        return st === 'earned' || st === 'settled';
+      })
       .reduce((sum, item) => sum + Number(item.commissionAmount || 0), 0);
   }, [commissions]);
 
   const pendingCommission = useMemo(() => {
     return commissions
-      .filter((c) => c.status === 'pending')
+      .filter((c) => (c.status || '').toLowerCase() === 'pending')
       .reduce((sum, item) => sum + Number(item.commissionAmount || 0), 0);
   }, [commissions]);
 
   const averageCommissionRate = useMemo(() => {
-    const activeEntries = commissions.filter((c) => c.status !== 'cancelled' && c.status !== 'void');
+    const activeEntries = commissions.filter((c) => {
+      const st = (c.status || '').toLowerCase();
+      return st !== 'cancelled' && st !== 'void';
+    });
     if (activeEntries.length === 0) return contractedRate;
-    const totalRate = activeEntries.reduce((sum, item) => sum + Number(item.rate || contractedRate), 0);
+    const totalRate = activeEntries.reduce(
+      (sum, item) => sum + Number(item.commissionRate ?? item.rate ?? contractedRate),
+      0
+    );
     return Number((totalRate / activeEntries.length).toFixed(1));
   }, [commissions, contractedRate]);
 
@@ -459,7 +471,7 @@ export default function AgencyCommissionPage() {
                         ₹{Number(row.grossAmount || 0).toLocaleString('en-IN')}
                       </td>
                       <td style={{ padding: '14px 18px', color: '#64748b' }}>
-                        {row.rate || contractedRate}%
+                        {row.commissionRate ?? row.rate ?? contractedRate}%
                       </td>
                       <td style={{ padding: '14px 18px', fontWeight: 800, color: '#0d9488', fontSize: '15px' }}>
                         ₹{Number(row.commissionAmount || 0).toLocaleString('en-IN')}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { passengersApi, agencyApi } from '../../services/api';
+import { ID_CONFIG, getDobLimits, calculateAge } from './PassengerModal';
 
 /**
  * PassengerSelector
@@ -21,6 +22,8 @@ export default function PassengerSelector({
   // Inline Add Passenger Form State
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState('');
+  const [newCategory, setNewCategory] = useState('Adult');
+  const [newDob, setNewDob] = useState('');
   const [newAge, setNewAge] = useState('');
   const [newGender, setNewGender] = useState('Male');
   const [newEmail, setNewEmail] = useState('');
@@ -44,7 +47,6 @@ export default function PassengerSelector({
     setLoading(true);
     setError(null);
     try {
-      // Try agencyApi.getPassengers first, fallback to passengersApi.getByAgency
       let data;
       try {
         data = await agencyApi.getPassengers({ signal });
@@ -83,26 +85,126 @@ export default function PassengerSelector({
     notifyChange(updated);
   };
 
+  const inlineDobLimits = getDobLimits(newCategory);
+  const currentIdConfig = ID_CONFIG[newIdType] || ID_CONFIG.Passport;
+
+  const handleDobChange = (dobVal) => {
+    setNewDob(dobVal);
+    if (!dobVal) {
+      setNewAge('');
+      return;
+    }
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (dobVal > todayStr) {
+      setAddError('Date of birth cannot be in the future.');
+      setNewAge('');
+      return;
+    }
+    const calcAge = calculateAge(dobVal);
+    setNewAge(String(calcAge));
+
+    if (newCategory === 'Adult' && (calcAge < 12 || calcAge > 120)) {
+      setAddError(`Adult age must be 12–120 years (DOB indicates ${calcAge} yrs). Please adjust DOB or category.`);
+    } else if (newCategory === 'Child' && (calcAge < 2 || calcAge > 11)) {
+      setAddError(`Child age must be 2–11 years (DOB indicates ${calcAge} yrs). Please adjust DOB or category.`);
+    } else if (newCategory === 'Infant' && (calcAge < 0 || calcAge >= 2)) {
+      setAddError(`Infant age must be 0 to < 2 years (DOB indicates ${calcAge} yrs). Please adjust DOB or category.`);
+    } else {
+      setAddError(null);
+    }
+  };
+
+  const handleCategoryChange = (catVal) => {
+    setNewCategory(catVal);
+    if (newDob) {
+      const calcAge = calculateAge(newDob);
+      if (catVal === 'Adult' && (calcAge < 12 || calcAge > 120)) {
+        setAddError(`Adult age must be 12–120 years (DOB indicates ${calcAge} yrs). Please adjust DOB or category.`);
+      } else if (catVal === 'Child' && (calcAge < 2 || calcAge > 11)) {
+        setAddError(`Child age must be 2–11 years (DOB indicates ${calcAge} yrs). Please adjust DOB or category.`);
+      } else if (catVal === 'Infant' && (calcAge < 0 || calcAge >= 2)) {
+        setAddError(`Infant age must be 0 to < 2 years (DOB indicates ${calcAge} yrs). Please adjust DOB or category.`);
+      } else {
+        setAddError(null);
+      }
+    }
+  };
+
   const handleInlineAdd = async (e) => {
     e.preventDefault();
+    setAddError(null);
+
+    // 1. Name
     if (!newName.trim()) {
       setAddError('Passenger full name is required');
       return;
     }
-    const ageNum = parseInt(newAge, 10);
-    if (!newAge || isNaN(ageNum) || ageNum <= 0 || ageNum > 120) {
-      setAddError('Please enter a valid age between 1 and 120');
+
+    // 2. DOB
+    if (!newDob) {
+      setAddError('Date of birth is required');
+      return;
+    }
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (newDob > todayStr) {
+      setAddError('Date of birth cannot be in the future');
       return;
     }
 
+    // 3. Age & Category (allow age = 0 for infants)
+    const ageNum = parseInt(newAge, 10);
+    if (newAge === '' || isNaN(ageNum) || ageNum < 0 || ageNum > 120) {
+      setAddError('Please enter a valid age (0–120)');
+      return;
+    }
+    if (newCategory === 'Adult' && (ageNum < 12 || ageNum > 120)) {
+      setAddError('Adult passenger must be between 12 and 120 years old');
+      return;
+    }
+    if (newCategory === 'Child' && (ageNum < 2 || ageNum > 11)) {
+      setAddError('Child passenger must be between 2 and 11 years old');
+      return;
+    }
+    if (newCategory === 'Infant' && (ageNum < 0 || ageNum >= 2)) {
+      setAddError('Infant passenger must be between 0 and < 2 years old');
+      return;
+    }
+
+    // 4. Phone (10-15 digits, optional +)
+    if (newPhone && newPhone.trim()) {
+      const cleanPhone = newPhone.trim().replace(/[\s-]/g, '');
+      if (!/^\+?\d{10,15}$/.test(cleanPhone)) {
+        setAddError('Please enter a valid phone number (10–15 digits, optional +)');
+        return;
+      }
+    }
+
+    // 5. Email
+    if (newEmail && newEmail.trim()) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail.trim())) {
+        setAddError('Please enter a valid email address');
+        return;
+      }
+    }
+
+    // 6. ID Number
+    if (newIdNumber && newIdNumber.trim()) {
+      const cfg = ID_CONFIG[newIdType] || ID_CONFIG.Passport;
+      if (!cfg.validate(newIdNumber)) {
+        setAddError(cfg.errorMsg);
+        return;
+      }
+    }
+
     setSubmittingAdd(true);
-    setAddError(null);
 
     try {
       const payload = {
         agencyId: Number(agencyId),
         name: newName.trim(),
+        passengerCategory: newCategory,
         age: ageNum,
+        dob: newDob || undefined,
         gender: newGender,
         email: newEmail.trim() || undefined,
         phone: newPhone.trim() || undefined,
@@ -123,10 +225,13 @@ export default function PassengerSelector({
 
       // Reset inline form
       setNewName('');
+      setNewCategory('Adult');
+      setNewDob('');
       setNewAge('');
       setNewGender('Male');
       setNewEmail('');
       setNewPhone('');
+      setNewIdType('Passport');
       setNewIdNumber('');
       setNewSpecialNotes('');
       setIsAdding(false);
@@ -181,12 +286,13 @@ export default function PassengerSelector({
 
           {addError && (
             <div style={{ padding: '8px 12px', background: '#fee2e2', color: '#b91c1c', borderRadius: '6px', fontSize: '12px', marginBottom: '10px' }}>
-              {addError}
+              ⚠️ {addError}
             </div>
           )}
 
           <form onSubmit={handleInlineAdd}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(160px, 100%), 1fr))', gap: '10px', marginBottom: '10px' }}>
+              {/* Full Name */}
               <div>
                 <label style={{ fontSize: '11px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>
                   Full Name *
@@ -200,21 +306,54 @@ export default function PassengerSelector({
                 />
               </div>
 
+              {/* Passenger Category */}
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>
+                  Category *
+                </label>
+                <select
+                  value={newCategory}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
+                  style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#fff' }}
+                >
+                  <option value="Adult">Adult (12+ yrs)</option>
+                  <option value="Child">Child (2–11 yrs)</option>
+                  <option value="Infant">Infant (0–&lt;2 yrs)</option>
+                </select>
+              </div>
+
+              {/* Date of Birth (Required) */}
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>
+                  Date of Birth *
+                </label>
+                <input
+                  type="date"
+                  min={inlineDobLimits.min}
+                  max={inlineDobLimits.max}
+                  value={newDob}
+                  onChange={(e) => handleDobChange(e.target.value)}
+                  style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#fff' }}
+                />
+              </div>
+
+              {/* Age (Auto-calculated, allows 0 for Infant) */}
               <div>
                 <label style={{ fontSize: '11px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>
                   Age *
                 </label>
                 <input
                   type="number"
-                  placeholder="e.g. 32"
-                  min="1"
+                  placeholder="0-120"
+                  min="0"
                   max="120"
                   value={newAge}
                   onChange={(e) => setNewAge(e.target.value)}
-                  style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#f1f5f9' }}
                 />
               </div>
 
+              {/* Gender */}
               <div>
                 <label style={{ fontSize: '11px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>
                   Gender
@@ -230,6 +369,7 @@ export default function PassengerSelector({
                 </select>
               </div>
 
+              {/* Email */}
               <div>
                 <label style={{ fontSize: '11px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>
                   Email
@@ -243,6 +383,7 @@ export default function PassengerSelector({
                 />
               </div>
 
+              {/* Phone */}
               <div>
                 <label style={{ fontSize: '11px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>
                   Phone
@@ -256,6 +397,7 @@ export default function PassengerSelector({
                 />
               </div>
 
+              {/* ID Type (No National ID) */}
               <div>
                 <label style={{ fontSize: '11px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>
                   ID / Document Type
@@ -268,24 +410,30 @@ export default function PassengerSelector({
                   <option value="Passport">Passport</option>
                   <option value="Aadhaar">Aadhaar</option>
                   <option value="Driving License">Driving License</option>
-                  <option value="National ID">National ID</option>
+                  <option value="PAN Card">PAN Card</option>
+                  <option value="Voter ID">Voter ID</option>
                 </select>
               </div>
 
+              {/* ID Number with dynamic placeholder */}
               <div>
                 <label style={{ fontSize: '11px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>
-                  ID / Passport Number
+                  ID Number
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Z1234567"
+                  placeholder={currentIdConfig.placeholder}
                   value={newIdNumber}
                   onChange={(e) => setNewIdNumber(e.target.value)}
                   style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
                 />
+                <span style={{ fontSize: '10px', color: '#64748b', display: 'block', marginTop: '2px' }}>
+                  {currentIdConfig.hint}
+                </span>
               </div>
             </div>
 
+            {/* Notes */}
             <div style={{ marginBottom: '10px' }}>
               <label style={{ fontSize: '11px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>
                 Dietary / Special Needs Notes
@@ -349,6 +497,15 @@ export default function PassengerSelector({
           {passengers.map((p) => {
             const passId = Number(p.passId || p.id);
             const isSelected = currentList.includes(passId);
+            const cat =
+              p.passengerCategory ||
+              (p.age !== undefined && p.age !== null
+                ? p.age < 2
+                  ? 'Infant'
+                  : p.age < 12
+                  ? 'Child'
+                  : 'Adult'
+                : 'Adult');
 
             return (
               <div
@@ -375,10 +532,25 @@ export default function PassengerSelector({
                   style={{ accentColor: '#0d9488', width: '16px', height: '16px', cursor: 'pointer' }}
                 />
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {p.name}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {p.name}
+                    </span>
+                    <span
+                      style={{
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        background: cat === 'Adult' ? '#eff6ff' : cat === 'Child' ? '#fef3c7' : '#fdf2f8',
+                        color: cat === 'Adult' ? '#1d4ed8' : cat === 'Child' ? '#b45309' : '#be185d',
+                        border: `1px solid ${cat === 'Adult' ? '#bfdbfe' : cat === 'Child' ? '#fde68a' : '#fbcfe8'}`,
+                      }}
+                    >
+                      {cat}
+                    </span>
                   </div>
-                  <div style={{ fontSize: '11px', color: '#64748b' }}>
+                  <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
                     {p.age} yrs · {p.gender} {p.idType ? `· ${p.idType}` : ''}
                   </div>
                 </div>

@@ -225,7 +225,7 @@ export default function AgencyPassengersPage() {
         }}
       >
         <SummaryCard
-          title="Total Passengers in Roster"
+          title="Total Passengers"
           value={String(passengers.length)}
           subtitle="Saved client records"
           icon="👥"
@@ -238,15 +238,29 @@ export default function AgencyPassengersPage() {
         />
         <SummaryCard
           title="Adult Travelers"
-          value={String(passengers.filter((p) => p.age >= 18).length)}
-          subtitle="Age 18 and above"
+          value={String(
+            passengers.filter((p) => p.passengerCategory === 'Adult' || (!p.passengerCategory && p.age >= 12)).length,
+          )}
+          subtitle="Age 12 and above"
           icon="🧑"
         />
         <SummaryCard
-          title="Minor / Child Travelers"
-          value={String(passengers.filter((p) => p.age < 18).length)}
-          subtitle="Age under 18"
+          title="Child Travelers"
+          value={String(
+            passengers.filter(
+              (p) => p.passengerCategory === 'Child' || (!p.passengerCategory && p.age >= 2 && p.age < 12),
+            ).length,
+          )}
+          subtitle="Age 2 to 11 years"
           icon="🧒"
+        />
+        <SummaryCard
+          title="Infant Travelers"
+          value={String(
+            passengers.filter((p) => p.passengerCategory === 'Infant' || (!p.passengerCategory && p.age < 2)).length,
+          )}
+          subtitle="Age 0 to < 2 years"
+          icon="👶"
         />
       </div>
 
@@ -383,8 +397,29 @@ export default function AgencyPassengersPage() {
                     </td>
 
                     <td style={{ padding: '14px 18px', color: '#334155' }}>
-                      <div>{p.age} years old</div>
-                      <div style={{ fontSize: '11px', color: '#64748b' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontWeight: 700 }}>{p.age} {p.age === 1 ? 'yr old' : 'yrs old'}</span>
+                        {(() => {
+                          const cat =
+                            p.passengerCategory || (p.age < 2 ? 'Infant' : p.age < 12 ? 'Child' : 'Adult');
+                          return (
+                            <span
+                              style={{
+                                padding: '1px 7px',
+                                borderRadius: '6px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                background: cat === 'Adult' ? '#eff6ff' : cat === 'Child' ? '#fef3c7' : '#fdf2f8',
+                                color: cat === 'Adult' ? '#1d4ed8' : cat === 'Child' ? '#b45309' : '#be185d',
+                                border: `1px solid ${cat === 'Adult' ? '#bfdbfe' : cat === 'Child' ? '#fde68a' : '#fbcfe8'}`,
+                              }}
+                            >
+                              {cat}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
                         {p.gender} {p.dob ? `(DOB: ${p.dob})` : ''}
                       </div>
                     </td>

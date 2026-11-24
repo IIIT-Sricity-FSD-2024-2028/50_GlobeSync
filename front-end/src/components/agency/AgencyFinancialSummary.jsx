@@ -11,7 +11,7 @@ export default function AgencyFinancialSummary({
   guideFee = 0,
   passengerCount = 1,
   stayDays = 3,
-  agencyCommissionRate = 1.5,
+  agencyCommissionRate = 10.0,
   title = '',
   destination = '',
   category = 'Family Vacation',
@@ -23,10 +23,11 @@ export default function AgencyFinancialSummary({
   const totalTransport = carrierPrice * numPassengers;
   const totalLodging = lodgingPrice * numPassengers;
   const totalGuide = guideRequested ? (guideFee || 1500) : 0;
-  const totalBase = Number(baseBudget) || 0;
+  const targetBudget = Number(baseBudget) || 0;
 
-  const grossTotal = totalBase + totalTransport + totalLodging + totalGuide;
-  const commissionRate = Number(agencyCommissionRate) || 1.5;
+  // Final Billable Client Price consists ONLY of selected billable services
+  const grossTotal = totalTransport + totalLodging + totalGuide;
+  const commissionRate = Number(agencyCommissionRate) || 10.0;
   const commissionAmount = Math.round((grossTotal * commissionRate) / 100);
   const netPlatformPayable = grossTotal - commissionAmount;
 
@@ -47,9 +48,43 @@ export default function AgencyFinancialSummary({
           </h4>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#475569' }}>
-              <span>Base Itinerary Activities & Planning:</span>
-              <span style={{ fontWeight: 700, color: '#0f172a' }}>₹{totalBase.toLocaleString()}</span>
+            {/* Client Target Budget vs. Actual Cost Comparison Indicator */}
+            <div
+              style={{
+                padding: '12px 14px',
+                background: '#f8fafc',
+                borderRadius: '10px',
+                border: '1px solid #e2e8f0',
+                marginBottom: '4px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>Client Target Budget:</span>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+                  {targetBudget > 0 ? `₹${targetBudget.toLocaleString()}` : 'Not Specified'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
+                <span style={{ color: '#64748b' }}>Target vs. Actual Cost:</span>
+                {targetBudget > 0 ? (
+                  <span
+                    style={{
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      background: grossTotal <= targetBudget ? '#dcfce7' : '#fee2e2',
+                      color: grossTotal <= targetBudget ? '#15803d' : '#b91c1c',
+                      border: `1px solid ${grossTotal <= targetBudget ? '#86efac' : '#fca5a5'}`,
+                    }}
+                  >
+                    {grossTotal <= targetBudget
+                      ? `✓ Within Budget by ₹${(targetBudget - grossTotal).toLocaleString()}`
+                      : `⚠️ Over Budget by ₹${(grossTotal - targetBudget).toLocaleString()}`}
+                  </span>
+                ) : (
+                  <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Reference budget optional</span>
+                )}
+              </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#475569' }}>
@@ -184,4 +219,3 @@ export default function AgencyFinancialSummary({
     </div>
   );
 }
-

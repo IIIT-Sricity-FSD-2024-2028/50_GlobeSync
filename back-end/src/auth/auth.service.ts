@@ -40,8 +40,9 @@ const PROFILE_ID_KEY: Record<string, string> = {
   agency: 'agencyId',
 };
 
-const ACCESS_TOKEN_TTL = 15 * 60;        // 15 minutes (seconds)
+const ACCESS_TOKEN_TTL = Number(process.env.JWT_ACCESS_TTL) || 2 * 60 * 60; // 2 hours (seconds)
 const REFRESH_TOKEN_TTL = 7 * 24 * 3600; // 7 days (seconds)
+const ROTATION_GRACE_MS = 30 * 1000;    // 30-second rotation grace window for concurrent requests
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 15;
 const ARGON2_OPTIONS = {
@@ -344,13 +345,23 @@ export class AuthService {
     const tokenHash = this.hashToken(rawRefreshToken);
 
     if (!PrismaService.isConnected) {
-      const stored = memoryRefreshTokens.find((t) => t.token_hash === tokenHash && !t.revoked_at);
+      const stored = memoryRefreshTokens.find((t) => t.token_hash === tokenHash);
       if (!stored || stored.expires_at < new Date()) {
         if (stored) stored.revoked_at = new Date();
         throw new UnauthorizedException('Refresh token is invalid or expired.');
       }
+
+      // Check if already revoked: allow 30-second rotation grace window for concurrent requests
+      if (stored.revoked_at) {
+        const elapsedMs = Date.now() - new Date(stored.revoked_at).getTime();
+        if (elapsedMs > ROTATION_GRACE_MS) {
+          throw new UnauthorizedException('Refresh token is invalid or expired.');
+        }
+      } else {
+        stored.revoked_at = new Date();
+      }
+
       const user = testDb.users.find((u) => u.id === stored.user_id);
-      stored.revoked_at = new Date();
       if (!user || user.status !== 'ACTIVE') {
         throw new UnauthorizedException('Refresh token is invalid or expired.');
       }
@@ -360,7 +371,7 @@ export class AuthService {
     }
 
     const stored = await this.prisma.refreshToken.findFirst({
-      where: { token_hash: tokenHash, revoked_at: null },
+      where: { token_hash: tokenHash },
       include: { user: true },
     });
 
@@ -374,39 +385,56 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token is invalid or expired.');
     }
 
-    // Rotate: revoke old, issue new pair
-    await this.prisma.refreshToken.update({
-      where: { id: stored.id },
-      data: { revoked_at: new Date() },
-    });
+    // Check if already revoked: allow 30-second rotation grace window for concurrent requests
+    if (stored.revoked_at) {
+      const elapsedMs = Date.now() - new Date(stored.revoked_at).getTime();
+      if (elapsedMs > ROTATION_GRACE_MS) {
+        throw new UnauthorizedException('Refresh token is invalid or expired.');
+      }
+    } else {
+      // Rotate: revoke old, issue new pair
+      await this.prisma.refreshToken.update({
+        where: { id: stored.id },
+        data: { revoked_at: new Date() },
+      });
+    }
 
-    return this.issueTokenPair(stored.user, response);
+    const user = stored.user;
+    if (!user || user.status !== 'ACTIVE') {
+      throw new UnauthorizedException('Refresh token is invalid or expired.');
+    }
+    const legacy = findLegacyAccount(user.email);
+    if (legacy?.blockedReason) throw new UnauthorizedException(legacy.blockedReason);
+    return this.issueTokenPair(user, response);
   }
 
   // ─── LOGOUT ────────────────────────────────────────────────────────────────
 
   async logout(rawRefreshToken: string | undefined, userId: string, response?: any) {
     const numericUserId = parseInt(userId, 10);
+    // Explicit logout revokes immediately outside the 30-second grace window
+    const immediateRevocationDate = new Date(0);
     if (!PrismaService.isConnected) {
       const tokenHash = rawRefreshToken ? this.hashToken(rawRefreshToken) : null;
       memoryRefreshTokens
         .filter((t) => !t.revoked_at && (tokenHash ? t.token_hash === tokenHash : t.user_id === numericUserId))
-        .forEach((t) => (t.revoked_at = new Date()));
+        .forEach((t) => (t.revoked_at = immediateRevocationDate));
     } else if (rawRefreshToken) {
       const tokenHash = this.hashToken(rawRefreshToken);
       await this.prisma.refreshToken.updateMany({
         where: { user_id: numericUserId, token_hash: tokenHash, revoked_at: null },
-        data: { revoked_at: new Date() },
+        data: { revoked_at: immediateRevocationDate },
       });
     } else {
       await this.prisma.refreshToken.updateMany({
         where: { user_id: numericUserId, revoked_at: null },
-        data: { revoked_at: new Date() },
+        data: { revoked_at: immediateRevocationDate },
       });
     }
 
     if (response) {
-      response.clearCookie('access_token');
+      response.clearCookie('access_token', { path: '/' });
+      response.clearCookie('refresh_token', { path: '/' });
       response.clearCookie('refresh_token', { path: '/auth/refresh' });
     }
 
@@ -548,7 +576,7 @@ export class AuthService {
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: REFRESH_TOKEN_TTL * 1000,
-        path: '/auth/refresh',
+        path: '/',
       });
     }
 

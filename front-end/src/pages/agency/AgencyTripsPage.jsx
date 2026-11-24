@@ -8,6 +8,7 @@ import AgencyCreateTripWizard from '../../components/agency/AgencyCreateTripWiza
 import AgencyEditTripModal from '../../components/agency/AgencyEditTripModal';
 import AgencyCheckoutModal from '../../components/agency/AgencyCheckoutModal';
 import AgencyCancelTripModal from '../../components/agency/AgencyCancelTripModal';
+import AgencyDayActivitiesModal from '../../components/agency/AgencyDayActivitiesModal';
 
 export default function AgencyTripsPage() {
   const { user } = useSession();
@@ -35,6 +36,7 @@ export default function AgencyTripsPage() {
   const [editingTrip, setEditingTrip] = useState(null);
   const [checkoutTrip, setCheckoutTrip] = useState(null);
   const [cancellingTrip, setCancellingTrip] = useState(null);
+  const [activitiesTrip, setActivitiesTrip] = useState(null);
 
   // Non-blocking Toast state
   const [toastMessage, setToastMessage] = useState(null);
@@ -509,23 +511,42 @@ export default function AgencyTripsPage() {
 
                     {/* Right Actions */}
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                      {/* View / Edit Button */}
-                      <button
-                        type="button"
-                        onClick={() => setEditingTrip(t)}
-                        style={{
-                          background: '#f8fafc',
-                          color: '#334155',
-                          border: '1px solid #cbd5e1',
-                          padding: '8px 14px',
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        ✏️ Edit Itinerary
-                      </button>
+                      {/* View / Edit or Day-Wise Activities Button */}
+                      {t.status === 'Planning' ? (
+                        <button
+                          type="button"
+                          onClick={() => setEditingTrip(t)}
+                          style={{
+                            background: '#f8fafc',
+                            color: '#334155',
+                            border: '1px solid #cbd5e1',
+                            padding: '8px 14px',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ✏️ Edit Itinerary
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setActivitiesTrip(t)}
+                          style={{
+                            background: '#f0fdfa',
+                            color: '#0f766e',
+                            border: '1px solid #99f6e4',
+                            padding: '8px 14px',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          📅 Day-Wise Activities
+                        </button>
+                      )}
 
                       {/* Checkout / Pay Button (for Planning/Pending) */}
                       {isPayable && (
@@ -577,6 +598,16 @@ export default function AgencyTripsPage() {
       )}
 
       {/* Modals */}
+      {activitiesTrip && (
+        <AgencyDayActivitiesModal
+          isOpen={Boolean(activitiesTrip)}
+          trip={activitiesTrip}
+          showToast={showToast}
+          onClose={() => setActivitiesTrip(null)}
+          onSuccess={() => loadData()}
+        />
+      )}
+
       {editingTrip && (
         <AgencyEditTripModal
           isOpen={Boolean(editingTrip)}

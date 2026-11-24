@@ -100,7 +100,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     // Accept refresh token from body OR httpOnly cookie
-    const token = dto.refreshToken ?? req.cookies?.['refresh_token'];
+    const token = dto?.refreshToken ?? req.cookies?.['refresh_token'];
     return this.authService.refresh(token, res);
   }
 

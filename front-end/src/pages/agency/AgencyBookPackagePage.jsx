@@ -207,19 +207,15 @@ export default function AgencyBookPackagePage() {
       const booking = await bookingsApi.create(bookingPayload);
 
       // 3. Record corporate payment ledger transaction
-      try {
-        const bId = Number(booking.bookingId || booking.id);
-        await paymentsApi.create({
-          agencyId,
-          ...(bId ? { bookingId: bId } : { tripId }),
-          amount: pricing.netRemittance,
-          paymentDate: new Date().toISOString().split('T')[0],
-          method: 'Card',
-          status: 'Paid',
-        });
-      } catch (pErr) {
-        console.warn('Payment transaction notice:', pErr);
-      }
+      const bId = Number(booking.bookingId || booking.id);
+      await paymentsApi.create({
+        agencyId,
+        ...(bId ? { bookingId: bId } : { tripId }),
+        amount: pricing.netRemittance,
+        paymentDate: new Date().toISOString().split('T')[0],
+        method: 'Card',
+        status: 'Paid',
+      });
 
       setCompletedBooking({
         bookingId: booking.bookingId || booking.id,

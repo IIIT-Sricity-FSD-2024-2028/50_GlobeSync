@@ -24,7 +24,7 @@ const OWN_RESOURCE_ERROR =
  */
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(private reflector: Reflector) { }
 
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
@@ -178,13 +178,19 @@ export class RolesGuard implements CanActivate {
 
   private enforceTripChildOwnership(handlerName: string, request: any, userRole: Role, userId: number, collection: any[]): void {
     let tripId: number | undefined;
-    if (handlerName === 'findByTrip') {
+    if (['findByTrip', 'getBudgetGauge'].includes(handlerName)) {
       tripId = this.parseNumericValue(request.params?.tripId);
     } else if (handlerName === 'create') {
       tripId = this.parseNumericValue(request.body?.tripId);
     } else if (['findOne', 'update', 'remove'].includes(handlerName)) {
       const itemId = this.parseNumericValue(request.params?.id);
-      const item = collection.find((i: any) => i.itineraryId === itemId || i.expenseId === itemId);
+      let item = collection.find((i: any) => i.itineraryId === itemId || i.expenseId === itemId);
+      if (!item && itemId >= 100000) {
+        const b = bookings.find((b: any) => b.bookingId === itemId - 100000);
+        if (b) {
+          item = { tripId: b.tripId };
+        }
+      }
       if (!item) throw new ForbiddenException(OWN_RESOURCE_ERROR);
       tripId = item.tripId;
     }
@@ -251,19 +257,27 @@ export class RolesGuard implements CanActivate {
     const roleType = userRole as string;
     if (handlerName === 'findByUser') {
       if (request.params?.userType !== roleType) throw new ForbiddenException(OWN_RESOURCE_ERROR);
-      this.ensureParamMatchesUser(request.params?.userId, userId);
+      if (roleType !== 'support') {
+        this.ensureParamMatchesUser(request.params?.userId, userId);
+      }
       return;
     }
     if (handlerName === 'findConversation') {
       const query = request.query as Record<string, string | undefined> | undefined;
-      const isSender = query?.senderType === roleType && this.parseNumericValue(query?.senderId) === userId;
-      const isReceiver = query?.receiverType === roleType && this.parseNumericValue(query?.receiverId) === userId;
+      const sType = query?.sender || query?.senderType;
+      const rType = query?.receiver || query?.receiverType;
+      const sId = this.parseNumericValue(query?.senderId);
+      const rId = this.parseNumericValue(query?.receiverId);
+      const isSender = sType === roleType && (roleType === 'support' || sId === userId);
+      const isReceiver = rType === roleType && (roleType === 'support' || rId === userId);
       if (!isSender && !isReceiver) throw new ForbiddenException(OWN_RESOURCE_ERROR);
       return;
     }
     if (handlerName === 'create') {
       if (request.body?.sender !== roleType) throw new ForbiddenException(OWN_RESOURCE_ERROR);
-      if (this.parseNumericValue(request.body?.senderId) !== userId) throw new ForbiddenException(OWN_RESOURCE_ERROR);
+      if (roleType !== 'support') {
+        if (this.parseNumericValue(request.body?.senderId) !== userId) throw new ForbiddenException(OWN_RESOURCE_ERROR);
+      }
     }
   }
 

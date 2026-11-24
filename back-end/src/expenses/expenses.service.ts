@@ -152,6 +152,9 @@ export class ExpensesService {
   }
 
   remove(id: number): { message: string } {
+    if (id >= 100000) {
+      throw new BadRequestException('Auto-generated booking expenses cannot be deleted directly. Cancel the booking instead.');
+    }
     const idx = expenses.findIndex((e) => e.expenseId === id);
     if (idx === -1) throw new NotFoundException(`Expense with ID ${id} not found`);
     expenses.splice(idx, 1);

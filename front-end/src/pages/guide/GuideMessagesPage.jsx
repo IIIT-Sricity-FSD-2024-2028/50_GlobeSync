@@ -130,10 +130,10 @@ export default function GuideMessagesPage() {
 
       for (const msg of allMessages) {
         let otherType, otherId;
-        if (msg.sender === 'guide' && msg.senderId === guideId) {
+        if (msg.sender === 'guide' && Number(msg.senderId) === Number(guideId)) {
           otherType = msg.receiver;
           otherId = msg.receiverId;
-        } else if (msg.receiver === 'guide' && msg.receiverId === guideId) {
+        } else if (msg.receiver === 'guide' && Number(msg.receiverId) === Number(guideId)) {
           otherType = msg.sender;
           otherId = msg.senderId;
         } else {
@@ -310,7 +310,7 @@ export default function GuideMessagesPage() {
       try {
         // The conversation endpoint is bidirectional — either participant
         // can be listed as sender/receiver; the service handles both directions.
-        const msgs = await messagesApi.getConversation(
+        const res = await messagesApi.getConversation(
           'guide',
           guideId,
           contact.type,
@@ -320,8 +320,9 @@ export default function GuideMessagesPage() {
 
         if (controller.signal.aborted) return;
 
+        const list = Array.isArray(res) ? res : (res?.messages || []);
         // Sort chronologically (seed data timestamps may vary)
-        const sorted = [...msgs].sort((a, b) =>
+        const sorted = [...list].sort((a, b) =>
           (a.timestamp || '').localeCompare(b.timestamp || ''),
         );
         setThreadMessages(sorted);

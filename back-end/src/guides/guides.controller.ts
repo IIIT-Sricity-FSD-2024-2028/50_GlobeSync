@@ -13,7 +13,7 @@ export class GuidesController {
   constructor(private readonly guidesService: GuidesService) {}
 
   @Get()
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY, Role.SUPPORT)
   @ApiRoleHeader()
   @ApiOperation({ summary: 'Get all guides with pagination, search, and sorting' })
   @ApiResponse({ status: 200, description: 'List of guides returned successfully' })
@@ -22,7 +22,7 @@ export class GuidesController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY)
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY, Role.SUPPORT)
   @ApiRoleHeader()
   @ApiOperation({ summary: 'Get guide by ID' })
   @ApiParam({ name: 'id', type: Number, description: 'Guide ID' })

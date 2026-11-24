@@ -31,6 +31,7 @@ export default function AgencyExpensesPage() {
 
   // Log expense modal / form
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingExpenseId, setEditingExpenseId] = useState(null);
   const [formType, setFormType] = useState('Hotel');
   const [formAmount, setFormAmount] = useState('');
   const [formDesc, setFormDesc] = useState('');
@@ -46,7 +47,7 @@ export default function AgencyExpensesPage() {
       try {
         const data = await tripsApi.getByAgency(agencyId, { signal: controller.signal });
         if (!controller.signal.aborted) {
-          const list = Array.isArray(data) ? data : [];
+          const list = Array.isArray(data) ? data : data?.data || [];
           setTrips(list);
           if (list.length > 0 && !selectedTripId) {
             setSelectedTripId(list[0].tripId);
@@ -76,7 +77,8 @@ export default function AgencyExpensesPage() {
       try {
         const data = await expensesApi.getByTrip(selectedTripId, { signal: controller.signal });
         if (!controller.signal.aborted) {
-          setExpenses(Array.isArray(data) ? data : []);
+          const list = Array.isArray(data) ? data : data?.data || [];
+          setExpenses(list);
         }
       } catch (err) {
         if (!controller.signal.aborted) {
@@ -131,6 +133,35 @@ export default function AgencyExpensesPage() {
     setSearchParams({ tripId: String(id) });
   };
 
+  const handleOpenAdd = () => {
+    setEditingExpenseId(null);
+    setFormType('Hotel');
+    setFormAmount('');
+    setFormDesc('');
+    setFormError(null);
+    setShowAddModal(true);
+  };
+
+  const handleOpenEdit = (exp) => {
+    setEditingExpenseId(exp.expenseId || exp.id);
+    setFormType(exp.type || 'Hotel');
+    setFormAmount(String(exp.amount || ''));
+    setFormDesc(exp.description || '');
+    setFormError(null);
+    setShowAddModal(true);
+  };
+
+  const handleDeleteExpense = async (expId) => {
+    if (!window.confirm('Are you sure you want to delete this expense entry?')) return;
+    try {
+      await expensesApi.delete(expId);
+      setExpenses((prev) => prev.filter((e) => (e.expenseId || e.id) !== expId));
+    } catch (err) {
+      console.error('Failed to delete expense:', err);
+      setError(err.message || 'Failed to delete expense.');
+    }
+  };
+
   const handleAddExpense = async (e) => {
     e.preventDefault();
     setFormError(null);
@@ -147,17 +178,27 @@ export default function AgencyExpensesPage() {
 
     setSubmitting(true);
     try {
-      await expensesApi.create({
-        tripId: selectedTripId,
-        type: formType,
-        amount: amountNum,
-        description: formDesc.trim(),
-      });
+      if (editingExpenseId) {
+        await expensesApi.update(editingExpenseId, {
+          type: formType,
+          amount: amountNum,
+          description: formDesc.trim(),
+        });
+      } else {
+        await expensesApi.create({
+          tripId: selectedTripId,
+          type: formType,
+          amount: amountNum,
+          description: formDesc.trim(),
+        });
+      }
 
       // Refresh list
       const refreshed = await expensesApi.getByTrip(selectedTripId);
-      setExpenses(Array.isArray(refreshed) ? refreshed : []);
+      const list = Array.isArray(refreshed) ? refreshed : refreshed?.data || [];
+      setExpenses(list);
       setShowAddModal(false);
+      setEditingExpenseId(null);
       setFormAmount('');
       setFormDesc('');
     } catch (err) {
@@ -209,7 +250,7 @@ export default function AgencyExpensesPage() {
           {selectedTripId && (
             <button
               type="button"
-              onClick={() => setShowAddModal(true)}
+              onClick={handleOpenAdd}
               style={{
                 padding: '9px 18px',
                 borderRadius: '8px',
@@ -227,6 +268,12 @@ export default function AgencyExpensesPage() {
           )}
         </div>
       </div>
+
+      {error && (
+        <div style={{ padding: '14px 18px', background: '#fee2e2', color: '#b91c1c', borderRadius: '12px', marginBottom: '20px', border: '1px solid #fca5a5' }}>
+          ⚠️ {error}
+        </div>
+      )}
 
       {/* Trip Selector Bar */}
       <div
@@ -523,6 +570,9 @@ export default function AgencyExpensesPage() {
                       <th style={{ padding: '12px 18px', fontWeight: 600, color: '#475569', fontSize: '12px', textTransform: 'uppercase' }}>
                         Amount
                       </th>
+                      <th style={{ padding: '12px 18px', fontWeight: 600, color: '#475569', fontSize: '12px', textTransform: 'uppercase', textAlign: 'right' }}>
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -548,6 +598,59 @@ export default function AgencyExpensesPage() {
                         <td style={{ padding: '12px 18px', fontWeight: 700, color: '#0d9488' }}>
                           ₹{Number(exp.amount || 0).toLocaleString('en-IN')}
                         </td>
+                        <td style={{ padding: '12px 18px', textAlign: 'right' }}>
+                          {(exp.expenseId || exp.id) < 100000 ? (
+                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEdit(exp)}
+                                style={{
+                                  background: '#f8fafc',
+                                  border: '1px solid #cbd5e1',
+                                  borderRadius: '6px',
+                                  padding: '4px 10px',
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  color: '#334155',
+                                }}
+                              >
+                                ✏️ Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteExpense(exp.expenseId || exp.id)}
+                                style={{
+                                  background: '#fef2f2',
+                                  border: '1px solid #fecaca',
+                                  borderRadius: '6px',
+                                  padding: '4px 10px',
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  color: '#b91c1c',
+                                }}
+                              >
+                                🗑 Delete
+                              </button>
+                            </div>
+                          ) : (
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '3px 8px',
+                                borderRadius: '6px',
+                                background: '#f0fdfa',
+                                color: '#0d9488',
+                                border: '1px solid #99f6e4',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                              }}
+                            >
+                              💼 Booking Auto-Tracked
+                            </span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -558,6 +661,7 @@ export default function AgencyExpensesPage() {
                       <td style={{ padding: '12px 18px', color: '#0d9488' }}>
                         ₹{totalSpent.toLocaleString('en-IN')}
                       </td>
+                      <td></td>
                     </tr>
                   </tfoot>
                 </table>
@@ -594,7 +698,7 @@ export default function AgencyExpensesPage() {
             }}
           >
             <h2 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 16px 0', color: '#0f172a' }}>
-              Log Trip Expense
+              {editingExpenseId ? 'Edit Trip Expense' : 'Log Trip Expense'}
             </h2>
 
             {formError && (
@@ -713,7 +817,7 @@ export default function AgencyExpensesPage() {
                     cursor: submitting ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  {submitting ? 'Saving...' : 'Save Expense'}
+                  {submitting ? 'Saving...' : editingExpenseId ? 'Update Expense' : 'Save Expense'}
                 </button>
               </div>
             </form>

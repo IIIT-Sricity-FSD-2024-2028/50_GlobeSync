@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import { useSession, getDashboardPath } from '../../context/SessionContext';
-import { authApi, ApiError } from '../../services/api';
+import { authApi, ApiError, setRefreshToken } from '../../services/api';
 import { DEMO_ACTORS, isDemoAccountsEnabled } from '../../config/demoActors';
 
 export default function LoginPage({ initialRole = 'traveler' }) {
@@ -51,6 +51,13 @@ export default function LoginPage({ initialRole = 'traveler' }) {
     }
   }, [roleFromQuery]);
 
+  // Notice session expiration query flag
+  useEffect(() => {
+    if (searchParams.get('expired') === '1') {
+      setErrorMessage('Your session has expired. Please sign in again.');
+    }
+  }, [searchParams]);
+
   // Copy helper with brief UI feedback
   const handleCopy = (text, fieldName) => {
     navigator.clipboard.writeText(text);
@@ -85,9 +92,13 @@ export default function LoginPage({ initialRole = 'traveler' }) {
       const userRole = (authResponse.user?.role || authResponse.role || 'traveler').toLowerCase();
       const userData = authResponse.user || { email: trimmedEmail, role: userRole };
       const token = authResponse.accessToken;
+      const refreshToken = authResponse.refreshToken;
 
       // Save into session context and storage
-      login(userRole, userData, token);
+      login(userRole, userData, token, refreshToken);
+      if (refreshToken) {
+        setRefreshToken(refreshToken);
+      }
 
       setSuccessMessage(
         `Welcome, ${userData.name || userData.email}! Redirecting to ${userRole.toUpperCase()} workspace...`

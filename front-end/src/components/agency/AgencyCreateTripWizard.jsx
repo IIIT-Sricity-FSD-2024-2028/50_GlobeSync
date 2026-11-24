@@ -3,7 +3,7 @@ import PassengerSelector from './PassengerSelector';
 import AgencyTransportStep from './AgencyTransportStep';
 import AgencyItineraryBuilder from './AgencyItineraryBuilder';
 import AgencyFinancialSummary from './AgencyFinancialSummary';
-import { tripsApi } from '../../services/api';
+import { tripsApi, bookingsApi } from '../../services/api';
 
 const STEPS = [
   { step: 1, title: 'Basics & Passengers', desc: 'Destination, dates & client roster' },
@@ -97,9 +97,11 @@ export default function AgencyCreateTripWizard({
       else if (new Date(endDate) <= new Date(startDate)) {
         errs.endDate = 'End date must be strictly after start date';
       }
-      const bNum = parseFloat(baseBudget);
-      if (!baseBudget || isNaN(bNum) || bNum < 0) {
-        errs.baseBudget = 'Please enter a valid base budget amount';
+      if (baseBudget !== '' && baseBudget !== null && baseBudget !== undefined) {
+        const bNum = parseFloat(baseBudget);
+        if (isNaN(bNum) || bNum < 0) {
+          errs.baseBudget = 'Please enter a valid target budget amount (or leave blank)';
+        }
       }
       if (selectedPassengerIds.length === 0) {
         errs.passengers = 'Please select at least 1 passenger from your roster (or add one inline)';
@@ -128,8 +130,9 @@ export default function AgencyCreateTripWizard({
     const totalTransport = carrierPrice * numPassengers;
     const totalLodging = lodgingPrice * numPassengers;
     const totalGuide = guideRequested ? 1500 : 0;
-    const totalBase = Number(baseBudget) || 0;
-    const grossTotal = totalBase + totalTransport + totalLodging + totalGuide;
+    const targetBudget = Number(baseBudget) || 0;
+    // Final Billable Client Price equals ONLY selected billable services
+    const grossTotal = totalTransport + totalLodging + totalGuide;
 
     try {
       const payload = {
@@ -141,6 +144,7 @@ export default function AgencyCreateTripWizard({
         startDate,
         endDate,
         budget: grossTotal,
+        targetBudget: targetBudget,
         status: 'Planning',
         guideId: guideRequested && selectedGuideId ? Number(selectedGuideId) : undefined,
         passengerIds: selectedPassengerIds,
@@ -158,6 +162,19 @@ export default function AgencyCreateTripWizard({
       };
 
       const newTrip = await tripsApi.create(payload);
+      try {
+        await bookingsApi.create({
+          agencyId: Number(agencyId),
+          tripId: newTrip.tripId,
+          service: newTrip.title || `Client Tour to ${newTrip.destination}`,
+          type: 'Custom Tour',
+          amount: grossTotal,
+          status: 'Pending',
+          bookingDate: new Date().toISOString().split('T')[0],
+        });
+      } catch (bErr) {
+        console.warn('Could not auto-create booking record for trip:', bErr);
+      }
       if (showToast) {
         showToast(`Client trip "${newTrip.title || newTrip.destination}" created successfully! ✓`);
       }
@@ -352,7 +369,7 @@ export default function AgencyCreateTripWizard({
 
             <div>
               <label style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: '6px' }}>
-                Base Planning Budget (₹) *
+                Client Target Budget (₹)
               </label>
               <input
                 type="number"
@@ -360,7 +377,7 @@ export default function AgencyCreateTripWizard({
                 step="500"
                 value={baseBudget}
                 onChange={(e) => setBaseBudget(e.target.value)}
-                placeholder="e.g. 45000"
+                placeholder="e.g. 45000 (Optional reference cap)"
                 style={{
                   width: '100%',
                   padding: '10px 14px',
@@ -369,6 +386,9 @@ export default function AgencyCreateTripWizard({
                   fontSize: '14px',
                 }}
               />
+              <span style={{ fontSize: '11px', color: '#64748b', marginTop: '3px', display: 'block' }}>
+                Optional reference budget (not added as a billable charge).
+              </span>
               {errors.baseBudget && <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.baseBudget}</span>}
             </div>
           </div>

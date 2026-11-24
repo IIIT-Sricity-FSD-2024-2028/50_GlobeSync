@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { payments, Payment, bookings } from '../data';
+import { payments, Payment, bookings, agencies } from '../data';
 import { CreatePaymentDto } from './dto';
 import { RevenueService } from '../revenue/revenue.service';
 import { SystemConfigService } from '../system-config/system-config.service';
@@ -109,10 +109,30 @@ export class PaymentsService {
         throw new BadRequestException(`The 15-minute hold on booking #${dto.bookingId} has expired. Please create the booking again.`);
       }
       const dueMinor = booking.total_minor ?? Math.round(Number(booking.amount) * 100);
-      if (Math.round(dto.amount * 100) !== dueMinor) {
-        throw new BadRequestException(
-          `Payment amount ₹${dto.amount.toLocaleString('en-IN')} does not match the amount due for booking #${dto.bookingId} (₹${(dueMinor / 100).toLocaleString('en-IN')}).`,
-        );
+      const grossAmount = dueMinor / 100;
+
+      if (actor?.role === 'agency') {
+        const agencyId = dto.agencyId || actor.userId;
+        const agency = agencies.find((a) => a.agencyId === agencyId);
+        const commissionRate = agency?.commissionRate ?? 10.0;
+        const commissionMinor = Math.round((dueMinor * commissionRate) / 100);
+        const netRemittanceMinor = dueMinor - commissionMinor;
+        const paidMinor = Math.round(dto.amount * 100);
+
+        // Accept either the gross booking amount or server-calculated net remittance (allow 100 minor unit tolerance)
+        const matchesGross = Math.abs(paidMinor - dueMinor) <= 100;
+        const matchesNet = Math.abs(paidMinor - netRemittanceMinor) <= 100;
+        if (!matchesGross && !matchesNet) {
+          throw new BadRequestException(
+            `Payment amount ₹${dto.amount.toLocaleString('en-IN')} does not match the gross amount (₹${grossAmount.toLocaleString('en-IN')}) or net agency remittance (₹${(netRemittanceMinor / 100).toLocaleString('en-IN')}) for booking #${dto.bookingId}.`,
+          );
+        }
+      } else {
+        if (Math.round(dto.amount * 100) !== dueMinor) {
+          throw new BadRequestException(
+            `Payment amount ₹${dto.amount.toLocaleString('en-IN')} does not match the amount due for booking #${dto.bookingId} (₹${(dueMinor / 100).toLocaleString('en-IN')}).`,
+          );
+        }
       }
     }
 

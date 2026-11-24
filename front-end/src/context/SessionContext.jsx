@@ -1,5 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { setAccessToken, clearAccessToken, getAccessToken, authApi } from '../services/api';
+import {
+  setAccessToken,
+  clearAccessToken,
+  getAccessToken,
+  getRefreshToken,
+  setRefreshToken,
+  authApi,
+} from '../services/api';
 
 // ==========================================================
 // GlobeSync — SessionContext (JWT Authenticated)
@@ -70,9 +77,9 @@ export function SessionProvider({ children }) {
   const [{ user, role }, setSession] = useState(() => restoreSession());
 
   /**
-   * Save authenticated session with JWT access token
+   * Save authenticated session with JWT access token and optional refresh token
    */
-  const login = (newRole, newUser, token) => {
+  const login = (newRole, newUser, token, refreshToken) => {
     const normalizedRole = (newRole || '').toLowerCase();
     if (!VALID_ROLES.includes(normalizedRole)) {
       throw new Error(`Cannot login with unrecognized role: ${newRole}`);
@@ -81,11 +88,84 @@ export function SessionProvider({ children }) {
     if (token) {
       setAccessToken(token);
     }
+    if (refreshToken) {
+      setRefreshToken(refreshToken);
+    }
 
     setSession({ user: newUser, role: normalizedRole });
     localStorage.setItem('role', normalizedRole);
     localStorage.setItem('user', JSON.stringify(newUser));
   };
+
+  /**
+   * Proactive token refresh on mount: decode JWT exp using native JSON.parse(atob(...))
+   * and refresh if expired or within 2 minutes of expiry.
+   */
+  useEffect(() => {
+    const token = getAccessToken();
+    if (!token || !user) return;
+
+    try {
+      const parts = token.split('.');
+      if (parts.length >= 2) {
+        const payloadBase64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const payload = JSON.parse(atob(payloadBase64));
+
+        if (payload && payload.exp) {
+          const expiryMs = payload.exp * 1000;
+          const timeUntilExpiry = expiryMs - Date.now();
+          const twoMinutesMs = 2 * 60 * 1000;
+
+          if (timeUntilExpiry <= twoMinutesMs) {
+            const currentRefreshToken = getRefreshToken();
+            authApi
+              .refresh(currentRefreshToken)
+              .then((res) => {
+                if (res?.accessToken) {
+                  setAccessToken(res.accessToken);
+                  if (res.refreshToken) {
+                    setRefreshToken(res.refreshToken);
+                  }
+                }
+              })
+              .catch((err) => {
+                if (err.status === 401 || err.status === 403) {
+                  window.dispatchEvent(new CustomEvent('auth:session-expired'));
+                }
+              });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[Session] Failed to parse JWT for proactive refresh:', err);
+    }
+  }, []);
+
+  /**
+   * Listen for native auth:session-expired event to cleanly log out and redirect once
+   */
+  useEffect(() => {
+    let redirected = false;
+    const handleSessionExpired = () => {
+      if (redirected) return;
+      redirected = true;
+      clearAccessToken();
+      setSession({ user: null, role: null });
+      const currentPath = window.location.pathname;
+      if (
+        !currentPath.startsWith('/login') &&
+        !currentPath.startsWith('/signup') &&
+        !currentPath.startsWith('/register')
+      ) {
+        window.location.href = '/login?expired=1';
+      }
+    };
+
+    window.addEventListener('auth:session-expired', handleSessionExpired);
+    return () => {
+      window.removeEventListener('auth:session-expired', handleSessionExpired);
+    };
+  }, []);
 
   /**
    * Clear session and revoke tokens

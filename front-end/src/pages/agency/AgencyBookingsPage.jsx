@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import { bookingsApi } from '../../services/api';
+import { bookingsApi, tripsApi, agencyApi } from '../../services/api';
 import SummaryCard from '../../components/common/SummaryCard';
 import StatusBadge from '../../components/common/StatusBadge';
 import BookingDetailModal from '../../components/agency/BookingDetailModal';
+import AgencyDayActivitiesModal from '../../components/agency/AgencyDayActivitiesModal';
 
 /**
  * AgencyBookingsPage
@@ -16,7 +17,23 @@ export default function AgencyBookingsPage() {
   const { user } = useSession();
   const navigate = useNavigate();
   const agencyId = Number(user?.agencyId || user?.agency_id || user?.id || 1);
-  const commissionRate = Number(user?.commissionRate ?? 1.5);
+  const [commissionRate, setCommissionRate] = useState(Number(user?.commissionRate ?? 10.0));
+
+  useEffect(() => {
+    let mounted = true;
+    agencyApi.getProfile()
+      .then((prof) => {
+        if (mounted && prof?.commissionRate != null) {
+          setCommissionRate(Number(prof.commissionRate));
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not load agency profile commission rate:', err);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +45,27 @@ export default function AgencyBookingsPage() {
 
   // Modals
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [activitiesTrip, setActivitiesTrip] = useState(null);
+  const [loadingTripId, setLoadingTripId] = useState(null);
+
+  const handleOpenActivities = async (b) => {
+    if (!b.tripId) return;
+    setLoadingTripId(b.bookingId);
+    try {
+      const tripData = await tripsApi.getById(b.tripId);
+      setActivitiesTrip(tripData);
+    } catch (err) {
+      console.warn('Could not load full trip, using booking reference:', err);
+      setActivitiesTrip({
+        tripId: b.tripId,
+        destination: b.service || 'Client Tour',
+        status: b.status || 'Confirmed',
+        startDate: b.bookingDate,
+      });
+    } finally {
+      setLoadingTripId(null);
+    }
+  };
 
   const loadBookings = async (signal) => {
     setLoading(true);
@@ -137,28 +175,28 @@ export default function AgencyBookingsPage() {
         }}
       >
         <SummaryCard
-          label="Total Bookings"
+          title="Total Bookings"
           value={loading ? '...' : totalCount}
           icon="📋"
           subtitle="All client reservations"
           color="#19b6a6"
         />
         <SummaryCard
-          label="Confirmed"
+          title="Confirmed"
           value={loading ? '...' : confirmedCount}
           icon="✅"
           subtitle="Ready for travel"
           color="#10b981"
         />
         <SummaryCard
-          label="Pending"
+          title="Pending"
           value={loading ? '...' : pendingCount}
           icon="⏳"
           subtitle="Under review"
           color="#f59e0b"
         />
         <SummaryCard
-          label="Total Client Billing"
+          title="Total Client Billing"
           value={loading ? '...' : `₹${totalBilled.toLocaleString('en-IN')}`}
           icon="💰"
           subtitle="Gross retail booked"
@@ -265,14 +303,35 @@ export default function AgencyBookingsPage() {
                         <StatusBadge status={b.status || 'Confirmed'} />
                       </td>
                       <td style={{ padding: '12px', textAlign: 'right' }}>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedBooking(b)}
-                          className="btn btn-secondary btn-sm"
-                          style={{ padding: '4px 12px', fontSize: '12px' }}
-                        >
-                          👁 Inspect
-                        </button>
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                          {b.tripId && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenActivities(b)}
+                              disabled={loadingTripId === b.bookingId}
+                              style={{
+                                background: '#f0fdfa',
+                                color: '#0f766e',
+                                border: '1px solid #99f6e4',
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {loadingTripId === b.bookingId ? 'Loading...' : '📅 Activities'}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedBooking(b)}
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: '4px 12px', fontSize: '12px' }}
+                          >
+                            👁 Inspect
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -290,6 +349,17 @@ export default function AgencyBookingsPage() {
           booking={selectedBooking}
           commissionRate={commissionRate}
           onClose={() => setSelectedBooking(null)}
+          onBookingUpdated={() => loadBookings()}
+        />
+      )}
+
+      {/* Day Activities Modal */}
+      {activitiesTrip && (
+        <AgencyDayActivitiesModal
+          isOpen={Boolean(activitiesTrip)}
+          trip={activitiesTrip}
+          onClose={() => setActivitiesTrip(null)}
+          onSuccess={() => loadBookings()}
         />
       )}
     </div>

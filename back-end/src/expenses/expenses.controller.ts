@@ -61,8 +61,8 @@ export class ExpensesController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPERUSER)
-  @ApiRoleHeader()
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.AGENCY)
+  @ApiUserHeaders()
   @ApiOperation({ summary: 'Delete an expense' })
   @ApiParam({ name: 'id', type: Number })
   @ApiResponse({ status: 200, description: 'Expense deleted' })

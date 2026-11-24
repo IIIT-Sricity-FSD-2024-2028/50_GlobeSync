@@ -4,19 +4,19 @@ import { tripsApi, bookingsApi, paymentsApi } from '../../services/api';
 export default function AgencyCheckoutModal({
   isOpen,
   trip,
-  agencyCommissionRate = 1.5,
+  agencyCommissionRate = 10.0,
   onClose,
   onSuccess,
   showToast,
 }) {
-  if (!isOpen || !trip) return null;
-
   const [paymentMethod, setPaymentMethod] = useState('Agency Escrow Account');
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
 
+  if (!isOpen || !trip) return null;
+
   const budget = Number(trip.budget) || 0;
-  const commissionRate = Number(agencyCommissionRate) || 1.5;
+  const commissionRate = Number(agencyCommissionRate ?? trip?.agencyCommissionRate ?? trip?.commissionRate) || 10.0;
   const commissionAmount = Math.round((budget * commissionRate) / 100);
   const netPayable = budget - commissionAmount;
 
@@ -24,53 +24,45 @@ export default function AgencyCheckoutModal({
     setProcessing(true);
     setError(null);
     try {
-      // 1. Transition trip status: Planning -> Pending -> Confirmed
+      // 1. Ensure Booking record exists and is Confirmed
+      let bookingId;
+      const agencyBookings = await bookingsApi.getByAgency(trip.agencyId || 1);
+      const existingBooking = Array.isArray(agencyBookings)
+        ? agencyBookings.find((b) => b.tripId === trip.tripId)
+        : null;
+
+      if (existingBooking) {
+        await bookingsApi.update(existingBooking.bookingId, { status: 'Confirmed' });
+        bookingId = existingBooking.bookingId;
+      } else {
+        const newBooking = await bookingsApi.create({
+          agencyId: Number(trip.agencyId || 1),
+          tripId: trip.tripId,
+          service: trip.title || `Client Tour to ${trip.destination}`,
+          type: 'Package',
+          amount: budget,
+          status: 'Confirmed',
+          bookingDate: new Date().toISOString().split('T')[0],
+        });
+        bookingId = newBooking?.bookingId;
+      }
+
+      // 2. Record Payment transaction
+      const method = paymentMethod.includes('UPI') ? 'UPI' : paymentMethod.includes('Escrow') ? 'Cash' : 'Card';
+      await paymentsApi.create({
+        agencyId: Number(trip.agencyId || 1),
+        ...(bookingId ? { bookingId: Number(bookingId) } : { tripId: Number(trip.tripId) }),
+        amount: netPayable,
+        paymentDate: new Date().toISOString().split('T')[0],
+        method,
+        status: 'Paid',
+      });
+
+      // 3. Transition trip status: Planning -> Pending -> Confirmed
       if (trip.status === 'Planning') {
         await tripsApi.updateStatus(trip.tripId, 'Pending');
       }
       const updated = await tripsApi.updateStatus(trip.tripId, 'Confirmed');
-
-      // 2. Ensure Booking record exists and is Confirmed
-      let bookingId;
-      try {
-        const agencyBookings = await bookingsApi.getByAgency(trip.agencyId || 1);
-        const existingBooking = Array.isArray(agencyBookings)
-          ? agencyBookings.find((b) => b.tripId === trip.tripId)
-          : null;
-
-        if (existingBooking) {
-          await bookingsApi.update(existingBooking.bookingId, { status: 'Confirmed' });
-          bookingId = existingBooking.bookingId;
-        } else {
-          const newBooking = await bookingsApi.create({
-            agencyId: Number(trip.agencyId || 1),
-            tripId: trip.tripId,
-            service: trip.title || `Client Tour to ${trip.destination}`,
-            type: 'Package',
-            amount: budget,
-            status: 'Confirmed',
-            bookingDate: new Date().toISOString().split('T')[0],
-          });
-          bookingId = newBooking?.bookingId;
-        }
-      } catch (bErr) {
-        console.warn('Booking record notice:', bErr);
-      }
-
-      // 3. Record Payment transaction
-      try {
-        const method = paymentMethod.includes('UPI') ? 'UPI' : paymentMethod.includes('Escrow') ? 'Cash' : 'Card';
-        await paymentsApi.create({
-          agencyId: Number(trip.agencyId || 1),
-          ...(bookingId ? { bookingId: Number(bookingId) } : { tripId: Number(trip.tripId) }),
-          amount: netPayable,
-          paymentDate: new Date().toISOString().split('T')[0],
-          method,
-          status: 'Paid',
-        });
-      } catch (pErr) {
-        console.warn('Payment record notice:', pErr);
-      }
 
       if (showToast) {
         showToast(`Trip #${trip.tripId} confirmed & paid! Commission ₹${commissionAmount.toLocaleString()} earned. ✓`);

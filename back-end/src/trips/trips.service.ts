@@ -233,6 +233,7 @@ export class TripsService {
       startDate: dto.startDate,
       endDate: dto.endDate,
       budget: dto.budget,
+      targetBudget: dto.targetBudget,
       travelerId: dto.travelerId,
       agencyId: dto.agencyId,
       guideId: dto.guideId ?? null,
@@ -283,18 +284,6 @@ export class TripsService {
         rate: commissionRate,
         status: initialStatus === 'Confirmed' || initialStatus === 'Active' ? 'earned' : 'pending',
         createdAt: new Date().toISOString()
-      });
-
-      // Create Payment record for agency-owned trip
-      const paymentId = payments.length > 0 ? Math.max(...payments.map(p => p.paymentId)) : 0;
-      payments.push({
-        paymentId: paymentId + 1,
-        amount: dto.budget,
-        paymentDate: new Date().toISOString().split('T')[0],
-        method: 'Card',
-        status: initialStatus === 'Confirmed' || initialStatus === 'Active' ? 'Paid' : 'Pending',
-        tripId: newTrip.tripId,
-        agencyId: dto.agencyId
       });
     }
 

@@ -28,6 +28,7 @@ export class ApiError extends Error {
  * In-memory / storage JWT Access Token management
  */
 let inMemoryAccessToken = localStorage.getItem('access_token') || null;
+let inMemoryRefreshToken = localStorage.getItem('refresh_token') || null;
 
 export function getAccessToken() {
   return inMemoryAccessToken || localStorage.getItem('access_token') || null;
@@ -42,9 +43,24 @@ export function setAccessToken(token) {
   }
 }
 
+export function getRefreshToken() {
+  return inMemoryRefreshToken || localStorage.getItem('refresh_token') || null;
+}
+
+export function setRefreshToken(token) {
+  inMemoryRefreshToken = token;
+  if (token) {
+    localStorage.setItem('refresh_token', token);
+  } else {
+    localStorage.removeItem('refresh_token');
+  }
+}
+
 export function clearAccessToken() {
   inMemoryAccessToken = null;
+  inMemoryRefreshToken = null;
   localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
   localStorage.removeItem('role');
   localStorage.removeItem('user');
 }
@@ -157,27 +173,60 @@ export async function request(endpoint, options = {}) {
   if (response.status === 401 && !_retry && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/refresh')) {
     if (!isRefreshing) {
       isRefreshing = true;
+      let refreshSucceeded = false;
+      let isAuthExpired = false;
+      let refreshError = null;
+
       try {
+        const currentRefreshToken = getRefreshToken();
+        const refreshBody = currentRefreshToken ? { refreshToken: currentRefreshToken } : {};
         const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
+          body: JSON.stringify(refreshBody),
         });
 
         if (refreshRes.ok) {
           const refreshData = await refreshRes.json();
           if (refreshData.accessToken) {
             setAccessToken(refreshData.accessToken);
+            if (refreshData.refreshToken) {
+              setRefreshToken(refreshData.refreshToken);
+            }
+            refreshSucceeded = true;
             onRefreshed(refreshData.accessToken);
             isRefreshing = false;
             // Retry the original failed request with the new access token
             return request(endpoint, { ...options, _retry: true });
           }
+        } else if (refreshRes.status === 401 || refreshRes.status === 403) {
+          // Genuinely unrecoverable 401/403 on refresh
+          isAuthExpired = true;
+          refreshError = new ApiError('Session expired. Please log in again.', 401);
+        } else {
+          // Server error (500, etc.) - don't trigger logout
+          refreshError = new ApiError(`Token refresh failed with status ${refreshRes.status}`, refreshRes.status);
         }
       } catch (refreshErr) {
-        console.warn('[Auth] Token auto-refresh failed:', refreshErr);
+        // Network connection error - do NOT treat as session expired
+        console.warn('[Auth] Token auto-refresh network error:', refreshErr);
+        refreshError = new ApiError(refreshErr.message || 'Network connection error while refreshing session.', 0);
       } finally {
-        isRefreshing = false;
+        if (!refreshSucceeded) {
+          // Always call onRefreshed(null) when refresh fails or throws before setting isRefreshing = false so queued promises never hang
+          onRefreshed(null);
+          isRefreshing = false;
+        }
+      }
+
+      if (isAuthExpired) {
+        window.dispatchEvent(new CustomEvent('auth:session-expired'));
+        throw refreshError;
+      }
+
+      if (refreshError) {
+        throw refreshError;
       }
     } else {
       // Queue until the ongoing refresh completes
@@ -272,11 +321,26 @@ export const authApi = {
     apiPost('/auth/register/agency', dto, options),
 
   // Session & token lifecycle
-  refresh: (refreshToken, options) =>
-    apiPost('/auth/refresh', { refreshToken }, options),
+  refresh: async (refreshToken, options) => {
+    const token = refreshToken || getRefreshToken();
+    const data = await apiPost('/auth/refresh', token ? { refreshToken: token } : {}, options);
+    if (data?.accessToken) {
+      setAccessToken(data.accessToken);
+    }
+    if (data?.refreshToken) {
+      setRefreshToken(data.refreshToken);
+    }
+    return data;
+  },
 
-  logout: (options) =>
-    apiPost('/auth/logout', {}, options),
+  logout: async (options) => {
+    const token = getRefreshToken();
+    try {
+      return await apiPost('/auth/logout', token ? { refreshToken: token } : {}, options);
+    } finally {
+      clearAccessToken();
+    }
+  },
 
   me: (options) =>
     apiGet('/auth/me', options),
@@ -591,7 +655,7 @@ export const messagesApi = {
 
   getConversation: (senderType, senderId, receiverType, receiverId, options) =>
     apiGet(
-      `/messages/conversation?senderType=${encodeURIComponent(senderType)}&senderId=${senderId}&receiverType=${encodeURIComponent(receiverType)}&receiverId=${receiverId}`,
+      `/messages/conversation?sender=${encodeURIComponent(senderType)}&senderId=${senderId}&receiver=${encodeURIComponent(receiverType)}&receiverId=${receiverId}`,
       options
     ),
 

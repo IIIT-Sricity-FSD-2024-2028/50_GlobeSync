@@ -63,7 +63,7 @@ export class AgenciesController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.SUPERUSER)
+  @Roles(Role.ADMIN, Role.SUPERUSER, Role.SUPPORT)
   @ApiRoleHeader()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all agencies with pagination, search, and sorting' })
@@ -74,7 +74,7 @@ export class AgenciesController {
   }
 
   @Get(':id')
-  @Roles(Role.AGENCY, Role.ADMIN, Role.SUPERUSER)
+  @Roles(Role.AGENCY, Role.ADMIN, Role.SUPERUSER, Role.SUPPORT)
   @ApiUserHeaders()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get a specific agency by ID' })

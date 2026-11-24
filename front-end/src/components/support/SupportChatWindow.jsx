@@ -102,7 +102,12 @@ export default function SupportChatWindow({
               width: '44px',
               height: '44px',
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)',
+              background:
+                traveler.type === 'agency'
+                  ? 'linear-gradient(135deg, #0d9488 0%, #0284c7 100%)'
+                  : traveler.type === 'guide'
+                  ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+                  : 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -111,7 +116,7 @@ export default function SupportChatWindow({
               fontWeight: 800,
             }}
           >
-            {traveler.name ? traveler.name[0] : 'T'}
+            {traveler.name ? traveler.name[0] : (traveler.icon || 'T')}
           </div>
           <div>
             <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>
@@ -119,10 +124,10 @@ export default function SupportChatWindow({
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', fontSize: '12px' }}>
               <span style={{ color: 'var(--muted)' }}>
-                Customer TC00{traveler.travelerId || traveler.traveler_id}
+                {traveler.badge || `Customer TC00${traveler.travelerId || traveler.traveler_id || traveler.id}`}
               </span>
               <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
-                ● Active Traveler
+                ● Active {traveler.roleLabel || 'Traveler'}
               </span>
             </div>
           </div>

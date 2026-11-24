@@ -93,7 +93,7 @@ export function assertTripUpdateAllowed(actor: TripActor | undefined, current: T
       throw new BadRequestException('Payment is already complete for this trip, so travelers cannot be added or removed.');
     }
   }
-  const editable = ['Planning', 'Pending'].includes(current.status) ? OWNER_PLANNING_FIELDS : OWNER_CONFIRMED_FIELDS;
+  const editable = current.status === 'Planning' ? OWNER_PLANNING_FIELDS : OWNER_CONFIRMED_FIELDS;
   const notAllowed = changed.filter((k) => !editable.includes(k) && k !== 'reason');
   if (notAllowed.length) {
     throw new BadRequestException(

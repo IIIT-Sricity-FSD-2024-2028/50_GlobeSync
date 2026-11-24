@@ -15,7 +15,7 @@ import {
   EmergencyOverrideResult,
 } from './interfaces/policy.interface';
 import { testDb } from '../database/test-database';
-import { bookings, trips, payments, refunds } from '../data';
+import { bookings, trips, payments, refunds, commissionLedger } from '../data';
 import { RealtimeService } from '../realtime/realtime.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailService } from '../notifications/email.service';
@@ -392,6 +392,13 @@ export class PolicyService {
     booking.status = 'Cancelled';
     booking.cancellationReason = cancelReason;
     booking.cancelledAt = nowIso;
+
+    // 1b. Mark related agency commission cancelled
+    commissionLedger.forEach((entry, i) => {
+      if (entry.bookingId === bookingId || (booking.tripId && entry.tripId === booking.tripId)) {
+        commissionLedger[i] = { ...entry, status: 'cancelled' };
+      }
+    });
 
     // 2. Insert Refund Record (server-side only)
     const refundRecord = this.createRefundRecord(

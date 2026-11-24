@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { itinerariesApi } from '../../services/api';
 
 /**
  * GuideSuggestItineraryModal
- * Controlled form modal for sending an itinerary suggestion as a direct message
- * to the traveler or agency contact.
- * Distinct from saving actual database itinerary changes:
- * This proposal notifies the client without corrupting or prematurely mutating
- * the live trip schedule.
+ * Controlled form modal for creating an itinerary suggestion for a trip.
+ * Persists the suggestion directly into /itineraries with suggestedBy: 'guide'
+ * and suggestionStatus: 'Suggested', and sends a proposal notification message.
  */
 export default function GuideSuggestItineraryModal({
   isOpen,
@@ -22,6 +21,17 @@ export default function GuideSuggestItineraryModal({
   const [notes, setNotes] = useState('');
   const [estimatedCost, setEstimatedCost] = useState('0');
   const [errorMsg, setErrorMsg] = useState('');
+  const [persisting, setPersisting] = useState(false);
+
+  // Compute total duration dynamically strictly using native Date math
+  const totalDays = useMemo(() => {
+    if (!trip?.startDate || !trip?.endDate) return 1;
+    const start = new Date(trip.startDate);
+    const end = new Date(trip.endDate);
+    const diffTime = end.getTime() - start.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 3600 * 24)) + 1;
+    return diffDays > 0 ? diffDays : 1;
+  }, [trip?.startDate, trip?.endDate]);
 
   // Reset form whenever modal opens or trip changes
   useEffect(() => {
@@ -32,12 +42,13 @@ export default function GuideSuggestItineraryModal({
       setNotes('');
       setEstimatedCost('0');
       setErrorMsg('');
+      setPersisting(false);
     }
   }, [isOpen, trip?.tripId]);
 
   if (!isOpen || !trip) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!notes.trim()) {
       setErrorMsg('Please enter suggestion notes / details.');
@@ -45,13 +56,40 @@ export default function GuideSuggestItineraryModal({
     }
 
     setErrorMsg('');
-    onSend({
-      dayNumber,
-      time: time.trim(),
-      activityType,
-      notes: notes.trim(),
-      estimatedCost: Number(estimatedCost) || 0,
-    });
+    setPersisting(true);
+
+    let createdItinerary = null;
+    try {
+      const city = trip.destination ? trip.destination.split(',')[0].trim() : 'Destination';
+      createdItinerary = await itinerariesApi.create({
+        tripId: trip.tripId,
+        dayNumber: Number(dayNumber),
+        city,
+        time: time ? time.trim() : '11:00',
+        activity: notes.trim(),
+        activityStatus: 'Pending',
+        suggestedBy: 'guide',
+        suggestionStatus: 'Suggested',
+        notes: notes.trim(),
+        estimatedCost: Number(estimatedCost) || 0,
+      });
+    } catch (err) {
+      console.warn('Failed to persist suggestion via itineraries API:', err);
+      // We still propagate proposal message
+    } finally {
+      setPersisting(false);
+    }
+
+    if (onSend) {
+      onSend({
+        dayNumber,
+        time: time.trim(),
+        activityType,
+        notes: notes.trim(),
+        estimatedCost: Number(estimatedCost) || 0,
+        createdItinerary,
+      });
+    }
   };
 
   return (
@@ -67,8 +105,8 @@ export default function GuideSuggestItineraryModal({
         </div>
 
         <div className="guide-suggestion-notice">
-          ℹ️ <strong>Proposal Notice:</strong> This proposal will be dispatched as a direct message to{' '}
-          <strong>{contact?.name || 'the client'}</strong> for review. It does not overwrite the confirmed itinerary until accepted.
+          ℹ️ <strong>Proposal Notice:</strong> This proposal will be saved as a pending suggestion for the trip and dispatched as a direct message to{' '}
+          <strong>{contact?.name || 'the client/agency'}</strong> for review.
         </div>
 
         <form onSubmit={handleSubmit} className="guide-modal-body">
@@ -87,16 +125,11 @@ export default function GuideSuggestItineraryModal({
                 className="guide-form-select"
                 required
               >
-                <option value="1">Day 1</option>
-                <option value="2">Day 2</option>
-                <option value="3">Day 3</option>
-                <option value="4">Day 4</option>
-                <option value="5">Day 5</option>
-                <option value="6">Day 6</option>
-                <option value="7">Day 7</option>
-                <option value="8">Day 8</option>
-                <option value="9">Day 9</option>
-                <option value="10">Day 10</option>
+                {Array.from({ length: totalDays }, (_, i) => i + 1).map((d) => (
+                  <option key={d} value={String(d)}>
+                    Day {d}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -156,16 +189,16 @@ export default function GuideSuggestItineraryModal({
               type="button"
               className="btn btn-secondary guide-btn-secondary"
               onClick={onClose}
-              disabled={isSubmitting}
+              disabled={isSubmitting || persisting}
             >
               Cancel
             </button>
             <button
               type="submit"
               className="btn guide-btn-send-suggestion"
-              disabled={isSubmitting}
+              disabled={isSubmitting || persisting}
             >
-              {isSubmitting ? 'Sending Proposal...' : '✈️ Send Suggestion to Chat'}
+              {isSubmitting || persisting ? 'Submitting Proposal...' : '✈️ Send Suggestion to Review'}
             </button>
           </div>
         </form>

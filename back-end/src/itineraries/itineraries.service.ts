@@ -21,6 +21,10 @@ export class ItinerariesService {
       activity: dto.activity,
       activityStatus: (dto.activityStatus as Itinerary['activityStatus']) || 'Pending',
       time: dto.time,
+      suggestedBy: dto.suggestedBy,
+      suggestionStatus: dto.suggestionStatus,
+      notes: dto.notes,
+      estimatedCost: dto.estimatedCost,
     };
     itineraries.push(item);
     return item;
@@ -37,6 +41,10 @@ export class ItinerariesService {
       ...(dto.activity !== undefined && { activity: dto.activity }),
       ...(dto.activityStatus !== undefined && { activityStatus: dto.activityStatus as Itinerary['activityStatus'] }),
       ...(dto.time !== undefined && { time: dto.time }),
+      ...(dto.suggestedBy !== undefined && { suggestedBy: dto.suggestedBy }),
+      ...(dto.suggestionStatus !== undefined && { suggestionStatus: dto.suggestionStatus }),
+      ...(dto.notes !== undefined && { notes: dto.notes }),
+      ...(dto.estimatedCost !== undefined && { estimatedCost: dto.estimatedCost }),
     };
     itineraries[idx] = updated;
     return updated;

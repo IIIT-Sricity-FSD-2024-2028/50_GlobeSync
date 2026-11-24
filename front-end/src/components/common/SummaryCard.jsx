@@ -16,6 +16,7 @@ import { Link } from 'react-router-dom';
  */
 export default function SummaryCard({
   label,
+  title,
   value,
   icon,
   subtitle,
@@ -26,6 +27,7 @@ export default function SummaryCard({
   className = '',
   style = {},
 }) {
+  const displayTitle = title || label;
   const cardContent = (
     <div
       className={`card summary-card ${className}`}
@@ -59,7 +61,7 @@ export default function SummaryCard({
               letterSpacing: '0.5px',
             }}
           >
-            {label}
+            {displayTitle}
           </span>
           <div
             style={{

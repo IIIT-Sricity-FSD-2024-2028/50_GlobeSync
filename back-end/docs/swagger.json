@@ -3245,6 +3245,15 @@
                 "agency"
               ]
             }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -3573,6 +3582,15 @@
                 "superuser",
                 "agency"
               ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -7689,6 +7707,15 @@
             }
           },
           {
+            "name": "senderType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "traveler",
+              "type": "string"
+            }
+          },
+          {
             "name": "senderId",
             "required": false,
             "in": "query",
@@ -7699,6 +7726,15 @@
           },
           {
             "name": "receiver",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "guide",
+              "type": "string"
+            }
+          },
+          {
+            "name": "receiverType",
             "required": false,
             "in": "query",
             "schema": {
@@ -10779,10 +10815,7 @@
           "refreshToken": {
             "type": "string"
           }
-        },
-        "required": [
-          "refreshToken"
-        ]
+        }
       },
       "ForgotPasswordDto": {
         "type": "object",
@@ -11163,6 +11196,11 @@
             "type": "number",
             "example": 150000,
             "description": "Trip budget"
+          },
+          "targetBudget": {
+            "type": "number",
+            "example": 45000,
+            "description": "Client target reference budget (not billable)"
           },
           "travelerId": {
             "type": "number",
@@ -11645,6 +11683,31 @@
           "time": {
             "type": "string",
             "example": "10:00"
+          },
+          "suggestedBy": {
+            "type": "string",
+            "example": "guide",
+            "enum": [
+              "guide",
+              "agency"
+            ]
+          },
+          "suggestionStatus": {
+            "type": "string",
+            "example": "Suggested",
+            "enum": [
+              "Approved",
+              "Suggested",
+              "Rejected"
+            ]
+          },
+          "notes": {
+            "type": "string",
+            "example": "Recommended visit"
+          },
+          "estimatedCost": {
+            "type": "number",
+            "example": 500
           }
         },
         "required": [
@@ -11686,6 +11749,31 @@
           "time": {
             "type": "string",
             "example": "10:00"
+          },
+          "suggestedBy": {
+            "type": "string",
+            "example": "agency",
+            "enum": [
+              "guide",
+              "agency"
+            ]
+          },
+          "suggestionStatus": {
+            "type": "string",
+            "example": "Approved",
+            "enum": [
+              "Approved",
+              "Suggested",
+              "Rejected"
+            ]
+          },
+          "notes": {
+            "type": "string",
+            "example": "Approved activity"
+          },
+          "estimatedCost": {
+            "type": "number",
+            "example": 500
           }
         }
       },
@@ -12593,6 +12681,15 @@
             "type": "string",
             "example": "Female"
           },
+          "passengerCategory": {
+            "type": "string",
+            "example": "Adult",
+            "enum": [
+              "Adult",
+              "Child",
+              "Infant"
+            ]
+          },
           "travelerId": {
             "type": "number",
             "example": 1
@@ -12615,7 +12712,14 @@
           },
           "idType": {
             "type": "string",
-            "example": "Passport"
+            "example": "Passport",
+            "enum": [
+              "Passport",
+              "Aadhaar",
+              "Driving License",
+              "PAN Card",
+              "Voter ID"
+            ]
           },
           "idNumber": {
             "type": "string",
@@ -12647,6 +12751,15 @@
             "type": "string",
             "example": "Female"
           },
+          "passengerCategory": {
+            "type": "string",
+            "example": "Adult",
+            "enum": [
+              "Adult",
+              "Child",
+              "Infant"
+            ]
+          },
           "travelerId": {
             "type": "number",
             "example": 1
@@ -12669,7 +12782,14 @@
           },
           "idType": {
             "type": "string",
-            "example": "Passport"
+            "example": "Passport",
+            "enum": [
+              "Passport",
+              "Aadhaar",
+              "Driving License",
+              "PAN Card",
+              "Voter ID"
+            ]
           },
           "idNumber": {
             "type": "string",

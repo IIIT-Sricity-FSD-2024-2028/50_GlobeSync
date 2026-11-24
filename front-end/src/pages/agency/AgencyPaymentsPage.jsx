@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { paymentsApi, refundsApi } from '../../services/api';
+import { paymentsApi, refundsApi, tripsApi, bookingsApi } from '../../services/api';
 import SummaryCard from '../../components/common/SummaryCard';
 import StatusBadge from '../../components/common/StatusBadge';
 
@@ -17,10 +17,12 @@ export default function AgencyPaymentsPage() {
 
   const [payments, setPayments] = useState([]);
   const [refunds, setRefunds] = useState([]);
+  const [trips, setTrips] = useState([]);
+  const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Filter: 'all', 'paid', 'pending'
+  // Filter: 'all', 'paid', 'pending', 'refunded'
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -28,14 +30,30 @@ export default function AgencyPaymentsPage() {
     setLoading(true);
     setError(null);
     try {
-      const [paymentsData, refundsData] = await Promise.all([
-        paymentsApi.getByAgency(agencyId, { signal }),
-        refundsApi.getByAgency(agencyId, { signal }),
+      const [paymentsData, refundsData, tripsData, bookingsData] = await Promise.all([
+        paymentsApi.getByAgency(agencyId, { signal }).catch((err) => {
+          console.warn('Payments load notice:', err);
+          return [];
+        }),
+        refundsApi.getByAgency(agencyId, { signal }).catch((err) => {
+          console.warn('Refunds load notice:', err);
+          return [];
+        }),
+        tripsApi.getByAgency(agencyId, { signal }).catch((err) => {
+          console.warn('Trips load notice:', err);
+          return [];
+        }),
+        bookingsApi.getByAgency(agencyId, { signal }).catch((err) => {
+          console.warn('Bookings load notice:', err);
+          return [];
+        }),
       ]);
 
       if (!signal?.aborted) {
         setPayments(Array.isArray(paymentsData) ? paymentsData : []);
         setRefunds(Array.isArray(refundsData) ? refundsData : []);
+        setTrips(Array.isArray(tripsData) ? tripsData : []);
+        setBookings(Array.isArray(bookingsData) ? bookingsData : []);
       }
     } catch (err) {
       if (!signal?.aborted) {
@@ -55,6 +73,22 @@ export default function AgencyPaymentsPage() {
     return () => controller.abort();
   }, [agencyId]);
 
+  const tripsMap = useMemo(() => {
+    const map = {};
+    for (const t of trips) {
+      map[t.tripId] = t;
+    }
+    return map;
+  }, [trips]);
+
+  const bookingsMap = useMemo(() => {
+    const map = {};
+    for (const b of bookings) {
+      map[b.bookingId] = b;
+    }
+    return map;
+  }, [bookings]);
+
   // Derived financial metrics
   const totalPaid = useMemo(() => {
     return payments
@@ -72,7 +106,7 @@ export default function AgencyPaymentsPage() {
     return refunds
       .filter((r) => r.refundStatus === 'Processing' || r.refund_status === 'Processing')
       .reduce((sum, r) => {
-        const p = payments.find((pay) => pay.paymentId === r.paymentId);
+        const p = payments.find((pay) => pay.paymentId === r.paymentId || pay.payment_id === r.paymentId);
         return sum + (p ? Number(p.amount) || 0 : 0);
       }, 0);
   }, [refunds, payments]);
@@ -81,24 +115,82 @@ export default function AgencyPaymentsPage() {
   const filteredPayments = useMemo(() => {
     return payments.filter((p) => {
       const status = (p.status || '').toLowerCase();
-      const matchesStatus =
-        statusFilter === 'all' || status === statusFilter.toLowerCase();
+      const associatedRefund = refunds.find(
+        (r) => r.paymentId === p.paymentId || r.payment_id === p.paymentId
+      );
+
+      let matchesStatus = true;
+      if (statusFilter === 'paid') {
+        matchesStatus = status === 'paid';
+      } else if (statusFilter === 'pending') {
+        matchesStatus = status === 'pending';
+      } else if (statusFilter === 'refunded') {
+        matchesStatus = Boolean(associatedRefund) || status === 'refunded';
+      }
+
+      const bookingObj = p.bookingId ? bookingsMap[p.bookingId] : null;
+      const tripObj = p.tripId ? tripsMap[p.tripId] : bookingObj?.tripId ? tripsMap[bookingObj.tripId] : null;
+      const title = bookingObj?.service || tripObj?.title || tripObj?.destination || '';
 
       const search = searchTerm.toLowerCase().trim();
       const matchesSearch =
         !search ||
-        String(p.paymentId || '').includes(search) ||
+        String(p.paymentId || p.payment_id || '').includes(search) ||
         String(p.bookingId || '').includes(search) ||
         String(p.tripId || '').includes(search) ||
-        (p.method || '').toLowerCase().includes(search);
+        (p.method || '').toLowerCase().includes(search) ||
+        title.toLowerCase().includes(search);
 
       return matchesStatus && matchesSearch;
     });
-  }, [payments, statusFilter, searchTerm]);
+  }, [payments, refunds, statusFilter, searchTerm, bookingsMap, tripsMap]);
 
   const filteredTotal = useMemo(() => {
     return filteredPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
   }, [filteredPayments]);
+
+  // Plain JS CSV export handler
+  const handleExportCSV = () => {
+    if (filteredPayments.length === 0) return;
+    const headers = [
+      'Payment ID',
+      'Reference',
+      'Title / Service',
+      'Amount (₹)',
+      'Method',
+      'Status',
+      'Recorded Date',
+      'Refund Status',
+    ];
+    const rows = filteredPayments.map((p) => {
+      const associatedRefund = refunds.find((r) => r.paymentId === p.paymentId || r.payment_id === p.paymentId);
+      const bookingObj = p.bookingId ? bookingsMap[p.bookingId] : null;
+      const tripObj = p.tripId ? tripsMap[p.tripId] : bookingObj?.tripId ? tripsMap[bookingObj.tripId] : null;
+      const title = bookingObj?.service || tripObj?.title || (tripObj ? `Tour to ${tripObj.destination}` : 'Agency Package Booking');
+      return [
+        `"#${p.paymentId || p.payment_id}"`,
+        `"${p.bookingId ? `Booking #${p.bookingId}` : p.tripId ? `Trip #${p.tripId}` : '—'}"`,
+        `"${title.replace(/"/g, '""')}"`,
+        Number(p.amount || 0),
+        `"${(p.method || 'Card').replace(/"/g, '""')}"`,
+        `"${(p.status || 'Pending').replace(/"/g, '""')}"`,
+        `"${(p.paymentDate || p.payment_date || '').replace(/"/g, '""')}"`,
+        `"${(associatedRefund ? (associatedRefund.refundStatus || associatedRefund.refund_status) : 'None').replace(/"/g, '""')}"`,
+      ];
+    });
+
+    const csvContent =
+      'data:text/csv;charset=utf-8,\uFEFF' +
+      [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `agency_payments_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="agency-payments-page" style={{ maxWidth: '1200px', margin: '0 auto' }}>
@@ -178,7 +270,7 @@ export default function AgencyPaymentsPage() {
         }}
       >
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', background: '#f1f5f9', padding: '4px', borderRadius: '10px' }}>
-          {['all', 'paid', 'pending'].map((tab) => (
+          {['all', 'paid', 'pending', 'refunded'].map((tab) => (
             <button
               key={tab}
               type="button"
@@ -203,6 +295,27 @@ export default function AgencyPaymentsPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            type="button"
+            onClick={handleExportCSV}
+            disabled={filteredPayments.length === 0}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '8px',
+              border: 'none',
+              background: filteredPayments.length === 0 ? '#f1f5f9' : '#0d9488',
+              color: filteredPayments.length === 0 ? '#94a3b8' : '#fff',
+              fontSize: '13px',
+              cursor: filteredPayments.length === 0 ? 'not-allowed' : 'pointer',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: filteredPayments.length === 0 ? 'none' : '0 2px 6px rgba(13,148,136,0.25)',
+            }}
+          >
+            📥 Export CSV
+          </button>
           <div style={{ position: 'relative' }}>
             <span
               style={{
@@ -330,6 +443,9 @@ export default function AgencyPaymentsPage() {
                   const associatedRefund = refunds.find(
                     (r) => r.paymentId === p.paymentId || r.payment_id === p.paymentId
                   );
+                  const bookingObj = p.bookingId ? bookingsMap[p.bookingId] : null;
+                  const tripObj = p.tripId ? tripsMap[p.tripId] : bookingObj?.tripId ? tripsMap[bookingObj.tripId] : null;
+                  const title = bookingObj?.service || tripObj?.title || (tripObj ? `Tour to ${tripObj.destination}` : 'Agency Package Booking');
 
                   return (
                     <tr
@@ -340,7 +456,10 @@ export default function AgencyPaymentsPage() {
                         #{p.paymentId || p.payment_id}
                       </td>
                       <td style={{ padding: '14px 18px', color: '#475569' }}>
-                        {p.bookingId ? `Booking #${p.bookingId}` : p.tripId ? `Trip #${p.tripId}` : '—'}
+                        <div style={{ fontWeight: 600, color: '#1e293b' }}>{title}</div>
+                        <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                          {p.bookingId ? `Booking #${p.bookingId}` : p.tripId ? `Trip #${p.tripId}` : '—'}
+                        </div>
                       </td>
                       <td style={{ padding: '14px 18px', fontWeight: 700, color: '#0d9488' }}>
                         ₹{Number(p.amount || 0).toLocaleString('en-IN')}

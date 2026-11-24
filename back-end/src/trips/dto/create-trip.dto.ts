@@ -26,6 +26,10 @@ export class CreateTripDto {
   @IsNotEmpty() @IsNumber() @Min(0)
   budget: number;
 
+  @ApiPropertyOptional({ example: 45000, description: 'Client target reference budget (not billable)' })
+  @IsOptional() @IsNumber() @Min(0)
+  targetBudget?: number;
+
   @ApiPropertyOptional({ example: 1, description: 'Traveler ID' })
   @IsOptional() @IsNumber()
   travelerId?: number;

@@ -8,6 +8,7 @@ export interface Trip {
   startDate: string;
   endDate: string;
   budget: number;
+  targetBudget?: number;
   travelerId?: number;
   agencyId?: number;
   guideId: number | null;

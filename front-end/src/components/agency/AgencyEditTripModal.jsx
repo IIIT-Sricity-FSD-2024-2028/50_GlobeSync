@@ -8,42 +8,66 @@ export default function AgencyEditTripModal({
   isOpen,
   trip,
   agencyId,
-  commissionRate = 1.5,
+  commissionRate = 10.0,
   onClose,
   onSuccess,
   showToast,
 }) {
-  if (!isOpen || !trip) return null;
-
   const [activeTab, setActiveTab] = useState('basics'); // 'basics' | 'transit' | 'itinerary'
-  const [title, setTitle] = useState(trip.title || '');
-  const [destination, setDestination] = useState(trip.destination || '');
-  const [origin, setOrigin] = useState(trip.origin || 'New Delhi, India');
-  const [startDate, setStartDate] = useState(trip.startDate || '');
-  const [endDate, setEndDate] = useState(trip.endDate || '');
-  const [budget, setBudget] = useState(String(trip.budget || ''));
-  const [category, setCategory] = useState(trip.category || 'Family Vacation');
-  const [notes, setNotes] = useState(trip.notes || '');
+  const [title, setTitle] = useState(trip?.title || '');
+  const [destination, setDestination] = useState(trip?.destination || '');
+  const [origin, setOrigin] = useState(trip?.origin || 'New Delhi, India');
+  const [startDate, setStartDate] = useState(trip?.startDate || '');
+  const [endDate, setEndDate] = useState(trip?.endDate || '');
+  const [budget, setBudget] = useState(String(trip?.budget || ''));
+  const [category, setCategory] = useState(trip?.category || 'Family Vacation');
+  const [notes, setNotes] = useState(trip?.notes || '');
 
   // Passenger list
   const [selectedPassengerIds, setSelectedPassengerIds] = useState(
-    trip.passengerIds || (trip.passengers ? trip.passengers.map((p) => p.passId) : [])
+    trip?.passengerIds || (trip?.passengers ? trip.passengers.map((p) => p.passId) : [])
   );
 
   // Transport details
-  const [transportType, setTransportType] = useState(trip.transportDetails?.transportType || 'Flight');
-  const [carrier, setCarrier] = useState(trip.transportDetails?.carrier || '');
-  const [carrierPrice, setCarrierPrice] = useState(trip.transportDetails?.carrierPrice || 7800);
-  const [lodgingTier, setLodgingTier] = useState(trip.transportDetails?.lodgingTier || 'Deluxe');
-  const [lodgingPrice, setLodgingPrice] = useState(trip.transportDetails?.lodgingPrice || 27500);
+  const [transportType, setTransportType] = useState(trip?.transportDetails?.transportType || 'Flight');
+  const [carrier, setCarrier] = useState(trip?.transportDetails?.carrier || '');
+  const [carrierPrice, setCarrierPrice] = useState(trip?.transportDetails?.carrierPrice || 7800);
+  const [lodgingTier, setLodgingTier] = useState(trip?.transportDetails?.lodgingTier || 'Deluxe');
+  const [lodgingPrice, setLodgingPrice] = useState(trip?.transportDetails?.lodgingPrice || 27500);
 
   // Itinerary & Guide
-  const [itineraryDays, setItineraryDays] = useState(trip.itineraryDays || []);
-  const [guideRequested, setGuideRequested] = useState(Boolean(trip.guideId));
-  const [selectedGuideId, setSelectedGuideId] = useState(trip.guideId ? String(trip.guideId) : '');
+  const [itineraryDays, setItineraryDays] = useState(trip?.itineraryDays || []);
+  const [guideRequested, setGuideRequested] = useState(Boolean(trip?.guideId));
+  const [selectedGuideId, setSelectedGuideId] = useState(trip?.guideId ? String(trip.guideId) : '');
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
+
+  useEffect(() => {
+    if (isOpen && trip) {
+      setTitle(trip.title || '');
+      setDestination(trip.destination || '');
+      setOrigin(trip.origin || 'New Delhi, India');
+      setStartDate(trip.startDate || '');
+      setEndDate(trip.endDate || '');
+      setBudget(String(trip.budget || ''));
+      setCategory(trip.category || 'Family Vacation');
+      setNotes(trip.notes || '');
+      setSelectedPassengerIds(trip.passengerIds || (trip.passengers ? trip.passengers.map((p) => p.passId) : []));
+      setTransportType(trip.transportDetails?.transportType || 'Flight');
+      setCarrier(trip.transportDetails?.carrier || '');
+      setCarrierPrice(trip.transportDetails?.carrierPrice || 7800);
+      setLodgingTier(trip.transportDetails?.lodgingTier || 'Deluxe');
+      setLodgingPrice(trip.transportDetails?.lodgingPrice || 27500);
+      setItineraryDays(trip.itineraryDays || []);
+      setGuideRequested(Boolean(trip.guideId));
+      setSelectedGuideId(trip.guideId ? String(trip.guideId) : '');
+      setActiveTab('basics');
+      setSaveError(null);
+    }
+  }, [isOpen, trip]);
+
+  if (!isOpen || !trip) return null;
 
   const stayDays = (() => {
     if (!startDate || !endDate) return 1;

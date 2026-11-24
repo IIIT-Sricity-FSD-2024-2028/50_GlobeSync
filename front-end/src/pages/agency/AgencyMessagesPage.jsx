@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSession } from '../../context/SessionContext';
 import { messagesApi, guidesApi } from '../../services/api';
+import { useRealtimeEvent } from '../../context/RealtimeContext';
 
 /**
  * AgencyMessagesPage
@@ -20,6 +21,22 @@ export default function AgencyMessagesPage() {
   const [loading, setLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState(null);
+
+  // Subscribe to live incoming messages
+  useRealtimeEvent('message.created', (event) => {
+    const newMsg = event?.message || event?.data || event;
+    if (!newMsg) return;
+    const isForMe =
+      (newMsg.sender === 'agency' && Number(newMsg.senderId) === agencyId) ||
+      (newMsg.receiver === 'agency' && Number(newMsg.receiverId) === agencyId);
+    if (isForMe) {
+      setRawMessages((prev) => {
+        const id = newMsg.messageId || newMsg.id;
+        if (id && prev.some((m) => (m.messageId || m.id) === id)) return prev;
+        return [...prev, newMsg];
+      });
+    }
+  });
 
   const chatBottomRef = useRef(null);
 
@@ -99,15 +116,16 @@ export default function AgencyMessagesPage() {
     const isSender = (msg.sender || '').toLowerCase() === 'agency' && Number(msg.senderId) === agencyId;
     const otherRole = isSender ? (msg.receiver || '').toLowerCase() : (msg.sender || '').toLowerCase();
     const otherId = isSender ? Number(msg.receiverId) : Number(msg.senderId);
-    const convKey = `${otherRole}_${otherId}`;
+    const isSupport = otherRole === 'support';
+    const convKey = isSupport ? 'support_1' : `${otherRole}_${otherId}`;
 
     if (!conversationsMap[convKey]) {
       conversationsMap[convKey] = {
         id: convKey,
         otherRole,
-        otherId,
-        name: otherRole === 'support' ? 'Customer Support' : otherRole === 'guide' ? `Guide #${otherId}` : `${otherRole} #${otherId}`,
-        role: otherRole.toUpperCase(),
+        otherId: isSupport ? 1 : otherId,
+        name: isSupport ? 'GlobeSync Support Care Desk' : otherRole === 'guide' ? `Guide #${otherId}` : `${otherRole} #${otherId}`,
+        role: isSupport ? 'Helpdesk & Care' : otherRole.toUpperCase(),
         messages: [],
         lastMessage: null,
       };
@@ -291,7 +309,7 @@ export default function AgencyMessagesPage() {
                         </div>
                       </div>
                       <div style={{ fontSize: '12px', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {conv.lastMessage?.message || conv.role}
+                        {conv.lastMessage?.content || conv.lastMessage?.message || conv.role}
                       </div>
                     </div>
                   </div>

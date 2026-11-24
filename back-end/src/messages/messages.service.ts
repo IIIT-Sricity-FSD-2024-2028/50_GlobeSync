@@ -20,6 +20,9 @@ export class MessagesService {
    * Get all messages where user is sender or receiver.
    */
   findByUser(userType: string, userId: number): Message[] {
+    if (userType === 'support') {
+      return messages.filter((m) => m.sender === 'support' || m.receiver === 'support');
+    }
     return messages.filter(
       (m) =>
         (m.sender === userType && m.senderId === userId) ||
@@ -33,21 +36,30 @@ export class MessagesService {
   findConversation(query: ConversationQueryDto): { messages: Message[]; total: number } {
     let filtered: Message[] = [];
 
+    const sType = query.sender || query.senderType;
+    const sId = query.senderId;
+    const rType = query.receiver || query.receiverType;
+    const rId = query.receiverId;
+
     if (query.bookingId) {
       filtered = messages.filter((m) => m.bookingId === query.bookingId);
     } else if (query.ticketId) {
       filtered = messages.filter((m) => m.ticketId === query.ticketId);
-    } else if (query.sender && query.senderId && query.receiver && query.receiverId) {
-      const sType = query.sender;
-      const sId = query.senderId;
-      const rType = query.receiver;
-      const rId = query.receiverId;
-
-      filtered = messages.filter(
-        (m) =>
-          (m.sender === sType && m.senderId === sId && m.receiver === rType && m.receiverId === rId) ||
-          (m.sender === rType && m.senderId === rId && m.receiver === sType && m.receiverId === sId),
-      );
+    } else if (sType && sId && rType && rId) {
+      filtered = messages.filter((m) => {
+        if (sType === 'support' || rType === 'support') {
+          const otherType = sType === 'support' ? rType : sType;
+          const otherId = Number(sType === 'support' ? rId : sId);
+          return (
+            (m.sender === 'support' && m.receiver === otherType && Number(m.receiverId) === otherId) ||
+            (m.receiver === 'support' && m.sender === otherType && Number(m.senderId) === otherId)
+          );
+        }
+        return (
+          (m.sender === sType && Number(m.senderId) === Number(sId) && m.receiver === rType && Number(m.receiverId) === Number(rId)) ||
+          (m.sender === rType && Number(m.senderId) === Number(rId) && m.receiver === sType && Number(m.receiverId) === Number(sId))
+        );
+      });
     } else {
       filtered = [...messages];
     }
@@ -111,6 +123,14 @@ export class MessagesService {
       }
       // Emit directly to receiver user room
       this.realtimeService.emitToUser(item.receiverId, 'message.created', item, item.receiver);
+      // When message is sent to or from support, broadcast to all active support desks
+      if (item.receiver === 'support' || item.sender === 'support') {
+        this.realtimeService.emitToRole('support', 'message.created', item);
+      }
+      // When message is sent to an agency, ensure agency user room receives it
+      if (item.receiver === 'agency') {
+        this.realtimeService.emitToUser(item.receiverId, 'message.created', item, 'agency');
+      }
     }
 
     // Persist a notification for receiver
