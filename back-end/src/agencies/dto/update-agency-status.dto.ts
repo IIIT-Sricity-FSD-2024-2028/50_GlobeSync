@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsNumber, IsOptional, Min, Max } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsString, Min, Max } from 'class-validator';
 
 export class UpdateAgencyStatusDto {
   @ApiProperty({ example: 'approved', enum: ['pending', 'approved', 'rejected'] })
@@ -12,4 +12,9 @@ export class UpdateAgencyStatusDto {
   @Min(1.0)
   @Max(1.5)
   commissionRate?: number;
+
+  @ApiPropertyOptional({ example: 'Verified business licenses and tax registrations', description: 'Admin reason for approval or rejection' })
+  @IsOptional()
+  @IsString()
+  reason?: string;
 }

@@ -87,6 +87,8 @@ export default function SupportCreateTicketModal({
           borderRadius: '16px',
           width: '100%',
           maxWidth: '560px',
+          maxHeight: 'calc(100vh - 40px)',
+          overflowY: 'auto',
           boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
           padding: 0,
         }}

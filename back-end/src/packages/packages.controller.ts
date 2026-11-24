@@ -1,10 +1,13 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, ParseIntPipe } from '@nestjs/common';
+import { AuthUserId, AuthRole } from '../common/decorators/current-user.decorator';
+import { Controller, Get, Post, Put, Delete, Param, Body, Query, ParseIntPipe, Req, Headers } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { PackagesService } from './packages.service';
 import { CreatePackageDto, UpdatePackageDto } from './dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { ApiRoleHeader } from '../common/decorators/api-role-header.decorator';
+import { ApiUserHeaders } from '../common/decorators/api-user-headers.decorator';
 import { Role } from '../common/enums/role.enum';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @ApiTags('packages')
 @Controller('packages')
@@ -14,45 +17,63 @@ export class PackagesController {
   @Get()
   @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY)
   @ApiRoleHeader()
-  @ApiOperation({ summary: 'Get all packages', description: 'Returns list of all travel packages. Accessible by superuser, admin, traveler, guide, and agency.' })
+  @ApiOperation({ summary: 'Get all packages with pagination, search, and sorting' })
   @ApiResponse({ status: 200, description: 'List of packages returned successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden — insufficient role' })
-  findAll() {
-    return this.packagesService.findAll();
+  findAll(@Query() query: PaginationQueryDto) {
+    return this.packagesService.findAll(query);
+  }
+
+  @Get('agency/:agencyId')
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY)
+  @ApiRoleHeader()
+  @ApiOperation({ summary: 'Get packages by agency ID' })
+  @ApiParam({ name: 'agencyId', type: Number })
+  @ApiResponse({ status: 200, description: 'List of packages for agency' })
+  findByAgency(
+    @Param('agencyId', ParseIntPipe) agencyId: number,
+    @Query() query: PaginationQueryDto,
+  ) {
+    return this.packagesService.findByAgency(agencyId, query);
   }
 
   @Get(':id')
   @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY)
   @ApiRoleHeader()
-  @ApiOperation({ summary: 'Get package by ID', description: 'Returns a single package. Accessible by superuser, admin, traveler, guide, and agency.' })
+  @ApiOperation({ summary: 'Get package by ID' })
   @ApiParam({ name: 'id', type: Number, description: 'Package ID' })
   @ApiResponse({ status: 200, description: 'Package found' })
   @ApiResponse({ status: 404, description: 'Package not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden — insufficient role' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.packagesService.findOne(id);
   }
 
   @Post()
-  @Roles(Role.SUPERUSER, Role.ADMIN)
-  @ApiRoleHeader()
-  @ApiOperation({ summary: 'Create a new package', description: 'Creates a travel package. Accessible by superuser and admin.' })
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.AGENCY)
+  @ApiUserHeaders()
+  @ApiOperation({
+    summary: 'Create a travel package',
+    description: 'Creates a package. Only APPROVED agencies can publish packages (enforces subscription tier limits).',
+  })
   @ApiResponse({ status: 201, description: 'Package created successfully' })
   @ApiResponse({ status: 400, description: 'Validation error' })
-  @ApiResponse({ status: 403, description: 'Forbidden — insufficient role' })
-  create(@Body() dto: CreatePackageDto) {
-    return this.packagesService.create(dto);
+  @ApiResponse({ status: 403, description: 'Forbidden — not approved or subscription limit exceeded' })
+  create(
+    @Body() dto: CreatePackageDto,
+    @Req() req: any,
+    @AuthRole() roleHeader?: string,
+    @AuthUserId() idHeader?: string,
+  ) {
+    const role = req.user?.role || roleHeader;
+    const id = Number(req.user?.id || idHeader);
+    return this.packagesService.create(dto, role, id);
   }
 
   @Put(':id')
-  @Roles(Role.SUPERUSER, Role.ADMIN)
-  @ApiRoleHeader()
-  @ApiOperation({ summary: 'Update a package', description: 'Updates package details. Accessible by superuser and admin.' })
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.AGENCY)
+  @ApiUserHeaders()
+  @ApiOperation({ summary: 'Update a package' })
   @ApiParam({ name: 'id', type: Number, description: 'Package ID' })
   @ApiResponse({ status: 200, description: 'Package updated successfully' })
-  @ApiResponse({ status: 400, description: 'Validation error' })
-  @ApiResponse({ status: 404, description: 'Package not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden — insufficient role' })
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdatePackageDto) {
     return this.packagesService.update(id, dto);
   }
@@ -60,11 +81,10 @@ export class PackagesController {
   @Delete(':id')
   @Roles(Role.SUPERUSER, Role.ADMIN)
   @ApiRoleHeader()
-  @ApiOperation({ summary: 'Delete a package', description: 'Removes a travel package. Accessible by superuser and admin.' })
+  @ApiOperation({ summary: 'Delete a package' })
   @ApiParam({ name: 'id', type: Number, description: 'Package ID' })
   @ApiResponse({ status: 200, description: 'Package deleted successfully' })
   @ApiResponse({ status: 404, description: 'Package not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden — insufficient role' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.packagesService.remove(id);
   }

@@ -215,7 +215,7 @@ export default function AgencyDashboardPage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))',
           gap: '16px',
           marginBottom: '28px',
         }}
@@ -271,7 +271,7 @@ export default function AgencyDashboardPage() {
             </Link>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: '14px' }}>
             {packages.map((pkg) => {
               const pkgId = pkg.packageId || pkg.id;
               const pkgTitle = pkg.name || pkg.title || 'Curated Holiday Tour';

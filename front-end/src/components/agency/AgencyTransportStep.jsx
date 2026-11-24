@@ -135,7 +135,7 @@ export default function AgencyTransportStep({
         <label style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: '8px' }}>
           Operator & Class Options
         </label>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: '10px' }}>
           {carriers.map((c) => {
             const isSelected = carrier === c.name || (!carrier && c === carriers[0]);
             return (
@@ -169,7 +169,7 @@ export default function AgencyTransportStep({
         <label style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: '8px' }}>
           Accommodation Tier ({stayDays} Nights)
         </label>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: '12px' }}>
           {LODGING_TIERS.map((tier) => {
             const isSelected = lodgingTier === tier.tier;
             const totalForStay = tier.pricePerNight * Math.max(1, stayDays);

@@ -3,23 +3,150 @@
   "paths": {
     "/health": {
       "get": {
-        "description": "Returns the health status of the API",
-        "operationId": "HealthController_getHealth",
+        "description": "Returns 200 OK if service process is alive.",
+        "operationId": "HealthController_getLiveness",
         "parameters": [],
         "responses": {
           "200": {
-            "description": "API is healthy"
+            "description": "Service is alive"
           }
         },
-        "summary": "Health check",
+        "summary": "Liveness probe",
         "tags": [
           "health"
         ]
       }
     },
+    "/health/ready": {
+      "get": {
+        "description": "Verifies database, storage subsystem, and memory readiness before routing traffic.",
+        "operationId": "HealthController_getReadiness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service is ready to handle requests"
+          },
+          "503": {
+            "description": "Service subsystem degraded or unhealthy"
+          }
+        },
+        "summary": "Readiness probe",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/ready": {
+      "get": {
+        "operationId": "RootReadyController_checkReady",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Root readiness probe (/ready)",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/auth/register/traveler": {
+      "post": {
+        "operationId": "AuthController_registerTraveler",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterTravelerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Traveler account created."
+          },
+          "409": {
+            "description": "Email already registered."
+          }
+        },
+        "summary": "Register a new traveler account",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/register/agency": {
+      "post": {
+        "operationId": "AuthController_registerAgency",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterAgencyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Agency registered."
+          },
+          "409": {
+            "description": "Email already registered."
+          }
+        },
+        "summary": "Register a new agency account (pending admin approval)",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials or account locked."
+          },
+          "403": {
+            "description": "Account inactive or agency not approved."
+          }
+        },
+        "summary": "Login with any role — returns JWT access + refresh tokens",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/auth/traveler-login": {
       "post": {
-        "description": "Authenticate a traveler using email and password from in-memory data.",
         "operationId": "AuthController_travelerLogin",
         "parameters": [],
         "requestBody": {
@@ -27,30 +154,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TravelerLoginDto"
+                "$ref": "#/components/schemas/LoginDto"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Login successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LoginResponseDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Validation error — email or password missing/invalid"
-          },
-          "401": {
-            "description": "Invalid email or password"
+            "description": ""
           }
         },
-        "summary": "Traveler login",
+        "summary": "[Legacy] Traveler login — use POST /auth/login instead",
         "tags": [
           "auth"
         ]
@@ -58,7 +172,6 @@
     },
     "/auth/staff-login": {
       "post": {
-        "description": "Authenticate admin, superuser, guide, or support staff using email and password.",
         "operationId": "AuthController_staffLogin",
         "parameters": [],
         "requestBody": {
@@ -66,30 +179,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/StaffLoginDto"
+                "$ref": "#/components/schemas/LoginDto"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Login successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LoginResponseDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Validation error — email or password missing/invalid"
-          },
-          "401": {
-            "description": "Invalid email or password"
+            "description": ""
           }
         },
-        "summary": "Staff login",
+        "summary": "[Legacy] Staff login — use POST /auth/login instead",
         "tags": [
           "auth"
         ]
@@ -97,7 +197,6 @@
     },
     "/auth/agency-login": {
       "post": {
-        "description": "Authenticate an agency using email and password. Fails if agency is not approved.",
         "operationId": "AuthController_agencyLogin",
         "parameters": [],
         "requestBody": {
@@ -105,30 +204,135 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AgencyLoginDto"
+                "$ref": "#/components/schemas/LoginDto"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Login successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LoginResponseDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Validation error — email or password missing/invalid"
-          },
-          "401": {
-            "description": "Invalid email, password, or agency not approved"
+            "description": ""
           }
         },
-        "summary": "Agency login",
+        "summary": "[Legacy] Agency login — use POST /auth/login instead",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token rotated."
+          },
+          "401": {
+            "description": "Refresh token invalid or expired."
+          }
+        },
+        "summary": "Rotate refresh token and issue new access token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke refresh token and clear cookies",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/forgot-password": {
+      "post": {
+        "operationId": "AuthController_forgotPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Request a password reset email",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "operationId": "AuthController_resetPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Set a new password using the reset token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "operationId": "AuthController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get current authenticated user identity from token",
         "tags": [
           "auth"
         ]
@@ -136,9 +340,75 @@
     },
     "/travelers": {
       "get": {
-        "description": "Returns list of all travelers. Accessible by superuser, admin, support, and guide.",
         "operationId": "TravelersController_findAll",
         "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
           {
             "name": "x-user-role",
             "in": "header",
@@ -165,13 +435,12 @@
             "description": "Forbidden — insufficient role"
           }
         },
-        "summary": "Get all travelers",
+        "summary": "Get all travelers with pagination, search, and sorting",
         "tags": [
           "travelers"
         ]
       },
       "post": {
-        "description": "Creates a traveler account. Publicly accessible.",
         "operationId": "TravelersController_create",
         "parameters": [],
         "requestBody": {
@@ -203,7 +472,6 @@
     },
     "/travelers/{id}": {
       "get": {
-        "description": "Returns a single traveler. Accessible by superuser, admin, support, and guide.",
         "operationId": "TravelersController_findOne",
         "parameters": [
           {
@@ -250,7 +518,6 @@
         ]
       },
       "put": {
-        "description": "Updates traveler details. Accessible by superuser and admin.",
         "operationId": "TravelersController_update",
         "parameters": [
           {
@@ -310,7 +577,6 @@
         ]
       },
       "delete": {
-        "description": "Removes a traveler. Accessible by superuser and admin.",
         "operationId": "TravelersController_remove",
         "parameters": [
           {
@@ -359,9 +625,75 @@
     },
     "/guides": {
       "get": {
-        "description": "Returns list of all guides. Accessible by superuser, admin, traveler, guide, and agency.",
         "operationId": "GuidesController_findAll",
         "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
           {
             "name": "x-user-role",
             "in": "header",
@@ -383,18 +715,14 @@
         "responses": {
           "200": {
             "description": "List of guides returned successfully"
-          },
-          "403": {
-            "description": "Forbidden — insufficient role"
           }
         },
-        "summary": "Get all guides",
+        "summary": "Get all guides with pagination, search, and sorting",
         "tags": [
           "guides"
         ]
       },
       "post": {
-        "description": "Creates a guide account. Accessible by superuser and admin.",
         "operationId": "GuidesController_create",
         "parameters": [
           {
@@ -431,9 +759,6 @@
           },
           "400": {
             "description": "Validation error"
-          },
-          "403": {
-            "description": "Forbidden — insufficient role"
           }
         },
         "summary": "Create a new guide",
@@ -444,7 +769,6 @@
     },
     "/guides/{id}": {
       "get": {
-        "description": "Returns a single guide. Accessible by superuser, admin, traveler, guide, and agency.",
         "operationId": "GuidesController_findOne",
         "parameters": [
           {
@@ -478,9 +802,6 @@
           "200": {
             "description": "Guide found"
           },
-          "403": {
-            "description": "Forbidden — insufficient role"
-          },
           "404": {
             "description": "Guide not found"
           }
@@ -491,7 +812,6 @@
         ]
       },
       "put": {
-        "description": "Updates guide details. Accessible by superuser, admin, and the guide themselves.",
         "operationId": "GuidesController_update",
         "parameters": [
           {
@@ -534,24 +854,14 @@
         "responses": {
           "200": {
             "description": "Guide updated successfully"
-          },
-          "400": {
-            "description": "Validation error"
-          },
-          "403": {
-            "description": "Forbidden — insufficient role"
-          },
-          "404": {
-            "description": "Guide not found"
           }
         },
-        "summary": "Update a guide",
+        "summary": "Update a guide (rate and experience are read-only for guides)",
         "tags": [
           "guides"
         ]
       },
       "delete": {
-        "description": "Removes a guide. Accessible by superuser and admin.",
         "operationId": "GuidesController_remove",
         "parameters": [
           {
@@ -585,9 +895,6 @@
           "200": {
             "description": "Guide deleted successfully"
           },
-          "403": {
-            "description": "Forbidden — insufficient role"
-          },
           "404": {
             "description": "Guide not found"
           }
@@ -600,9 +907,75 @@
     },
     "/packages": {
       "get": {
-        "description": "Returns list of all travel packages. Accessible by superuser, admin, traveler, guide, and agency.",
         "operationId": "PackagesController_findAll",
         "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
           {
             "name": "x-user-role",
             "in": "header",
@@ -624,18 +997,15 @@
         "responses": {
           "200": {
             "description": "List of packages returned successfully"
-          },
-          "403": {
-            "description": "Forbidden — insufficient role"
           }
         },
-        "summary": "Get all packages",
+        "summary": "Get all packages with pagination, search, and sorting",
         "tags": [
           "packages"
         ]
       },
       "post": {
-        "description": "Creates a travel package. Accessible by superuser and admin.",
+        "description": "Creates a package. Only APPROVED agencies can publish packages (enforces subscription tier limits).",
         "operationId": "PackagesController_create",
         "parameters": [
           {
@@ -653,6 +1023,15 @@
                 "superuser",
                 "agency"
               ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -674,10 +1053,118 @@
             "description": "Validation error"
           },
           "403": {
-            "description": "Forbidden — insufficient role"
+            "description": "Forbidden — not approved or subscription limit exceeded"
           }
         },
-        "summary": "Create a new package",
+        "summary": "Create a travel package",
+        "tags": [
+          "packages"
+        ]
+      }
+    },
+    "/packages/agency/{agencyId}": {
+      "get": {
+        "operationId": "PackagesController_findByAgency",
+        "parameters": [
+          {
+            "name": "agencyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of packages for agency"
+          }
+        },
+        "summary": "Get packages by agency ID",
         "tags": [
           "packages"
         ]
@@ -685,7 +1172,6 @@
     },
     "/packages/{id}": {
       "get": {
-        "description": "Returns a single package. Accessible by superuser, admin, traveler, guide, and agency.",
         "operationId": "PackagesController_findOne",
         "parameters": [
           {
@@ -719,9 +1205,6 @@
           "200": {
             "description": "Package found"
           },
-          "403": {
-            "description": "Forbidden — insufficient role"
-          },
           "404": {
             "description": "Package not found"
           }
@@ -732,7 +1215,6 @@
         ]
       },
       "put": {
-        "description": "Updates package details. Accessible by superuser and admin.",
         "operationId": "PackagesController_update",
         "parameters": [
           {
@@ -760,6 +1242,15 @@
                 "agency"
               ]
             }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -775,15 +1266,6 @@
         "responses": {
           "200": {
             "description": "Package updated successfully"
-          },
-          "400": {
-            "description": "Validation error"
-          },
-          "403": {
-            "description": "Forbidden — insufficient role"
-          },
-          "404": {
-            "description": "Package not found"
           }
         },
         "summary": "Update a package",
@@ -792,7 +1274,6 @@
         ]
       },
       "delete": {
-        "description": "Removes a travel package. Accessible by superuser and admin.",
         "operationId": "PackagesController_remove",
         "parameters": [
           {
@@ -826,9 +1307,6 @@
           "200": {
             "description": "Package deleted successfully"
           },
-          "403": {
-            "description": "Forbidden — insufficient role"
-          },
           "404": {
             "description": "Package not found"
           }
@@ -841,9 +1319,75 @@
     },
     "/trips": {
       "get": {
-        "description": "Returns all trips. Accessible by superuser, admin, and support.",
         "operationId": "TripsController_findAll",
         "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
           {
             "name": "x-user-role",
             "in": "header",
@@ -870,7 +1414,7 @@
             "description": "Forbidden"
           }
         },
-        "summary": "Get all trips",
+        "summary": "Get all trips with pagination, search, and sorting",
         "tags": [
           "trips"
         ]
@@ -1037,7 +1581,7 @@
             "description": "Trip not found"
           }
         },
-        "summary": "Update a trip",
+        "summary": "Update a trip (checks guide availability on accept)",
         "tags": [
           "trips"
         ]
@@ -1148,7 +1692,6 @@
     },
     "/trips/traveler/{travelerId}": {
       "get": {
-        "description": "Returns all trips for a traveler.",
         "operationId": "TripsController_findByTraveler",
         "parameters": [
           {
@@ -1157,6 +1700,73 @@
             "in": "path",
             "schema": {
               "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
             }
           },
           {
@@ -1191,7 +1801,7 @@
             "description": "Trips for traveler"
           }
         },
-        "summary": "Get trips by traveler ID",
+        "summary": "Get trips by traveler ID with pagination",
         "tags": [
           "trips"
         ]
@@ -1199,7 +1809,6 @@
     },
     "/trips/guide/{guideId}": {
       "get": {
-        "description": "Returns all trips assigned to a guide.",
         "operationId": "TripsController_findByGuide",
         "parameters": [
           {
@@ -1208,6 +1817,73 @@
             "in": "path",
             "schema": {
               "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
             }
           },
           {
@@ -1242,7 +1918,7 @@
             "description": "Trips for guide"
           }
         },
-        "summary": "Get trips by guide ID",
+        "summary": "Get trips by guide ID with pagination",
         "tags": [
           "trips"
         ]
@@ -1250,7 +1926,6 @@
     },
     "/trips/agency/{agencyId}": {
       "get": {
-        "description": "Returns all trips for an agency.",
         "operationId": "TripsController_findByAgency",
         "parameters": [
           {
@@ -1259,6 +1934,73 @@
             "in": "path",
             "schema": {
               "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
             }
           },
           {
@@ -1293,7 +2035,7 @@
             "description": "Trips for agency"
           }
         },
-        "summary": "Get trips by agency ID",
+        "summary": "Get trips by agency ID with pagination",
         "tags": [
           "trips"
         ]
@@ -1301,7 +2043,6 @@
     },
     "/trips/{id}/status": {
       "patch": {
-        "description": "Updates only the status of a trip. Guides can update status of assigned trips. Travelers can update status after payment or cancel.",
         "operationId": "TripsController_updateStatus",
         "parameters": [
           {
@@ -1369,6 +2110,73 @@
         "operationId": "BookingsController_findAll",
         "parameters": [
           {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "name": "x-user-role",
             "in": "header",
             "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
@@ -1391,7 +2199,7 @@
             "description": "List of all bookings"
           }
         },
-        "summary": "Get all bookings",
+        "summary": "Get all bookings with pagination, search, and sorting",
         "tags": [
           "bookings"
         ]
@@ -1399,6 +2207,22 @@
       "post": {
         "operationId": "BookingsController_create",
         "parameters": [
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "x-user-role",
             "in": "header",
@@ -1442,9 +2266,12 @@
           },
           "400": {
             "description": "Validation error"
+          },
+          "409": {
+            "description": "Conflict — Insufficient inventory or guide overlapping booking"
           }
         },
-        "summary": "Create a new booking",
+        "summary": "Create a new booking (HOLD state with 15-min expiration and concurrency protection)",
         "tags": [
           "bookings"
         ]
@@ -1619,6 +2446,73 @@
             }
           },
           {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "name": "x-user-role",
             "in": "header",
             "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
@@ -1650,7 +2544,7 @@
             "description": "Bookings for traveler"
           }
         },
-        "summary": "Get bookings by traveler ID",
+        "summary": "Get bookings by traveler ID with pagination",
         "tags": [
           "bookings"
         ]
@@ -1666,6 +2560,73 @@
             "in": "path",
             "schema": {
               "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
             }
           },
           {
@@ -1700,7 +2661,7 @@
             "description": "Bookings for agency"
           }
         },
-        "summary": "Get bookings by agency ID",
+        "summary": "Get bookings by agency ID with pagination",
         "tags": [
           "bookings"
         ]
@@ -1716,6 +2677,73 @@
             "in": "path",
             "schema": {
               "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
             }
           },
           {
@@ -1750,19 +2778,18 @@
             "description": "Bookings for guide trips"
           }
         },
-        "summary": "Get bookings for guide assigned trips",
+        "summary": "Get bookings for guide assigned trips with pagination",
         "tags": [
           "bookings"
         ]
       }
     },
-    "/itineraries/trip/{tripId}": {
+    "/bookings/{id}/cancellation-preview": {
       "get": {
-        "description": "Returns all itinerary items for a trip.",
-        "operationId": "ItinerariesController_findByTrip",
+        "operationId": "BookingsController_cancellationPreview",
         "parameters": [
           {
-            "name": "tripId",
+            "name": "id",
             "required": true,
             "in": "path",
             "schema": {
@@ -1798,10 +2825,277 @@
         ],
         "responses": {
           "200": {
-            "description": "Itinerary items for trip"
+            "description": ""
           }
         },
-        "summary": "Get itinerary by trip ID",
+        "summary": "Preview exact cancellation refund tier and amount before confirming",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/{id}/cancel": {
+      "post": {
+        "operationId": "BookingsController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Cancel a booking under policy rules (idempotent, server-side refund)",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/{id}/emergency-override": {
+      "post": {
+        "operationId": "BookingsController_emergencyOverride",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Request emergency cancellation override for < 12h departure",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/{id}/approve-override": {
+      "post": {
+        "operationId": "BookingsController_approveOverride",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Admin approval for high-value emergency override",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/itineraries/trip/{tripId}": {
+      "get": {
+        "operationId": "ItinerariesController_findByTrip",
+        "parameters": [
+          {
+            "name": "tripId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Itineraries for trip"
+          }
+        },
+        "summary": "Get itineraries by trip ID with pagination, search, and sorting",
         "tags": [
           "itineraries"
         ]
@@ -1856,7 +3150,7 @@
             "description": "Validation error"
           }
         },
-        "summary": "Create itinerary item",
+        "summary": "Create an itinerary item",
         "tags": [
           "itineraries"
         ]
@@ -1919,7 +3213,7 @@
             "description": "Itinerary not found"
           }
         },
-        "summary": "Update itinerary item",
+        "summary": "Update an itinerary item",
         "tags": [
           "itineraries"
         ]
@@ -1961,7 +3255,7 @@
             "description": "Itinerary not found"
           }
         },
-        "summary": "Delete itinerary item",
+        "summary": "Delete an itinerary item",
         "tags": [
           "itineraries"
         ]
@@ -1971,6 +3265,124 @@
       "get": {
         "description": "Returns all expenses for a trip.",
         "operationId": "ExpensesController_findByTrip",
+        "parameters": [
+          {
+            "name": "tripId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expenses for trip"
+          }
+        },
+        "summary": "Get expenses by trip ID with pagination",
+        "tags": [
+          "expenses"
+        ]
+      }
+    },
+    "/expenses/trip/{tripId}/budget-gauge": {
+      "get": {
+        "description": "Computes real expenses (manual + confirmed bookings) vs real trip budget.",
+        "operationId": "ExpensesController_getBudgetGauge",
         "parameters": [
           {
             "name": "tripId",
@@ -2009,10 +3421,10 @@
         ],
         "responses": {
           "200": {
-            "description": "Expenses for trip"
+            "description": "Budget gauge returned successfully"
           }
         },
-        "summary": "Get expenses by trip ID",
+        "summary": "Get real-time budget gauge for a trip",
         "tags": [
           "expenses"
         ]
@@ -2067,7 +3479,7 @@
             "description": "Validation error"
           }
         },
-        "summary": "Create an expense",
+        "summary": "Create an expense (can be tied to a booking)",
         "tags": [
           "expenses"
         ]
@@ -2213,6 +3625,22 @@
       "post": {
         "operationId": "PaymentsController_create",
         "parameters": [
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "x-user-role",
             "in": "header",
@@ -2417,6 +3845,99 @@
         ]
       }
     },
+    "/payments/intent": {
+      "post": {
+        "operationId": "PaymentsController_createPaymentIntent",
+        "parameters": [
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Payment intent created"
+          }
+        },
+        "summary": "Create gateway payment intent in test mode",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/payments/webhook": {
+      "post": {
+        "operationId": "PaymentsController_handleWebhook",
+        "parameters": [
+          {
+            "name": "x-razorpay-signature",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stripe-signature",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook processed"
+          },
+          "401": {
+            "description": "Invalid signature"
+          }
+        },
+        "summary": "Receive payment gateway webhooks (signature verified)",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
     "/api/admin/revenue/overview": {
       "get": {
         "operationId": "RevenueController_getAdminOverview",
@@ -2460,6 +3981,61 @@
           }
         ],
         "summary": "Get revenue overview (Admin/Superuser only)",
+        "tags": [
+          "revenue"
+        ]
+      }
+    },
+    "/api/admin/revenue/analytics/settled": {
+      "get": {
+        "description": "Computes metrics ONLY from settled ledger transactions. Returns zeros when there is no data.",
+        "operationId": "RevenueController_getSettledAnalytics",
+        "parameters": [
+          {
+            "name": "startDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Settled revenue analytics"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Settled revenue analytics with date filters",
         "tags": [
           "revenue"
         ]
@@ -2518,6 +4094,73 @@
         "operationId": "RevenueController_getAllTransactions",
         "parameters": [
           {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "name": "x-user-role",
             "in": "header",
             "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
@@ -2555,7 +4198,7 @@
             "bearer": []
           }
         ],
-        "summary": "Get all revenue transactions (Admin/Superuser only)",
+        "summary": "Get all revenue transactions with pagination, search, and sorting",
         "tags": [
           "revenue"
         ]
@@ -2711,6 +4354,73 @@
             }
           },
           {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "name": "x-user-role",
             "in": "header",
             "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
@@ -2757,9 +4467,131 @@
             "bearer": []
           }
         ],
-        "summary": "Get revenue for a specific agency",
+        "summary": "Get revenue for a specific agency with pagination",
         "tags": [
           "revenue"
+        ]
+      }
+    },
+    "/system-config/policy": {
+      "get": {
+        "operationId": "SystemConfigController_getPolicy",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Policy configuration returned successfully"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get current centralized business policy configuration",
+        "tags": [
+          "system-config"
+        ]
+      },
+      "put": {
+        "operationId": "SystemConfigController_updatePolicy",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePolicyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Policy configuration updated successfully"
+          },
+          "400": {
+            "description": "Validation error (percentages must be 0-100)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — Superuser role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update centralized business policy configuration (Superuser only)",
+        "tags": [
+          "system-config"
         ]
       }
     },
@@ -2813,15 +4645,6 @@
         "operationId": "SystemConfigController_updateRules",
         "parameters": [
           {
-            "name": "x-user-id",
-            "required": false,
-            "in": "header",
-            "description": "User ID for ownership verification",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "x-user-role",
             "in": "header",
             "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
@@ -2836,6 +4659,15 @@
                 "superuser",
                 "agency"
               ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -2879,7 +4711,121 @@
             "bearer": []
           }
         ],
-        "summary": "Update platform operational rules (Superuser only)",
+        "summary": "Update platform rules (Superuser only)",
+        "tags": [
+          "system-config"
+        ]
+      }
+    },
+    "/system-config/history": {
+      "get": {
+        "operationId": "SystemConfigController_getHistory",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Change history returned successfully"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get settings change history",
         "tags": [
           "system-config"
         ]
@@ -2918,7 +4864,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Payment methods returned successfully"
+            "description": "Payment methods returned"
           }
         },
         "security": [
@@ -2926,7 +4872,7 @@
             "bearer": []
           }
         ],
-        "summary": "Get configured checkout payment methods and gateway statuses",
+        "summary": "List all payment channels and gateway connectors",
         "tags": [
           "system-config"
         ]
@@ -2940,16 +4886,7 @@
             "name": "id",
             "required": true,
             "in": "path",
-            "description": "Payment method ID (e.g. pm-card, pm-upi)",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-user-id",
-            "required": false,
-            "in": "header",
-            "description": "User ID for ownership verification",
+            "description": "Payment method ID",
             "schema": {
               "type": "string"
             }
@@ -2970,6 +4907,15 @@
                 "agency"
               ]
             }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -2984,10 +4930,10 @@
         },
         "responses": {
           "200": {
-            "description": "Payment method updated successfully"
+            "description": "Payment method updated"
           },
           "400": {
-            "description": "Bad Request — validation or last method protection",
+            "description": "Blocked — cannot disable all native channels",
             "content": {
               "application/json": {
                 "schema": {
@@ -3022,7 +4968,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update payment method status or configuration (Superuser only)",
+        "summary": "Update or toggle payment gateway config (Superuser only)",
         "tags": [
           "system-config"
         ]
@@ -3061,7 +5007,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Integrations list returned successfully"
+            "description": "Integrations list returned"
           },
           "403": {
             "description": "Forbidden",
@@ -3079,7 +5025,7 @@
             "bearer": []
           }
         ],
-        "summary": "Get third-party integration connectors and health states (Admin/Superuser)",
+        "summary": "List third-party integrations and service connectors",
         "tags": [
           "system-config"
         ]
@@ -3093,18 +5039,9 @@
             "name": "id",
             "required": true,
             "in": "path",
-            "description": "Integration service numeric ID",
+            "description": "Integration connector ID",
             "schema": {
               "type": "number"
-            }
-          },
-          {
-            "name": "x-user-id",
-            "required": false,
-            "in": "header",
-            "description": "User ID for ownership verification",
-            "schema": {
-              "type": "string"
             }
           },
           {
@@ -3122,6 +5059,15 @@
                 "superuser",
                 "agency"
               ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -3165,7 +5111,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update integration connector status (Superuser only)",
+        "summary": "Update integration status or credentials (Superuser only)",
         "tags": [
           "system-config"
         ]
@@ -3175,6 +5121,113 @@
       "get": {
         "operationId": "SystemConfigController_getAuditLogs",
         "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "description": "Filter by category (rules, users, payment, integration, security)",
+            "schema": {
+              "example": "rules",
+              "type": "string"
+            }
+          },
+          {
+            "name": "author",
+            "required": false,
+            "in": "query",
+            "description": "Filter by author name",
+            "schema": {
+              "example": "Manoj",
+              "type": "string"
+            }
+          },
+          {
+            "name": "startDate",
+            "required": false,
+            "in": "query",
+            "description": "Start date filter (ISO or YYYY-MM-DD)",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": false,
+            "in": "query",
+            "description": "End date filter (ISO or YYYY-MM-DD)",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          },
           {
             "name": "x-user-role",
             "in": "header",
@@ -3222,7 +5275,7 @@
             "bearer": []
           }
         ],
-        "summary": "Get system policy and configuration change audit trail (Admin/Superuser)",
+        "summary": "Get system policy and configuration change audit trail with filters",
         "tags": [
           "system-config"
         ]
@@ -3232,6 +5285,73 @@
       "get": {
         "operationId": "SystemConfigController_getAdmins",
         "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
           {
             "name": "x-user-role",
             "in": "header",
@@ -3261,7 +5381,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Administrators list returned (passwords excluded)"
+            "description": "Administrators list returned"
           },
           "403": {
             "description": "Forbidden — Superuser role required",
@@ -3288,15 +5408,6 @@
         "operationId": "SystemConfigController_createAdmin",
         "parameters": [
           {
-            "name": "x-user-id",
-            "required": false,
-            "in": "header",
-            "description": "User ID for ownership verification",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "x-user-role",
             "in": "header",
             "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
@@ -3311,6 +5422,15 @@
                 "superuser",
                 "agency"
               ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -3360,26 +5480,16 @@
         ]
       }
     },
-    "/super/admins/{id}": {
-      "delete": {
-        "operationId": "SystemConfigController_deleteAdmin",
+    "/super/admins/{id}/status": {
+      "patch": {
+        "operationId": "SystemConfigController_updateAdminStatus",
         "parameters": [
           {
             "name": "id",
             "required": true,
             "in": "path",
-            "description": "Admin ID to remove",
             "schema": {
               "type": "number"
-            }
-          },
-          {
-            "name": "x-user-id",
-            "required": false,
-            "in": "header",
-            "description": "User ID for ownership verification",
-            "schema": {
-              "type": "string"
             }
           },
           {
@@ -3397,6 +5507,81 @@
                 "superuser",
                 "agency"
               ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStaffStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Administrator status updated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Activate or deactivate an administrator staff account (Superuser only)",
+        "tags": [
+          "system-config"
+        ]
+      }
+    },
+    "/super/admins/{id}": {
+      "delete": {
+        "operationId": "SystemConfigController_deleteAdmin",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Admin ID to remove",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -3451,6 +5636,73 @@
         "operationId": "SystemConfigController_getSupportUsers",
         "parameters": [
           {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "name": "x-user-role",
             "in": "header",
             "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
@@ -3479,7 +5731,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Support users list returned (passwords excluded)"
+            "description": "Support users list returned"
           },
           "403": {
             "description": "Forbidden",
@@ -3506,15 +5758,6 @@
         "operationId": "SystemConfigController_createSupportUser",
         "parameters": [
           {
-            "name": "x-user-id",
-            "required": false,
-            "in": "header",
-            "description": "User ID for ownership verification",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "x-user-role",
             "in": "header",
             "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
@@ -3529,6 +5772,15 @@
                 "superuser",
                 "agency"
               ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -3578,26 +5830,16 @@
         ]
       }
     },
-    "/super/support-users/{id}": {
-      "delete": {
-        "operationId": "SystemConfigController_deleteSupportUser",
+    "/super/support-users/{id}/status": {
+      "patch": {
+        "operationId": "SystemConfigController_updateSupportUserStatus",
         "parameters": [
           {
             "name": "id",
             "required": true,
             "in": "path",
-            "description": "Support careId to remove",
             "schema": {
               "type": "number"
-            }
-          },
-          {
-            "name": "x-user-id",
-            "required": false,
-            "in": "header",
-            "description": "User ID for ownership verification",
-            "schema": {
-              "type": "string"
             }
           },
           {
@@ -3615,6 +5857,81 @@
                 "superuser",
                 "agency"
               ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStaffStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Support user status updated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Activate or deactivate a customer care staff account",
+        "tags": [
+          "system-config"
+        ]
+      }
+    },
+    "/super/support-users/{id}": {
+      "delete": {
+        "operationId": "SystemConfigController_deleteSupportUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Support careId to remove",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -3902,6 +6219,73 @@
         "operationId": "ReviewsController_findAll",
         "parameters": [
           {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "name": "x-user-role",
             "in": "header",
             "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
@@ -3921,10 +6305,10 @@
         ],
         "responses": {
           "200": {
-            "description": "List of all reviews"
+            "description": "List of reviews"
           }
         },
-        "summary": "Get all reviews",
+        "summary": "Get all reviews with pagination, search, and sorting",
         "tags": [
           "reviews"
         ]
@@ -3974,10 +6358,54 @@
             "description": "Review created"
           },
           "400": {
-            "description": "Validation error"
+            "description": "Validation error or booking not COMPLETED"
+          },
+          "409": {
+            "description": "Duplicate review for booking"
           }
         },
-        "summary": "Create a review",
+        "summary": "Create a review (Allowed ONLY after COMPLETED booking, once per booking)",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/reviews/guide/{guideId}/stats": {
+      "get": {
+        "operationId": "ReviewsController_getGuideStats",
+        "parameters": [
+          {
+            "name": "guideId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aggregated review metrics (count, avg, star breakdown, recommend %)"
+          }
+        },
+        "summary": "Get aggregated review statistics for a guide (100% computed, never faked)",
         "tags": [
           "reviews"
         ]
@@ -4082,6 +6510,73 @@
             }
           },
           {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "name": "x-user-role",
             "in": "header",
             "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
@@ -4104,7 +6599,7 @@
             "description": "Reviews for trip"
           }
         },
-        "summary": "Get reviews by trip ID",
+        "summary": "Get reviews by trip ID with pagination",
         "tags": [
           "reviews"
         ]
@@ -4120,6 +6615,73 @@
             "in": "path",
             "schema": {
               "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
             }
           },
           {
@@ -4145,7 +6707,67 @@
             "description": "Reviews for guide"
           }
         },
-        "summary": "Get reviews by guide ID",
+        "summary": "Get reviews by guide ID with pagination",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/reviews/{id}/response": {
+      "post": {
+        "operationId": "ReviewsController_respond",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GuideResponseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response recorded"
+          }
+        },
+        "summary": "Submit a guide response to a review",
         "tags": [
           "reviews"
         ]
@@ -4155,6 +6777,73 @@
       "get": {
         "operationId": "SupportTicketsController_findAll",
         "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
           {
             "name": "x-user-role",
             "in": "header",
@@ -4175,10 +6864,10 @@
         ],
         "responses": {
           "200": {
-            "description": "List of all tickets"
+            "description": "List of all tickets with SLA status"
           }
         },
-        "summary": "Get all support tickets",
+        "summary": "Get all support tickets (queue with live SLA timers)",
         "tags": [
           "support-tickets"
         ]
@@ -4284,7 +6973,7 @@
             "description": "Ticket not found"
           }
         },
-        "summary": "Get support ticket by ID",
+        "summary": "Get support ticket by ID (internal notes stripped for travelers/agencies)",
         "tags": [
           "support-tickets"
         ]
@@ -4345,6 +7034,73 @@
             }
           },
           {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "name": "x-user-role",
             "in": "header",
             "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
@@ -4376,7 +7132,7 @@
             "description": "Tickets for traveler"
           }
         },
-        "summary": "Get tickets by traveler ID",
+        "summary": "Get tickets by traveler ID with pagination",
         "tags": [
           "support-tickets"
         ]
@@ -4392,6 +7148,73 @@
             "in": "path",
             "schema": {
               "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
             }
           },
           {
@@ -4426,7 +7249,161 @@
             "description": "Tickets for agency"
           }
         },
-        "summary": "Get tickets by agency ID",
+        "summary": "Get tickets by agency ID with pagination",
+        "tags": [
+          "support-tickets"
+        ]
+      }
+    },
+    "/support-tickets/{id}/assign": {
+      "patch": {
+        "operationId": "SupportTicketsController_assign",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignTicketDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ticket assigned successfully"
+          }
+        },
+        "summary": "Assign ticket to a support specialist",
+        "tags": [
+          "support-tickets"
+        ]
+      }
+    },
+    "/support-tickets/{id}/notes": {
+      "post": {
+        "operationId": "SupportTicketsController_addInternalNote",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInternalNoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Internal note saved"
+          }
+        },
+        "summary": "Add internal note (hidden from traveler/agency)",
+        "tags": [
+          "support-tickets"
+        ]
+      }
+    },
+    "/support-tickets/{id}/adjudicate-refund": {
+      "post": {
+        "description": "Invokes PolicyService cancellation or emergency override without manual edits.",
+        "operationId": "SupportTicketsController_adjudicateRefund",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdjudicateRefundDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Refund adjudicated via policy engine"
+          }
+        },
+        "summary": "Refund adjudication via PolicyService only",
         "tags": [
           "support-tickets"
         ]
@@ -4446,9 +7423,9 @@
           },
           {
             "name": "x-user-role",
-            "required": false,
             "in": "header",
             "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
             "schema": {
               "type": "string",
               "enum": [
@@ -4463,9 +7440,9 @@
           },
           {
             "name": "x-user-id",
-            "required": false,
             "in": "header",
             "description": "User ID for ownership verification",
+            "required": false,
             "schema": {
               "type": "string"
             }
@@ -4700,26 +7677,20 @@
     },
     "/messages/conversation": {
       "get": {
-        "description": "Returns bidirectional messages between sender and receiver.",
         "operationId": "MessagesController_findConversation",
         "parameters": [
           {
-            "name": "senderType",
-            "required": true,
+            "name": "sender",
+            "required": false,
             "in": "query",
             "schema": {
-              "enum": [
-                "traveler",
-                "guide",
-                "support",
-                "agency"
-              ],
+              "example": "traveler",
               "type": "string"
             }
           },
           {
             "name": "senderId",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
               "example": 1,
@@ -4727,25 +7698,56 @@
             }
           },
           {
-            "name": "receiverType",
-            "required": true,
+            "name": "receiver",
+            "required": false,
             "in": "query",
             "schema": {
-              "enum": [
-                "traveler",
-                "guide",
-                "support",
-                "agency"
-              ],
+              "example": "guide",
               "type": "string"
             }
           },
           {
             "name": "receiverId",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
               "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "bookingId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "ticketId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 0,
               "type": "number"
             }
           },
@@ -4778,10 +7780,60 @@
         ],
         "responses": {
           "200": {
-            "description": "Conversation messages"
+            "description": "Conversation messages and total count"
           }
         },
-        "summary": "Get conversation between two users",
+        "summary": "Get conversation between two users or room with pagination",
+        "tags": [
+          "messages"
+        ]
+      }
+    },
+    "/messages/{id}/read": {
+      "patch": {
+        "operationId": "MessagesController_markAsRead",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Message marked as read"
+          }
+        },
+        "summary": "Mark message as read and generate read receipt",
         "tags": [
           "messages"
         ]
@@ -5156,6 +8208,73 @@
         "operationId": "AgenciesController_findAll",
         "parameters": [
           {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "name": "x-user-role",
             "in": "header",
             "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
@@ -5193,7 +8312,7 @@
             "bearer": []
           }
         ],
-        "summary": "Get all agencies (Admin/Superuser only)",
+        "summary": "Get all agencies with pagination, search, and sorting",
         "tags": [
           "agencies"
         ]
@@ -5361,10 +8480,20 @@
         },
         "responses": {
           "200": {
-            "description": "Agency updated"
+            "description": "Agency updated successfully"
+          },
+          "400": {
+            "description": "Validation error / Email in use",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden",
+            "description": "Forbidden (not owner)",
             "content": {
               "application/json": {
                 "schema": {
@@ -5389,7 +8518,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update agency profile (Agency only ownership checked, or Admin/Superuser)",
+        "summary": "Update an agency profile",
         "tags": [
           "agencies"
         ]
@@ -5425,7 +8554,17 @@
         ],
         "responses": {
           "200": {
-            "description": "Agency deleted"
+            "description": "Agency deleted successfully"
+          },
+          "403": {
+            "description": "Forbidden (Superuser only)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
           },
           "404": {
             "description": "Not Found",
@@ -5443,7 +8582,7 @@
             "bearer": []
           }
         ],
-        "summary": "Delete an agency (Admin/Superuser only)",
+        "summary": "Delete an agency (Superuser only)",
         "tags": [
           "agencies"
         ]
@@ -5519,7 +8658,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update agency status & commission (Admin/Superuser only)",
+        "summary": "Update agency status with required reason (Admin/Superuser only)",
         "tags": [
           "agencies"
         ]
@@ -5551,14 +8690,6 @@
             "in": "header",
             "description": "User ID for ownership verification",
             "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-user-id",
-            "required": true,
-            "in": "header",
             "schema": {
               "type": "string"
             }
@@ -5609,14 +8740,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "x-user-id",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -5664,14 +8787,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "x-user-id",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -5714,14 +8829,6 @@
             "in": "header",
             "description": "User ID for ownership verification",
             "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-user-id",
-            "required": true,
-            "in": "header",
             "schema": {
               "type": "string"
             }
@@ -5790,22 +8897,6 @@
             "schema": {
               "type": "number"
             }
-          },
-          {
-            "name": "x-user-id",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-user-role",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "requestBody": {
@@ -5871,22 +8962,6 @@
             "schema": {
               "type": "number"
             }
-          },
-          {
-            "name": "x-user-id",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-user-role",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -5941,22 +9016,6 @@
             "in": "path",
             "schema": {
               "type": "number"
-            }
-          },
-          {
-            "name": "x-user-id",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-user-role",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
             }
           }
         ],
@@ -6479,6 +9538,213 @@
         ]
       }
     },
+    "/admins/audit-logs": {
+      "get": {
+        "description": "Returns audit trail records filtered by category, author, date range, or search keyword.",
+        "operationId": "AdminsController_getAuditLogs",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "description": "Filter by category (rules, users, payment, integration, security)",
+            "schema": {
+              "example": "rules",
+              "type": "string"
+            }
+          },
+          {
+            "name": "author",
+            "required": false,
+            "in": "query",
+            "description": "Filter by author name",
+            "schema": {
+              "example": "Manoj",
+              "type": "string"
+            }
+          },
+          {
+            "name": "startDate",
+            "required": false,
+            "in": "query",
+            "description": "Start date filter (ISO or YYYY-MM-DD)",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": false,
+            "in": "query",
+            "description": "End date filter (ISO or YYYY-MM-DD)",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audit logs returned successfully"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "View system audit logs with filters",
+        "tags": [
+          "admins"
+        ]
+      }
+    },
+    "/admins/guides/{id}/verify": {
+      "patch": {
+        "description": "Allows Admin/Superuser to set a verified guide rate, years of experience, and inspect proof documents.",
+        "operationId": "AdminsController_verifyGuide",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Guide ID",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyGuideDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Guide credentials verified and rate updated"
+          },
+          "404": {
+            "description": "Guide not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set guide rate and verify credentials with uploaded proof",
+        "tags": [
+          "admins"
+        ]
+      }
+    },
     "/admins/{id}": {
       "get": {
         "description": "Returns the profile for the requesting admin or superuser. x-user-id must equal :id (self-scoped). Password is never returned.",
@@ -6826,28 +10092,10 @@
     "/uploads/attachment": {
       "post": {
         "operationId": "UploadsController_uploadAttachment",
-        "parameters": [
-          {
-            "name": "x-user-role",
-            "in": "header",
-            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "traveler",
-                "guide",
-                "support",
-                "admin",
-                "superuser",
-                "agency"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "requestBody": {
           "required": true,
-          "description": "File to upload",
+          "description": "File to upload (JPG, PNG, WebP, PDF)",
           "content": {
             "multipart/form-data": {
               "schema": {
@@ -6855,8 +10103,7 @@
                 "properties": {
                   "file": {
                     "type": "string",
-                    "format": "binary",
-                    "description": "Attachment file (JPG, PNG, or PDF, max 5 MB)"
+                    "format": "binary"
                   }
                 },
                 "required": [
@@ -6868,32 +10115,10 @@
         },
         "responses": {
           "201": {
-            "description": "File uploaded successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "example": {
-                    "message": "File uploaded successfully",
-                    "filename": "1722345678900-123456789.pdf",
-                    "path": "/uploads/1722345678900-123456789.pdf",
-                    "size": 204800
-                  }
-                }
-              }
-            }
+            "description": "File uploaded and scanned successfully"
           },
           "400": {
-            "description": "No file provided or invalid file type/size",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden — missing or invalid x-user-role header",
+            "description": "Validation failed or malicious file detected",
             "content": {
               "application/json": {
                 "schema": {
@@ -6908,7 +10133,47 @@
             "bearer": []
           }
         ],
-        "summary": "Upload a file attachment (JPG, PNG, PDF — max 5 MB)",
+        "summary": "Upload a file (receipts, agency documents, guide proof — max 10MB)",
+        "tags": [
+          "uploads"
+        ]
+      }
+    },
+    "/uploads/signed/{filename}": {
+      "get": {
+        "operationId": "UploadsController_downloadSigned",
+        "parameters": [
+          {
+            "name": "filename",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expires",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Access an uploaded document using a time-limited signed URL",
         "tags": [
           "uploads"
         ]
@@ -7200,6 +10465,85 @@
           "promotions"
         ]
       }
+    },
+    "/notifications": {
+      "get": {
+        "operationId": "NotificationsController_getNotifications",
+        "parameters": [
+          {
+            "name": "since",
+            "required": false,
+            "in": "query",
+            "description": "ISO date string cursor for fetching missed notifications",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notifications list and unread count"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get notifications for current user with optional since cursor for reconnect",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/notifications/{id}/read": {
+      "patch": {
+        "operationId": "NotificationsController_markAsRead",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification marked as read"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark a specific notification as read",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/notifications/read-all": {
+      "patch": {
+        "operationId": "NotificationsController_markAllAsRead",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "All notifications marked as read"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark all unread notifications as read for current user",
+        "tags": [
+          "notifications"
+        ]
+      }
     }
   },
   "info": {
@@ -7211,7 +10555,7 @@
   "tags": [
     {
       "name": "health",
-      "description": "Health check endpoints"
+      "description": "Health & readiness check endpoints"
     },
     {
       "name": "auth",
@@ -7308,19 +10652,101 @@
   ],
   "servers": [],
   "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
     "schemas": {
-      "TravelerLoginDto": {
+      "RegisterTravelerDto": {
         "type": "object",
         "properties": {
           "email": {
             "type": "string",
-            "description": "Traveler email address",
-            "example": "Arjun@gmail.com"
+            "example": "john@example.com"
           },
           "password": {
             "type": "string",
-            "description": "Traveler password",
-            "example": "traveler123"
+            "example": "SecurePass@123",
+            "minLength": 6
+          },
+          "name": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "gender": {
+            "type": "string",
+            "example": "Male"
+          },
+          "age": {
+            "type": "number",
+            "example": 25
+          },
+          "phone": {
+            "type": "string",
+            "example": "+91 9876543210"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "name"
+        ]
+      },
+      "RegisterAgencyDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "ops@agency.com"
+          },
+          "contactEmail": {
+            "type": "string",
+            "example": "ops@agency.com"
+          },
+          "password": {
+            "type": "string",
+            "example": "SecurePass@123",
+            "minLength": 6
+          },
+          "businessName": {
+            "type": "string",
+            "example": "Sunrise Travel Co."
+          },
+          "taxId": {
+            "type": "string",
+            "example": "GSTIN27AABCU9603R1ZM"
+          },
+          "contactPhone": {
+            "type": "string",
+            "example": "+91 9876543210"
+          },
+          "address": {
+            "type": "string",
+            "example": "Mumbai, Maharashtra"
+          },
+          "commissionRate": {
+            "type": "number",
+            "example": 1.5
+          }
+        },
+        "required": [
+          "password",
+          "businessName"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "user@example.com"
+          },
+          "password": {
+            "type": "string",
+            "example": "SecurePass@123"
           }
         },
         "required": [
@@ -7328,77 +10754,63 @@
           "password"
         ]
       },
-      "LoginResponseDto": {
+      "AuthResponseDto": {
         "type": "object",
         "properties": {
-          "message": {
-            "type": "string",
-            "example": "Login successful"
+          "accessToken": {
+            "type": "string"
           },
-          "role": {
-            "type": "string",
-            "example": "traveler",
-            "enum": [
-              "traveler",
-              "admin",
-              "superuser",
-              "guide",
-              "support"
-            ]
+          "expiresIn": {
+            "type": "number"
           },
           "user": {
-            "type": "object",
-            "description": "User object (shape depends on role)",
-            "example": {
-              "travelerId": 1,
-              "name": "Arjun Mehta",
-              "email": "Arjun@gmail.com",
-              "phone": "9876543210",
-              "gender": "Male",
-              "age": 28
-            }
+            "type": "object"
           }
         },
         "required": [
-          "message",
-          "role",
+          "accessToken",
+          "expiresIn",
           "user"
         ]
       },
-      "StaffLoginDto": {
+      "RefreshTokenDto": {
         "type": "object",
         "properties": {
-          "email": {
-            "type": "string",
-            "description": "Staff email address",
-            "example": "admin@ticp.com"
-          },
-          "password": {
-            "type": "string",
-            "description": "Staff password",
-            "example": "admin123"
+          "refreshToken": {
+            "type": "string"
           }
         },
         "required": [
-          "email",
-          "password"
+          "refreshToken"
         ]
       },
-      "AgencyLoginDto": {
+      "ForgotPasswordDto": {
         "type": "object",
         "properties": {
           "email": {
             "type": "string",
-            "example": "contact@elitetravel.com"
-          },
-          "password": {
-            "type": "string",
-            "example": "password"
+            "example": "user@example.com"
           }
         },
         "required": [
-          "email",
-          "password"
+          "email"
+        ]
+      },
+      "ResetPasswordDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "newPassword": {
+            "type": "string",
+            "example": "NewSecurePass@123",
+            "minLength": 8
+          }
+        },
+        "required": [
+          "token",
+          "newPassword"
         ]
       },
       "CreateTravelerDto": {
@@ -7653,6 +11065,24 @@
             "type": "string",
             "example": "../static/destinations/maldives.png",
             "description": "Image path"
+          },
+          "agencyId": {
+            "type": "number",
+            "example": 1,
+            "description": "Agency ID if created by an agency"
+          },
+          "isFeatured": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether package is a featured listing"
+          },
+          "status": {
+            "type": "string",
+            "example": "published",
+            "enum": [
+              "draft",
+              "published"
+            ]
           }
         },
         "required": [
@@ -7795,6 +11225,10 @@
           "travelersCount": {
             "type": "number",
             "example": 2
+          },
+          "draftPlan": {
+            "type": "object",
+            "description": "Unfinished trip plan saved as a draft so the traveler can resume booking"
           }
         },
         "required": [
@@ -7869,6 +11303,14 @@
               "Declined"
             ]
           },
+          "guideDecisionReason": {
+            "type": "string",
+            "example": "Schedule conflict or verified availability"
+          },
+          "reason": {
+            "type": "string",
+            "example": "Schedule conflict"
+          },
           "passengerIds": {
             "example": [
               3,
@@ -7915,6 +11357,10 @@
           "refundAmount": {
             "type": "number",
             "example": 120250
+          },
+          "draftPlan": {
+            "type": "object",
+            "description": "Unfinished trip plan saved as a draft so the traveler can resume booking"
           }
         }
       },
@@ -7995,6 +11441,14 @@
             "type": "string",
             "example": "Pending",
             "enum": [
+              "DRAFT",
+              "HELD",
+              "PAID",
+              "CONFIRMED",
+              "COMPLETED",
+              "CANCELLED",
+              "EXPIRED",
+              "REFUNDED",
               "Pending",
               "Confirmed",
               "Cancelled"
@@ -8023,6 +11477,45 @@
           "insuranceAmount": {
             "type": "number",
             "example": 150
+          },
+          "departureAtUtc": {
+            "type": "string",
+            "example": "2026-08-10T10:00:00.000Z"
+          },
+          "departure_at_utc": {
+            "type": "string",
+            "example": "2026-08-10T10:00:00.000Z"
+          },
+          "departureTimezone": {
+            "type": "string",
+            "example": "UTC"
+          },
+          "departure_timezone": {
+            "type": "string",
+            "example": "UTC"
+          },
+          "items": {
+            "description": "Inventory items to reserve",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "guideId": {
+            "type": "number",
+            "example": 4
+          },
+          "packageId": {
+            "type": "number",
+            "example": 1
+          },
+          "startDate": {
+            "type": "string",
+            "example": "2026-12-01"
+          },
+          "endDate": {
+            "type": "string",
+            "example": "2026-12-05"
           }
         },
         "required": [
@@ -8074,6 +11567,14 @@
             "type": "string",
             "example": "Confirmed",
             "enum": [
+              "DRAFT",
+              "HELD",
+              "PAID",
+              "CONFIRMED",
+              "COMPLETED",
+              "CANCELLED",
+              "EXPIRED",
+              "REFUNDED",
               "Pending",
               "Confirmed",
               "Cancelled"
@@ -8205,22 +11706,35 @@
               "Food",
               "Activity",
               "Shopping",
-              "Package"
+              "Package",
+              "Other"
             ]
           },
           "tripId": {
             "type": "number",
             "example": 1
           },
+          "bookingId": {
+            "type": "number",
+            "example": 101,
+            "description": "ID of the booking this expense is tied to"
+          },
           "description": {
             "type": "string",
             "example": "Airport lounge access"
+          },
+          "category": {
+            "type": "string",
+            "example": "Meals & Dining"
+          },
+          "receiptUrl": {
+            "type": "string",
+            "example": "https://example.com/receipt.jpg"
           }
         },
         "required": [
           "amount",
           "type",
-          "tripId",
           "description"
         ]
       },
@@ -8241,16 +11755,29 @@
               "Food",
               "Activity",
               "Shopping",
-              "Package"
+              "Package",
+              "Other"
             ]
           },
           "tripId": {
             "type": "number",
             "example": 1
           },
+          "bookingId": {
+            "type": "number",
+            "example": 101
+          },
           "description": {
             "type": "string",
             "example": "Updated description"
+          },
+          "category": {
+            "type": "string",
+            "example": "Meals & Dining"
+          },
+          "receiptUrl": {
+            "type": "string",
+            "example": "https://example.com/receipt.jpg"
           }
         }
       },
@@ -8345,6 +11872,56 @@
         "required": [
           "value"
         ]
+      },
+      "UpdatePolicyDto": {
+        "type": "object",
+        "properties": {
+          "leadTimeHours": {
+            "type": "number",
+            "description": "Lead time before departure in hours",
+            "minimum": 0,
+            "default": 24
+          },
+          "tier1CutoffHours": {
+            "type": "number",
+            "description": "Cutoff hours for Tier 1 cancellation (default 72h)",
+            "minimum": 0,
+            "default": 72
+          },
+          "tier2CutoffHours": {
+            "type": "number",
+            "description": "Cutoff hours for Tier 2 cancellation (default 12h)",
+            "minimum": 0,
+            "default": 12
+          },
+          "defaultCancellationPenaltyPercent": {
+            "type": "number",
+            "description": "Default cancellation penalty % (0-100)",
+            "minimum": 0,
+            "maximum": 100,
+            "default": 35
+          },
+          "protectedTier1RefundPercent": {
+            "type": "number",
+            "description": "Protected Tier 1 refund % (0-100)",
+            "minimum": 0,
+            "maximum": 100,
+            "default": 90
+          },
+          "protectedTier2RefundPercent": {
+            "type": "number",
+            "description": "Protected Tier 2 refund % (0-100)",
+            "minimum": 0,
+            "maximum": 100,
+            "default": 50
+          },
+          "emergencyOverrideThresholdMinor": {
+            "type": "number",
+            "description": "Emergency override threshold in minor units requiring Admin approval",
+            "minimum": 0,
+            "default": 100000
+          }
+        }
       },
       "UpdateRulesDto": {
         "type": "object",
@@ -8470,6 +12047,22 @@
           "role"
         ]
       },
+      "UpdateStaffStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "deactivated",
+            "enum": [
+              "active",
+              "deactivated"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
       "CreateSystemSupportDto": {
         "type": "object",
         "properties": {
@@ -8567,6 +12160,10 @@
             "type": "number",
             "example": 1
           },
+          "bookingId": {
+            "type": "number",
+            "example": 101
+          },
           "travelerId": {
             "type": "number",
             "example": 1
@@ -8597,12 +12194,23 @@
           }
         },
         "required": [
-          "tripId",
           "travelerId",
           "guideId",
           "tripRating",
           "guideRating",
           "comment"
+        ]
+      },
+      "GuideResponseDto": {
+        "type": "object",
+        "properties": {
+          "response": {
+            "type": "string",
+            "example": "Thank you for the kind words!"
+          }
+        },
+        "required": [
+          "response"
         ]
       },
       "CreateTicketDto": {
@@ -8620,6 +12228,10 @@
             "type": "number",
             "example": 21
           },
+          "bookingId": {
+            "type": "number",
+            "example": 101
+          },
           "issueType": {
             "type": "string",
             "example": "Booking issue"
@@ -8634,8 +12246,9 @@
           },
           "priority": {
             "type": "string",
-            "example": "High",
+            "example": "Urgent",
             "enum": [
+              "Urgent",
               "High",
               "Medium",
               "Low"
@@ -8655,6 +12268,54 @@
         "required": [
           "issueType",
           "description"
+        ]
+      },
+      "AssignTicketDto": {
+        "type": "object",
+        "properties": {
+          "careId": {
+            "type": "number",
+            "example": 1,
+            "description": "Support agent careId to assign this ticket to"
+          }
+        },
+        "required": [
+          "careId"
+        ]
+      },
+      "CreateInternalNoteDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "example": "Checked gateway ledger; transaction confirmed by provider."
+          }
+        },
+        "required": [
+          "note"
+        ]
+      },
+      "AdjudicateRefundDto": {
+        "type": "object",
+        "properties": {
+          "bookingId": {
+            "type": "number",
+            "example": 101,
+            "description": "Target booking ID for policy adjudication"
+          },
+          "reason": {
+            "type": "string",
+            "example": "Medical emergency with certified hospital report"
+          },
+          "isEmergency": {
+            "type": "boolean",
+            "example": false,
+            "description": "True if invoking PolicyService emergency override"
+          }
+        },
+        "required": [
+          "bookingId",
+          "reason"
         ]
       },
       "CreateTicketReplyDto": {
@@ -8725,6 +12386,14 @@
           "content": {
             "type": "string",
             "example": "Hello! I have a question about my trip."
+          },
+          "bookingId": {
+            "type": "number",
+            "example": 1
+          },
+          "ticketId": {
+            "type": "number",
+            "example": 1
           }
         },
         "required": [
@@ -8856,6 +12525,11 @@
             "type": "number",
             "example": 1.5,
             "description": "Commission rate percentage (1.0 to 1.5), typically required when approving"
+          },
+          "reason": {
+            "type": "string",
+            "example": "Verified business licenses and tax registrations",
+            "description": "Admin reason for approval or rejection"
           }
         },
         "required": [
@@ -9006,6 +12680,35 @@
             "example": "Vegetarian meal, wheelchair assistance requested"
           }
         }
+      },
+      "VerifyGuideDto": {
+        "type": "object",
+        "properties": {
+          "adminSetRateMinor": {
+            "type": "number",
+            "example": 450000,
+            "description": "Admin-set rate in minor units (e.g. 450000 = ₹4,500.00)"
+          },
+          "verifiedExperienceYears": {
+            "type": "number",
+            "example": 6,
+            "description": "Verified years of guiding experience"
+          },
+          "proofUrl": {
+            "type": "string",
+            "example": "https://storage.globesync.com/proofs/devansh-license.pdf",
+            "description": "Uploaded credential verification document URL"
+          },
+          "verificationNotes": {
+            "type": "string",
+            "example": "Ministry of Tourism license and first-aid certification confirmed"
+          }
+        },
+        "required": [
+          "adminSetRateMinor",
+          "verifiedExperienceYears",
+          "proofUrl"
+        ]
       },
       "UpdateAdminDto": {
         "type": "object",

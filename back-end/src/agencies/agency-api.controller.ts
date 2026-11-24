@@ -1,3 +1,4 @@
+import { AuthUserId, AuthRole } from '../common/decorators/current-user.decorator';
 import {
   Controller,
   Get,
@@ -47,7 +48,7 @@ export class AgencyApiController {
   private getAgencyId(userIdHeader: string): number {
     const id = parseInt(userIdHeader, 10);
     if (isNaN(id) || id <= 0) {
-      throw new ForbiddenException('Invalid or missing agency identification in x-user-id header');
+      throw new ForbiddenException('Invalid or missing agency identification in the access token');
     }
     return id;
   }
@@ -57,7 +58,7 @@ export class AgencyApiController {
   @Roles(Role.AGENCY, Role.ADMIN, Role.SUPERUSER)
   @ApiOperation({ summary: 'Get saved passenger roster for the authenticated agency' })
   @ApiResponse({ status: 200, description: 'Return agency passengers roster' })
-  getPassengers(@Headers('x-user-id') userId: string) {
+  getPassengers(@AuthUserId() userId: string) {
     const agencyId = this.getAgencyId(userId);
     return this.passengersService.findByAgency(agencyId);
   }
@@ -67,7 +68,7 @@ export class AgencyApiController {
   @Roles(Role.AGENCY, Role.ADMIN, Role.SUPERUSER)
   @ApiOperation({ summary: 'Get live commission entries joined with Trip and Booking details' })
   @ApiResponse({ status: 200, description: 'Return commission ledger statement' })
-  getCommissions(@Headers('x-user-id') userId: string) {
+  getCommissions(@AuthUserId() userId: string) {
     const agencyId = this.getAgencyId(userId);
     const agency = agencies.find((a) => a.agencyId === agencyId);
     const baseRate = agency?.commissionRate ?? 1.5;
@@ -110,7 +111,7 @@ export class AgencyApiController {
   @Roles(Role.AGENCY, Role.ADMIN, Role.SUPERUSER)
   @ApiOperation({ summary: 'Get profile of authenticated agency' })
   @ApiResponse({ status: 200, description: 'Return agency profile' })
-  getProfile(@Headers('x-user-id') userId: string) {
+  getProfile(@AuthUserId() userId: string) {
     const agencyId = this.getAgencyId(userId);
     return this.agenciesService.findOne(agencyId);
   }
@@ -121,7 +122,7 @@ export class AgencyApiController {
   @ApiOperation({ summary: 'Update profile of authenticated agency' })
   @ApiResponse({ status: 200, description: 'Profile updated' })
   updateProfile(
-    @Headers('x-user-id') userId: string,
+    @AuthUserId() userId: string,
     @Body() dto: UpdateAgencyDto,
   ) {
     const agencyId = this.getAgencyId(userId);
@@ -136,8 +137,8 @@ export class AgencyApiController {
   @ApiResponse({ status: 200, description: 'Trip updated' })
   updateTrip(
     @Param('id', ParseIntPipe) id: number,
-    @Headers('x-user-id') userId: string,
-    @Headers('x-user-role') role: string,
+    @AuthUserId() userId: string,
+    @AuthRole() role: string,
     @Body() dto: UpdateTripDto,
   ) {
     const agencyId = this.getAgencyId(userId);
@@ -159,8 +160,8 @@ export class AgencyApiController {
   @ApiResponse({ status: 200, description: 'Ticket found' })
   getTicketThread(
     @Param('id', ParseIntPipe) id: number,
-    @Headers('x-user-id') userId: string,
-    @Headers('x-user-role') role: string,
+    @AuthUserId() userId: string,
+    @AuthRole() role: string,
   ) {
     const agencyId = this.getAgencyId(userId);
     const ticket = this.ticketsService.findOne(id);
@@ -180,8 +181,8 @@ export class AgencyApiController {
   @ApiResponse({ status: 201, description: 'Reply posted' })
   replyTicket(
     @Param('id', ParseIntPipe) id: number,
-    @Headers('x-user-id') userId: string,
-    @Headers('x-user-role') role: string,
+    @AuthUserId() userId: string,
+    @AuthRole() role: string,
     @Body() dto: CreateTicketReplyDto,
   ) {
     const agencyId = this.getAgencyId(userId);

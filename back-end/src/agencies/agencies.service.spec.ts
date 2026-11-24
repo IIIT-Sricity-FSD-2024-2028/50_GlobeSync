@@ -61,7 +61,7 @@ function resetAgencies() {
 
 // ─── Services under test ─────────────────────────────────────────────────────
 import { AgenciesService } from './agencies.service';
-import { AuthService } from '../auth/auth.service';
+import { AuthService } from '../auth/auth.service.legacy';
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
 function hasPassword(obj: unknown): boolean {

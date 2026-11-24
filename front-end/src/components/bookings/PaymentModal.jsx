@@ -53,7 +53,7 @@ export default function PaymentModal({
   const baseAmount = Number(booking?.amount || 0);
 
   // 1. Controlled Form State
-  const [availableMethods, setAvailableMethods] = useState(['Card', 'UPI', 'Cash']);
+  const [availableMethods, setAvailableMethods] = useState(['Card', 'UPI']);
   const [method, setMethod] = useState('Card');
   const [keepCancellation, setKeepCancellation] = useState(hasProtection);
   const [cardNumber, setCardNumber] = useState('');
@@ -92,7 +92,8 @@ export default function PaymentModal({
         .then((pmData) => {
           if (!isMountedRef.current || !Array.isArray(pmData)) return;
           const active = pmData
-            .filter((m) => m.type === 'platform' && m.status === 'Active')
+            // Travelers pay online only (UPI or Card). Cash is recorded by staff, not chosen here.
+            .filter((m) => m.type === 'platform' && m.status === 'Active' && m.methodKey !== 'Cash')
             .map((m) => m.methodKey);
           if (active.length > 0) {
             setAvailableMethods(active);
@@ -235,10 +236,19 @@ export default function PaymentModal({
         }
       }
 
-      // If no existing Paid record is found, create the payment record
+      // Step 2: If the traveler dropped cancellation protection, tell the server first.
+      // The server recalculates the amount due; the payment must match it exactly.
+      let amountDue = baseAmount;
+      if (!paymentRecord && hasProtection && !keepCancellation) {
+        const repriced = await bookingsApi.update(targetBookingId, { cancellationProtectionSelected: false });
+        amountDue = Number(repriced?.amount ?? Math.max(0, baseAmount - cancellationFee));
+      }
+
+      // Step 3: Record the payment (simulated gateway). The server confirms the booking,
+      // and confirms the trip once every booking on it is paid.
       if (!paymentRecord) {
         const paymentPayload = {
-          amount: finalAmount,
+          amount: amountDue,
           paymentDate: today,
           method,
           status: 'Paid',
@@ -263,69 +273,16 @@ export default function PaymentModal({
         }
       }
 
-      // Step 2: Confirm the booking record.
-      // CRITICAL POLICY: When recovering an existing Paid record, use its recorded amount and details.
-      // Do NOT reuse that payment while silently changing the booking to a different amount or protection selection.
-      let bookingAmountToConfirm = finalAmount;
-      let protectionToConfirm = keepCancellation;
-
-      if (isRecoveredPayment && paymentRecord) {
-        bookingAmountToConfirm = Number(paymentRecord.amount);
-        // Determine whether protection was selected in the recorded payment
-        if (hasProtection) {
-          if (bookingAmountToConfirm === baseAmount) {
-            protectionToConfirm = true;
-          } else if (bookingAmountToConfirm === Math.max(0, baseAmount - cancellationFee)) {
-            protectionToConfirm = false;
-          }
-        }
-      }
-
-      const bookingPayload = {
-        bookingDate: booking.bookingDate,
-        tripId: booking.tripId,
-        travelerId: booking.travelerId,
-        service: booking.service,
-        type: booking.type,
-        amount: bookingAmountToConfirm,
-        status: 'Confirmed',
-        cancellationProtectionSelected: protectionToConfirm,
-        cancellationFee,
-      };
-
-      const updatedBooking = await bookingsApi.update(targetBookingId, bookingPayload);
-
-      // Step 3: Trip Status Rule: Only confirm trip if ALL bookings for this trip are confirmed.
-      // Respects backend FSM transitions:
-      // Planning -> Pending -> Confirmed
-      // guideStatus is kept separate and untouched.
+      // Step 4: Read back the server's view of the booking and trip (no client-side status writes).
+      const updatedBooking = await bookingsApi.getById(targetBookingId);
       let tripConfirmed = false;
-      let tripConfirmationError = null;
-
-      if (booking.tripId && booking.travelerId) {
+      const tripConfirmationError = null;
+      if (booking.tripId) {
         try {
-          const travelerBookings = await bookingsApi.getByTraveler(booking.travelerId);
-          const tripBookings = travelerBookings.filter(
-            (b) => Number(b.tripId) === Number(booking.tripId)
-          );
-          const allOtherConfirmed = tripBookings.every((b) =>
-            Number(b.bookingId || b.id) === targetBookingId ? true : b.status === 'Confirmed'
-          );
-
-          if (tripBookings.length > 0 && allOtherConfirmed) {
-            const currentTrip = await tripsApi.getById(booking.tripId);
-            // If currently in 'Planning', advance to 'Pending' first before 'Confirmed'
-            if (currentTrip.status === 'Planning') {
-              await tripsApi.updateStatus(booking.tripId, 'Pending');
-            }
-            if (currentTrip.status !== 'Confirmed' && currentTrip.status !== 'Completed') {
-              await tripsApi.updateStatus(booking.tripId, 'Confirmed');
-            }
-            tripConfirmed = true;
-          }
-        } catch (tripErr) {
-          console.warn('[PaymentModal] Trip confirmation failed:', tripErr);
-          tripConfirmationError = tripErr.message || 'Trip status could not be updated to Confirmed.';
+          const currentTrip = await tripsApi.getById(booking.tripId);
+          tripConfirmed = ['Confirmed', 'Active', 'Completed'].includes(currentTrip?.status);
+        } catch {
+          tripConfirmed = false;
         }
       }
 
@@ -637,7 +594,7 @@ export default function PaymentModal({
                           opacity: isProcessing ? 0.6 : 1,
                         }}
                       >
-                        {m === 'Card' ? '💳 Card' : m === 'UPI' ? '📱 UPI' : '💵 Cash'}
+                        {m === 'Card' ? '💳 Card' : m === 'UPI' ? '📱 UPI' : m}
                       </button>
                     );
                   })}
@@ -728,22 +685,6 @@ export default function PaymentModal({
                       {errors.upiId}
                     </span>
                   )}
-                </div>
-              )}
-
-              {/* Cash Notice */}
-              {method === 'Cash' && (
-                <div
-                  style={{
-                    padding: '12px',
-                    background: '#f8fafc',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    color: 'var(--text-secondary)',
-                    marginBottom: '16px',
-                  }}
-                >
-                  💵 Cash on arrival selected. Submitting records the offline payment directly to the backend ledger.
                 </div>
               )}
 

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  Optional,
 } from '@nestjs/common';
 import {
   trips, Trip,
@@ -14,6 +15,37 @@ import {
   expenses,
 } from '../data';
 import { CreateTripDto, UpdateTripDto } from './dto';
+import { RealtimeService } from '../realtime/realtime.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { GuideAvailabilityService } from '../guides/guide-availability.service';
+import { PaginationQueryDto, PaginatedResult } from '../common/dto/pagination-query.dto';
+import { paginateCollection } from '../common/utils/pagination.util';
+import { packages, guides } from '../data';
+import { PolicyService } from '../policy/policy.service';
+import {
+  TripActor,
+  assertTripUpdateAllowed,
+  assertTripStatusChangeAllowed,
+  assertTripCreateStatusAllowed,
+  guideRequestTimes,
+} from './trip-permissions';
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}(T.*)?$/;
+
+/** Reject malformed or impossible calendar dates (e.g. 'zzz', '2026-02-30'). */
+function assertValidDate(label: string, value?: string): void {
+  if (value === undefined) return;
+  const d = new Date(value);
+  if (!ISO_DATE.test(String(value)) || isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== String(value).slice(0, 10)) {
+    throw new BadRequestException(`${label} must be a valid date in YYYY-MM-DD format.`);
+  }
+}
+
+/** Today's date in India (the platform's operating timezone), as YYYY-MM-DD. */
+function todayInIndia(): string {
+  return new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
+}
+
 
 /**
  * Allowed trip status transitions.
@@ -110,7 +142,18 @@ function calculateCancellationRefund(startDate?: string, budget?: number): { ref
 
 @Injectable()
 export class TripsService {
-  findAll(): Trip[] { return trips; }
+  constructor(
+    @Optional() private readonly realtimeService?: RealtimeService,
+    @Optional() private readonly notificationsService?: NotificationsService,
+    @Optional() private readonly guideAvailabilityService?: GuideAvailabilityService,
+    @Optional() private readonly policyService?: PolicyService,
+  ) {}
+
+  findAll(): Trip[];
+  findAll(query: PaginationQueryDto): Trip[] | PaginatedResult<Trip>;
+  findAll(query?: PaginationQueryDto): any {
+    return paginateCollection(trips, query, ['destination', 'title', 'origin']);
+  }
 
   findOne(id: number): Trip {
     const trip = trips.find((t) => t.tripId === id);
@@ -118,35 +161,65 @@ export class TripsService {
     return trip;
   }
 
-  findByTraveler(travelerId: number): Trip[] {
-    return trips.filter((t) => t.travelerId === travelerId);
+  findByTraveler(travelerId: number): Trip[];
+  findByTraveler(travelerId: number, query: PaginationQueryDto): Trip[] | PaginatedResult<Trip>;
+  findByTraveler(travelerId: number, query?: PaginationQueryDto): any {
+    const list = trips.filter((t) => t.travelerId === travelerId);
+    return paginateCollection(list, query, ['destination', 'title', 'origin']);
   }
 
-  findByGuide(guideId: number): Trip[] {
-    return trips.filter((t) => t.guideId === guideId);
+  findByGuide(guideId: number): Trip[];
+  findByGuide(guideId: number, query: PaginationQueryDto): Trip[] | PaginatedResult<Trip>;
+  findByGuide(guideId: number, query?: PaginationQueryDto): any {
+    const list = trips.filter((t) => t.guideId === guideId);
+    return paginateCollection(list, query, ['destination', 'title', 'origin']);
   }
 
-  findByAgency(agencyId: number): Trip[] {
-    return trips.filter((t) => t.agencyId === agencyId);
+  findByAgency(agencyId: number): Trip[];
+  findByAgency(agencyId: number, query: PaginationQueryDto): Trip[] | PaginatedResult<Trip>;
+  findByAgency(agencyId: number, query?: PaginationQueryDto): any {
+    const list = trips.filter((t) => t.agencyId === agencyId);
+    return paginateCollection(list, query, ['destination', 'title', 'origin']);
   }
 
-  create(dto: CreateTripDto): Trip {
+  create(dto: CreateTripDto, actor?: TripActor): Trip {
     if (!!dto.travelerId === !!dto.agencyId) {
       throw new BadRequestException('Exactly one of travelerId or agencyId must be provided.');
     }
 
+    assertValidDate('Start date', dto.startDate);
+    assertValidDate('End date', dto.endDate);
     if (dto.startDate && dto.endDate && dto.endDate <= dto.startDate) {
       throw new BadRequestException('Trip end date must be strictly after the start date.');
     }
+    if (dto.travelersCount !== undefined && (!Number.isInteger(dto.travelersCount) || dto.travelersCount < 1)) {
+      throw new BadRequestException('Number of travelers must be a whole number of at least 1.');
+    }
+    if (dto.travelersCount !== undefined && dto.travelersCount > 50) {
+      throw new BadRequestException('A single trip can include at most 50 travelers. Contact support for group bookings.');
+    }
+    if (dto.packageId !== undefined && dto.packageId !== null) {
+      const pkg = packages.find((p) => p.packageId === dto.packageId);
+      if (!pkg) throw new BadRequestException(`Package #${dto.packageId} does not exist.`);
+      const UNAVAILABLE = ['INACTIVE', 'ARCHIVED', 'DRAFT', 'DEACTIVATED', 'DISABLED', 'UNPUBLISHED'];
+      if (pkg.status && UNAVAILABLE.includes(String(pkg.status).toUpperCase())) {
+        throw new BadRequestException(`Package "${pkg.name}" is not currently available for booking.`);
+      }
+    }
+    if (dto.guideId !== undefined && dto.guideId !== null && !guides.some((g) => g.guideId === dto.guideId)) {
+      throw new BadRequestException(`Guide #${dto.guideId} does not exist.`);
+    }
+    assertTripCreateStatusAllowed(actor, normalizeStatus(dto.status) || 'Planning');
 
     // Advance booking validation: Trips cannot be booked for today (present date) or past dates
     if (process.env.NODE_ENV !== 'test' && dto.startDate) {
-      const todayStr = new Date().toISOString().split('T')[0];
-      if (dto.startDate <= todayStr) {
+      const todayStr = todayInIndia();
+      if (dto.startDate.slice(0, 10) <= todayStr) {
         throw new BadRequestException(
-          'Trip start date must be a future date (cannot be today or a past date). Advance booking is required.',
+          'Trip can start from tomorrow onwards. Today or past dates are not allowed.',
         );
       }
+      // Rule (owner decision, Nov 2026): the earliest start date is tomorrow (India time).
     }
 
     const maxId = trips.length > 0 ? Math.max(...trips.map((t) => t.tripId)) : 0;
@@ -171,7 +244,8 @@ export class TripsService {
       category: dto.category,
       notes: dto.notes,
       travelersCount: dto.travelersCount || (dto.passengerIds?.length || 1),
-      ...(dto.guideId != null && { guideStatus: 'Pending' as Trip['guideStatus'] }),
+      ...(dto.guideId != null && { guideStatus: 'Pending' as Trip['guideStatus'], ...guideRequestTimes() }),
+      ...((dto as any).draftPlan && { draftPlan: (dto as any).draftPlan }),
     };
     trips.push(newTrip);
 
@@ -224,15 +298,39 @@ export class TripsService {
       });
     }
 
+    // Realtime notification for guide request
+    if (newTrip.guideId) {
+      if (this.realtimeService) {
+        this.realtimeService.emitToUser(newTrip.guideId, 'guide_request.created', {
+          tripId: newTrip.tripId,
+          destination: newTrip.destination,
+          startDate: newTrip.startDate,
+          endDate: newTrip.endDate,
+          budget: newTrip.budget,
+          trip: newTrip,
+        }, 'guide');
+      }
+      if (this.notificationsService) {
+        this.notificationsService.createNotification(
+          newTrip.guideId,
+          'New Trip Guide Request',
+          `You have a new guide assignment request for trip #${newTrip.tripId} to ${newTrip.destination}.`,
+          { role: 'guide', type: 'guide_request', metadata: { tripId: newTrip.tripId } },
+        ).catch(() => {});
+      }
+    }
+
     return newTrip;
   }
 
-  update(id: number, dto: UpdateTripDto): Trip {
+  update(id: number, dto: UpdateTripDto, actor?: TripActor): Trip {
     const idx = trips.findIndex((t) => t.tripId === id);
     if (idx === -1) throw new NotFoundException(`Trip with ID ${id} not found`);
 
     const current = trips[idx];
     const targetStatus = normalizeStatus(dto.status);
+
+    assertTripUpdateAllowed(actor, current, { ...dto, ...(targetStatus !== undefined && { status: targetStatus }) });
 
     // Validate status transition if a new status is provided
     if (targetStatus !== undefined && targetStatus !== current.status) {
@@ -240,11 +338,54 @@ export class TripsService {
       if (error) {
         throw new BadRequestException(error);
       }
+      assertTripStatusChangeAllowed(actor, current, targetStatus);
+    }
+
+    assertValidDate('Start date', dto.startDate);
+    assertValidDate('End date', dto.endDate);
+    if (
+      process.env.NODE_ENV !== 'test' &&
+      actor && !['admin', 'superuser', 'support'].includes(actor.role) &&
+      dto.startDate && dto.startDate.slice(0, 10) !== String(current.startDate || '').slice(0, 10) &&
+      dto.startDate.slice(0, 10) <= todayInIndia()
+    ) {
+      throw new BadRequestException('Trip start date must be tomorrow or later.');
+    }
+    const nextStart = dto.startDate ?? current.startDate;
+    const nextEnd = dto.endDate ?? current.endDate;
+    if ((dto.startDate !== undefined || dto.endDate !== undefined) && nextStart && nextEnd && nextEnd <= nextStart) {
+      throw new BadRequestException('Trip end date must be strictly after the start date.');
+    }
+    if (dto.travelersCount !== undefined && (!Number.isInteger(dto.travelersCount) || dto.travelersCount < 1)) {
+      throw new BadRequestException('Number of travelers must be a whole number of at least 1.');
+    }
+    if (dto.guideId !== undefined && dto.guideId !== null && !guides.some((g) => g.guideId === dto.guideId)) {
+      throw new BadRequestException(`Guide #${dto.guideId} does not exist.`);
     }
 
     // When guideId changes, reset guideStatus to 'Pending'
     const guideChanged =
       dto.guideId !== undefined && dto.guideId !== current.guideId;
+
+    // Guide availability check when accepting
+    if (dto.guideStatus === 'Accepted' && current.guideStatus !== 'Accepted') {
+      const guideId = dto.guideId ?? current.guideId;
+      const startDate = dto.startDate ?? current.startDate;
+      const endDate = dto.endDate ?? current.endDate;
+      if (guideId && startDate && endDate && this.guideAvailabilityService) {
+        const isAvailable = this.guideAvailabilityService.checkAvailability(guideId, startDate, endDate);
+        if (!isAvailable) {
+          throw new ConflictException(
+            `Guide #${guideId} is already booked or held for overlapping dates (${startDate} to ${endDate}).`,
+          );
+        }
+        try {
+          this.guideAvailabilityService.blockDates(guideId, startDate, endDate, undefined, 'CONFIRMED', id);
+        } catch {
+          // If already blocked, proceed
+        }
+      }
+    }
 
     const updated: Trip = {
       ...current,
@@ -260,11 +401,19 @@ export class TripsService {
       ...(dto.packageId !== undefined && { packageId: dto.packageId }),
       ...(targetStatus !== undefined && { status: targetStatus as Trip['status'] }),
       ...(dto.guideStatus !== undefined && !guideChanged && { guideStatus: dto.guideStatus as Trip['guideStatus'] }),
+      guideDecisionReason:
+        dto.guideDecisionReason ||
+        dto.reason ||
+        (dto.guideStatus === 'Declined' ? (dto.notes || 'Declined by guide') : current.guideDecisionReason),
       ...(guideChanged && {
         guideStatus: dto.guideId === null
           ? undefined
           : 'Pending' as Trip['guideStatus'],
+        ...(dto.guideId === null
+          ? { guideRequestedAt: undefined, guideResponseDueAt: undefined }
+          : guideRequestTimes()),
       }),
+      ...((dto as any).draftPlan !== undefined && { draftPlan: (dto as any).draftPlan }),
       ...(dto.passengerIds !== undefined && { passengerIds: dto.passengerIds }),
       ...(dto.transportDetails !== undefined && { transportDetails: dto.transportDetails }),
       ...(dto.itineraryDays !== undefined && { itineraryDays: dto.itineraryDays }),
@@ -279,6 +428,14 @@ export class TripsService {
       }),
     };
     trips[idx] = updated;
+
+    // A replaced or declining guide no longer holds these dates.
+    if (this.guideAvailabilityService && (guideChanged || (updated.guideStatus === 'Declined' && current.guideStatus !== 'Declined'))) {
+      this.guideAvailabilityService.releaseTripDates(id);
+    }
+    if (targetStatus !== undefined && targetStatus !== current.status) {
+      this.applyStatusSideEffects(updated, current.status, actor);
+    }
 
     // Recalculate commission ledger if budget changed for an agency trip
     if (dto.budget !== undefined && current.agencyId) {
@@ -316,10 +473,78 @@ export class TripsService {
       });
     }
 
+    // Realtime events for guide request decisions or reassignments
+    const creatorId = updated.travelerId || updated.agencyId;
+    if (updated.guideStatus !== current.guideStatus) {
+      if (updated.guideStatus === 'Accepted') {
+        if (this.realtimeService) {
+          if (creatorId) {
+            this.realtimeService.emitToUser(creatorId, 'guide_request.accepted', {
+              tripId: updated.tripId,
+              guideId: updated.guideId,
+              trip: updated,
+            }, (updated.travelerId ? 'traveler' : 'agency'));
+          }
+          this.realtimeService.emitToBooking(updated.tripId, 'guide_request.accepted', {
+            tripId: updated.tripId,
+            guideId: updated.guideId,
+            trip: updated,
+          });
+        }
+        if (this.notificationsService && creatorId) {
+          this.notificationsService.createNotification(
+            creatorId,
+            'Guide Request Accepted',
+            `The guide has accepted trip #${updated.tripId} (${updated.destination}). Continue booking from My Trips.`,
+            { role: (updated.travelerId ? 'traveler' : 'agency'), type: 'guide_accepted', metadata: { tripId: updated.tripId } },
+          ).catch(() => {});
+        }
+      } else if (updated.guideStatus === 'Declined') {
+        if (this.realtimeService) {
+          if (creatorId) {
+            this.realtimeService.emitToUser(creatorId, 'guide_request.declined', {
+              tripId: updated.tripId,
+              guideId: updated.guideId,
+              trip: updated,
+            }, (updated.travelerId ? 'traveler' : 'agency'));
+          }
+          this.realtimeService.emitToBooking(updated.tripId, 'guide_request.declined', {
+            tripId: updated.tripId,
+            guideId: updated.guideId,
+            trip: updated,
+          });
+        }
+        if (this.notificationsService && creatorId) {
+          this.notificationsService.createNotification(
+            creatorId,
+            'Guide Request Declined',
+            `The assigned guide declined trip #${updated.tripId}. Please select an alternative guide.`,
+            { role: (updated.travelerId ? 'traveler' : 'agency'), type: 'guide_declined', metadata: { tripId: updated.tripId } },
+          ).catch(() => {});
+        }
+      }
+    } else if (guideChanged && updated.guideId) {
+      if (this.realtimeService) {
+        this.realtimeService.emitToUser(updated.guideId, 'guide_request.created', {
+          tripId: updated.tripId,
+          destination: updated.destination,
+          trip: updated,
+        }, 'guide');
+      }
+      if (this.notificationsService) {
+        this.notificationsService.createNotification(
+          updated.guideId,
+          'New Trip Guide Request',
+          `You have a new guide assignment request for trip #${updated.tripId} to ${updated.destination}.`,
+          { role: 'guide', type: 'guide_request', metadata: { tripId: updated.tripId } },
+        ).catch(() => {});
+      }
+    }
+
     return updated;
   }
 
-  updateStatus(id: number, status: string, cancellationReason?: string): Trip {
+  updateStatus(id: number, status: string, cancellationReason?: string, actor?: TripActor): Trip {
     const idx = trips.findIndex((t) => t.tripId === id);
     if (idx === -1) throw new NotFoundException(`Trip with ID ${id} not found`);
 
@@ -331,6 +556,7 @@ export class TripsService {
     if (error) {
       throw new BadRequestException(error);
     }
+    assertTripStatusChangeAllowed(actor, current, targetStatus);
 
     trips[idx] = {
       ...current,
@@ -363,7 +589,50 @@ export class TripsService {
       });
     }
 
+    if (targetStatus !== current.status) {
+      this.applyStatusSideEffects(trips[idx], current.status, actor);
+    }
+
+    if (this.realtimeService) {
+      this.realtimeService.emitToBooking(id, 'booking.status_changed', { tripId: id, status: targetStatus });
+    }
+
     return trips[idx];
+  }
+
+  /**
+   * Keep the trip's bookings and the guide's calendar consistent with the trip status:
+   *  - Cancelled: every open booking is cancelled through the refund policy and the
+   *    guide's dates are released.
+   *  - Completed: every confirmed booking becomes COMPLETED (this is what unlocks reviews).
+   */
+  private applyStatusSideEffects(trip: Trip, previousStatus: string, actor?: TripActor): void {
+    if (trip.status === 'Cancelled') {
+      this.guideAvailabilityService?.releaseTripDates(trip.tripId);
+      if (this.policyService) {
+        for (const b of bookings.filter((x) => x.tripId === trip.tripId)) {
+          const st = String(b.status).toUpperCase();
+          if (['HELD', 'DRAFT', 'PENDING', 'PAID', 'CONFIRMED'].includes(st)) {
+            this.policyService
+              .cancelBooking(b.bookingId, trip.cancellationReason || 'Trip cancelled', actor?.userId)
+              .catch(() => {
+                // Bookings that cannot be cancelled automatically (e.g. inside the 12-hour
+                // window) are still closed so the trip is not left half-cancelled.
+                b.status = 'Cancelled';
+                b.cancellationReason = trip.cancellationReason || 'Trip cancelled';
+                b.cancelledAt = new Date().toISOString();
+              });
+          }
+        }
+      }
+    }
+    if (trip.status === 'Completed') {
+      for (const b of bookings.filter((x) => x.tripId === trip.tripId)) {
+        if (['CONFIRMED', 'PAID'].includes(String(b.status).toUpperCase())) {
+          b.status = 'COMPLETED';
+        }
+      }
+    }
   }
 
   /**

@@ -1,10 +1,3 @@
-/**
- * Refunds seed data
- * Source: front-end/JS/mockData.js → DB.refunds
- *
- * Relationships:
- *   - paymentId → payments.paymentId
- */
 export interface Refund {
   refundId: number;
   paymentId: number;
@@ -17,6 +10,4 @@ export interface Refund {
   notes?: string;
 }
 
-export const refunds: Refund[] = [
-  { refundId: 1, paymentId: 2, refundDate: '2026-03-06', refundTime: '14:30:00', refundStatus: 'Processing', amount: 102000, reason: 'Hotel Lumiere booking cancellation' },
-];
+export const refunds: Refund[] = [];

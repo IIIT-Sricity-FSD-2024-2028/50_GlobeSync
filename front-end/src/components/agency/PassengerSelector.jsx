@@ -186,7 +186,7 @@ export default function PassengerSelector({
           )}
 
           <form onSubmit={handleInlineAdd}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px', marginBottom: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(160px, 100%), 1fr))', gap: '10px', marginBottom: '10px' }}>
               <div>
                 <label style={{ fontSize: '11px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>
                   Full Name *
@@ -341,7 +341,7 @@ export default function PassengerSelector({
             borderRadius: '10px',
             padding: '8px',
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(240px, 100%), 1fr))',
             gap: '8px',
             background: '#fff',
           }}

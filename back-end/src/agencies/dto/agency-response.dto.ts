@@ -40,3 +40,14 @@ export class AgencyResponseDto {
   @ApiProperty({ example: '2024-01-15T08:00:00Z' })
   createdAt: string;
 }
+
+export class AgencyLookupDto {
+  @ApiProperty({ example: 1 })
+  agencyId: number;
+
+  @ApiProperty({ example: 'Horizon Travel Partners' })
+  businessName: string;
+
+  @ApiProperty({ example: 'approved', enum: ['pending', 'approved', 'rejected'] })
+  status: 'pending' | 'approved' | 'rejected';
+}

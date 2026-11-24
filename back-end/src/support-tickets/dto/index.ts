@@ -1,1 +1,8 @@
-export { CreateTicketDto, UpdateTicketStatusDto, CreateTicketReplyDto } from './ticket.dto';
+export {
+  CreateTicketDto,
+  UpdateTicketStatusDto,
+  CreateTicketReplyDto,
+  AssignTicketDto,
+  CreateInternalNoteDto,
+  AdjudicateRefundDto,
+} from './ticket.dto';

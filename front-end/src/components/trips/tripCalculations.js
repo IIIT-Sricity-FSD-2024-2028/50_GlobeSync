@@ -216,8 +216,8 @@ export function calculateTripCosts(formData = {}) {
   // 7. Tour guide allocation: flat fee per trip
   const guideCost = Number(guidePrice || 0);
 
-  // 8. Platform coordination fee: fixed estimate
-  const platformFee = 500;
+  // 8. Platform coordination fee: charged only once something has been chosen
+  const platformFee = baseTransport + hotelCost + guideCost > 0 ? 500 : 0;
 
   // 9. Total calculated trip budget (persisted on Trip.budget)
   const totalBudget = baseTransport + insuranceCost + cancellationFee + hotelCost + guideCost + platformFee;

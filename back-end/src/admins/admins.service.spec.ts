@@ -1,3 +1,4 @@
+process.env.NODE_ENV = 'test'; // header-based role simulation is only honoured in unit tests
 /**
  * admins.service.spec.ts
  *

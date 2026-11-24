@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Param, Body, ParseIntPipe } from '@nestjs/common';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Controller, Get, Post, Param, Body, Headers, ParseIntPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
 import { CreatePaymentDto } from './dto';
@@ -54,5 +55,49 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Create a payment' })
   @ApiResponse({ status: 201, description: 'Payment created' })
   @ApiResponse({ status: 400, description: 'Validation error' })
-  create(@Body() dto: CreatePaymentDto) { return this.paymentsService.create(dto); }
+  create(
+    @Body() dto: CreatePaymentDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
+    @Headers('x-idempotency-key') xIdempotencyKey?: string,
+    @CurrentUser() user?: any,
+  ) {
+    return this.paymentsService.create(
+      dto,
+      idempotencyKey || xIdempotencyKey,
+      user ? { role: String(user.role), userId: Number(user.userId) } : undefined,
+    );
+  }
+
+  @Post('intent')
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.AGENCY)
+  @ApiUserHeaders()
+  @ApiOperation({ summary: 'Create gateway payment intent in test mode' })
+  @ApiResponse({ status: 201, description: 'Payment intent created' })
+  createPaymentIntent(
+    @Body() body: { bookingId: number; travelerId: number; amountMinor: number; currency?: string },
+    @Headers('idempotency-key') idempotencyKey?: string,
+    @Headers('x-idempotency-key') xIdempotencyKey?: string,
+  ) {
+    return this.paymentsService.createPaymentIntent({
+      bookingId: body.bookingId,
+      travelerId: body.travelerId,
+      amountMinor: body.amountMinor,
+      currency: body.currency,
+      idempotencyKey: idempotencyKey || xIdempotencyKey,
+    });
+  }
+
+  @Post('webhook')
+  @ApiOperation({ summary: 'Receive payment gateway webhooks (signature verified)' })
+  @ApiResponse({ status: 200, description: 'Webhook processed' })
+  @ApiResponse({ status: 401, description: 'Invalid signature' })
+  async handleWebhook(
+    @Body() body: any,
+    @Headers('x-razorpay-signature') razorpaySig?: string,
+    @Headers('stripe-signature') stripeSig?: string,
+  ) {
+    const signature = razorpaySig || stripeSig || '';
+    const rawBody = typeof body === 'string' ? body : JSON.stringify(body);
+    return this.paymentsService.processWebhook(body, signature, rawBody);
+  }
 }

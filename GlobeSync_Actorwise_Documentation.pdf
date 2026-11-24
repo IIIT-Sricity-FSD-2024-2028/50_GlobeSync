@@ -1,0 +1,474 @@
+%PDF-1.4
+%‚„œ”
+7 0 obj
+<< /Length 7223 >>
+stream
+0.090 0.280 0.540 rg 40.00 760.00 532.00 3.00 re f
+0.400 0.450 0.550 rg BT /F2 8.00 Tf 40.00 768.00 Td (GlobeSync Platform  ?  System Architecture & Actor-wise Functional Specifications) Tj ET
+0.800 0.850 0.900 rg 40.00 36.00 532.00 0.75 re f
+0.500 0.550 0.650 rg BT /F1 8.00 Tf 40.00 24.00 Td (GlobeSync Travel Platform  |  Confidential Documentation) Tj ET
+0.500 0.550 0.650 rg BT /F2 8.00 Tf 532.00 24.00 Td (Page 1) Tj ET
+0.050 0.160 0.380 rg 40.00 620.00 532.00 120.00 re f
+0.050 0.750 0.650 rg 40.00 620.00 532.00 4.00 re f
+1.000 1.000 1.000 rg BT /F2 22.00 Tf 64.00 704.00 Td (GLOBESYNC PLATFORM) Tj ET
+0.750 0.880 0.980 rg BT /F3 11.00 Tf 64.00 686.00 Td (Travel Itinerary Planning, Coordination & Management Ecosystem) Tj ET
+0.900 0.950 1.000 rg BT /F1 10.50 Tf 64.00 668.00 Td (Comprehensive System Specifications & Actor-wise Working Functionalities) Tj ET
+0.600 0.800 0.950 rg BT /F4 8.50 Tf 64.00 640.00 Td (Version: 2.4.0 \(Enterprise\)   |   Date: November 2026   |   License: Academic Project) Tj ET
+0.100 0.250 0.500 rg BT /F2 10.00 Tf 40.00 605.00 Td (PLATFORM ACCESS DIRECTORY & LIVE SERVICES) Tj ET
+0.100 0.200 0.400 RG 1.00 w 0.120 0.280 0.520 rg 40.00 575.00 532.00 18.00 re B
+1.000 1.000 1.000 rg BT /F2 9.00 Tf 46.00 580.00 Td (Component) Tj ET
+1.000 1.000 1.000 rg BT /F2 9.00 Tf 196.00 580.00 Td (Local URL / Target) Tj ET
+1.000 1.000 1.000 rg BT /F2 9.00 Tf 436.00 580.00 Td (Tech Stack / Protocol) Tj ET
+0.850 0.880 0.930 RG 0.50 w 1.000 1.000 1.000 rg 40.00 557.00 532.00 18.00 re B
+0.050 0.150 0.300 rg BT /F2 8.50 Tf 46.00 562.00 Td (Frontend SPA Portal) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 196.00 562.00 Td (http://localhost:5173/) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 436.00 562.00 Td (React 18, Vite, Context API, Tailwind/CSS) Tj ET
+0.850 0.880 0.930 RG 0.50 w 0.960 0.980 1.000 rg 40.00 539.00 532.00 18.00 re B
+0.050 0.150 0.300 rg BT /F2 8.50 Tf 46.00 544.00 Td (Backend Core Server) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 196.00 544.00 Td (http://localhost:3001/) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 436.00 544.00 Td (NestJS 10, TypeScript, REST API) Tj ET
+0.850 0.880 0.930 RG 0.50 w 1.000 1.000 1.000 rg 40.00 521.00 532.00 18.00 re B
+0.050 0.150 0.300 rg BT /F2 8.50 Tf 46.00 526.00 Td (Swagger API Explorer) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 196.00 526.00 Td (http://localhost:3001/api) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 436.00 526.00 Td (OpenAPI 3.0 Interactive Specs) Tj ET
+0.850 0.880 0.930 RG 0.50 w 0.960 0.980 1.000 rg 40.00 503.00 532.00 18.00 re B
+0.050 0.150 0.300 rg BT /F2 8.50 Tf 46.00 508.00 Td (Git Source Repository) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 196.00 508.00 Td (github.com/IIIT-Sricity-FSD-2024-2028/50_GlobeSync) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 436.00 508.00 Td (Branch: main \(Clean sync\)) Tj ET
+0.200 0.250 0.300 rg BT /F1 9.00 Tf 40.00 495.00 Td (GlobeSync is an all-in-one travel coordination engine designed for six specialized actors: Travelers, Certified) Tj ET
+0.200 0.250 0.300 rg BT /F1 9.00 Tf 40.00 482.00 Td (Tour Guides, Travel Agencies, Customer Support Specialists, Administrators, and Super Administrators. The) Tj ET
+0.200 0.250 0.300 rg BT /F1 9.00 Tf 40.00 469.00 Td (platform unifies trip planning, reservation orchestration, real-time messaging, financial settlements, and) Tj ET
+0.200 0.250 0.300 rg BT /F1 9.00 Tf 40.00 456.00 Td (transparent cancellation policies into a single cohesive architecture.) Tj ET
+0.750 0.850 0.950 RG 1.00 w 0.930 0.960 0.990 rg 40.00 419.00 532.00 24.00 re B
+0.090 0.380 0.680 rg 40.00 419.00 5.00 24.00 re f
+0.050 0.200 0.450 rg BT /F2 12.00 Tf 54.00 426.00 Td (1. TRAVELER PORTAL \(PRIMARY CONSUMER\)) Tj ET
+0.350 0.450 0.550 rg BT /F3 9.00 Tf 45.00 401.00 Td (Core Consumer Journey: Trip Discovery, Booking, Customization & Financial Safeguards) Tj ET
+0.820 0.880 0.950 RG 1.00 w 0.980 0.990 1.000 rg 40.00 304.00 532.00 75.00 re B
+0.130 0.550 0.350 rg 40.00 304.00 6.00 75.00 re f
+0.080 0.150 0.300 rg BT /F2 13.00 Tf 56.00 361.00 Td (Traveler Actor Account) Tj ET
+0.130 0.550 0.350 rg 496.00 357.00 66.00 16.00 re f
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 504.00 361.00 Td (TRAVELER) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 56.00 341.00 Td (Name:) Tj ET
+0.100 0.150 0.250 rg BT /F1 9.50 Tf 105.00 341.00 Td (Arjun) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 220.00 341.00 Td (Email Login:) Tj ET
+0.050 0.300 0.600 rg BT /F4 9.50 Tf 290.00 341.00 Td (Arjun@gmail.com) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 56.00 321.00 Td (Account Type:) Tj ET
+0.100 0.500 0.200 rg BT /F1 9.00 Tf 125.00 321.00 Td (Academic Demo Account) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 260.00 321.00 Td (Auth Access:) Tj ET
+0.200 0.400 0.600 rg BT /F4 9.00 Tf 325.00 321.00 Td (Role: traveler \(Hashed / JWT\)) Tj ET
+0.090 0.450 0.750 rg 48.00 291.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 289.00 Td (1. Dynamic Itinerary Planning & Creation Wizard) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 279.00 Td (Travelers create bespoke trip itineraries specifying Origin, Destination, Dates, Total Budget, and) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 267.00 Td (Passenger counts. Supports custom multi-day agendas with morning, afternoon, and evening milestones.) Tj ET
+0.090 0.450 0.750 rg 48.00 250.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 248.00 Td (2. Advance Booking Rule \(Anti-Same-Day Restriction\)) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 238.00 Td (Enforces real-world OTA advance reservation standards. Trips cannot be booked for the current day or past) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 226.00 Td (dates \(minimum 24-hour advance booking mandatory\). Backend throws BadRequestException if violated.) Tj ET
+0.090 0.450 0.750 rg 48.00 209.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 207.00 Td (3. Multi-Category Booking & Reservation Engine) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 197.00 Td (Reserve Flights, Hotels, Ground Transit, Sightseeing Tours, and Agency Packages. Real-time availability) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 185.00 Td (checks ensure seamless seat/room locking with optional Cancellation Protection insurance.) Tj ET
+0.090 0.450 0.750 rg 48.00 168.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 166.00 Td (4. Strict 3-Tier Cancellation & Refund Policy) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 156.00 Td (Cancel before 3 days \(>=72h\): 65% refund \(or 90% with Cancellation Protection\). Between 12h and 72h: 0%) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 144.00 Td (refund \(or 50% with Protection\). Within 12h: cancellation locked/blocked to contact Support for emergency) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 132.00 Td (adjudication.) Tj ET
+0.090 0.450 0.750 rg 48.00 115.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 113.00 Td (5. Expense Tracker & Budget Visualization) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 103.00 Td (Log individual receipts across Lodging, Food, Transport, and Entertainment. Visual progress gauges display) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 91.00 Td (actual spend vs. planned budget with real-time percentage indicators.) Tj ET
+
+endstream
+endobj
+8 0 obj
+<< /Length 7556 >>
+stream
+0.090 0.280 0.540 rg 40.00 760.00 532.00 3.00 re f
+0.400 0.450 0.550 rg BT /F2 8.00 Tf 40.00 768.00 Td (GlobeSync Platform  ?  System Architecture & Actor-wise Functional Specifications) Tj ET
+0.800 0.850 0.900 rg 40.00 36.00 532.00 0.75 re f
+0.500 0.550 0.650 rg BT /F1 8.00 Tf 40.00 24.00 Td (GlobeSync Travel Platform  |  Confidential Documentation) Tj ET
+0.500 0.550 0.650 rg BT /F2 8.00 Tf 532.00 24.00 Td (Page 2) Tj ET
+0.090 0.450 0.750 rg 48.00 739.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 737.00 Td (6. Verified Guide Reviews & In-App Messaging) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 727.00 Td (Submit verified 1-to-5 star ratings and written reviews after completed trips. Directly chat with assigned) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 715.00 Td (tour guides and access support ticket threads.) Tj ET
+0.750 0.850 0.950 RG 1.00 w 0.930 0.960 0.990 rg 40.00 685.00 532.00 24.00 re B
+0.090 0.380 0.680 rg 40.00 685.00 5.00 24.00 re f
+0.050 0.200 0.450 rg BT /F2 12.00 Tf 54.00 692.00 Td (2. TOUR GUIDE PORTAL \(FIELD SERVICE\)) Tj ET
+0.350 0.450 0.550 rg BT /F3 9.00 Tf 45.00 667.00 Td (Tour Escort Management, Traveler Coordination & Reputation Showcase) Tj ET
+0.820 0.880 0.950 RG 1.00 w 0.980 0.990 1.000 rg 40.00 570.00 532.00 75.00 re B
+0.850 0.450 0.100 rg 40.00 570.00 6.00 75.00 re f
+0.080 0.150 0.300 rg BT /F2 13.00 Tf 56.00 627.00 Td (Tour Guide Actor Account) Tj ET
+0.850 0.450 0.100 rg 514.00 623.00 48.00 16.00 re f
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 522.00 627.00 Td (GUIDE) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 56.00 607.00 Td (Name:) Tj ET
+0.100 0.150 0.250 rg BT /F1 9.50 Tf 105.00 607.00 Td (Devansh) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 220.00 607.00 Td (Email Login:) Tj ET
+0.050 0.300 0.600 rg BT /F4 9.50 Tf 290.00 607.00 Td (Devansh@gmail.com) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 56.00 587.00 Td (Account Type:) Tj ET
+0.100 0.500 0.200 rg BT /F1 9.00 Tf 125.00 587.00 Td (Academic Demo Account) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 260.00 587.00 Td (Auth Access:) Tj ET
+0.200 0.400 0.600 rg BT /F4 9.00 Tf 325.00 587.00 Td (Role: guide \(Hashed / JWT\)) Tj ET
+0.090 0.450 0.750 rg 48.00 557.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 555.00 Td (1. Real-time Trip Request Triage \(Accept / Decline\)) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 545.00 Td (Review inbound guide assignment requests from travelers and agencies with full itinerary visibility. Guides) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 533.00 Td (can Accept or Decline requests; status synchronizes instantly to travelers.) Tj ET
+0.090 0.450 0.750 rg 48.00 516.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 514.00 Td (2. Dedicated Reviews & Reputation Hub \(/guide/reviews\)) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 504.00 Td (Centralized reputation dashboard showing Average Rating Score, Total Review Count, and Traveler) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 492.00 Td (Recommendation %. Star breakdown \(1 to 5 stars\), filter tabs, and public guide response mechanism.) Tj ET
+0.090 0.450 0.750 rg 48.00 475.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 473.00 Td (3. Admin-Contracted Price Lock \(Non-Modifiable\)) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 463.00 Td (Price per trip is designated as a Contracted Platform Rate \(Fixed by Admin\). Guides cannot inflate or) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 451.00 Td (modify their pricing, guaranteeing transparent platform rates.) Tj ET
+0.090 0.450 0.750 rg 48.00 434.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 432.00 Td (4. Verified Credential Experience \(Admin-Protected\)) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 422.00 Td (Experience is displayed as a Verified Platform Credential \(e.g., 7 Years Experience\). Locked from guide) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 410.00 Td (edits to prevent fraudulent or unverified credential inflation.) Tj ET
+0.090 0.450 0.750 rg 48.00 393.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 391.00 Td (5. Roster Management & Direct Traveler Chat) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 381.00 Td (View active and upcoming passenger lists with pickup locations and special requests. Integrated direct) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 369.00 Td (messaging for coordinating meeting spots and schedule updates.) Tj ET
+0.750 0.850 0.950 RG 1.00 w 0.930 0.960 0.990 rg 40.00 339.00 532.00 24.00 re B
+0.090 0.380 0.680 rg 40.00 339.00 5.00 24.00 re f
+0.050 0.200 0.450 rg BT /F2 12.00 Tf 54.00 346.00 Td (3. TRAVEL AGENCY PORTAL \(B2B COMMERCIAL PARTNER\)) Tj ET
+0.350 0.450 0.550 rg BT /F3 9.00 Tf 45.00 321.00 Td (Wholesale Package Inventory, Client Trip Reselling & Commission Management) Tj ET
+0.820 0.880 0.950 RG 1.00 w 0.980 0.990 1.000 rg 40.00 224.00 532.00 75.00 re B
+0.450 0.250 0.650 rg 40.00 224.00 6.00 75.00 re f
+0.080 0.150 0.300 rg BT /F2 13.00 Tf 56.00 281.00 Td (Agency Partner Account) Tj ET
+0.450 0.250 0.650 rg 508.00 277.00 54.00 16.00 re f
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 516.00 281.00 Td (AGENCY) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 56.00 261.00 Td (Name:) Tj ET
+0.100 0.150 0.250 rg BT /F1 9.50 Tf 105.00 261.00 Td (Horizon Travel Partners) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 220.00 261.00 Td (Email Login:) Tj ET
+0.050 0.300 0.600 rg BT /F4 9.50 Tf 290.00 261.00 Td (Horizon@gmail.com) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 56.00 241.00 Td (Account Type:) Tj ET
+0.100 0.500 0.200 rg BT /F1 9.00 Tf 125.00 241.00 Td (Academic Demo Account) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 260.00 241.00 Td (Auth Access:) Tj ET
+0.200 0.400 0.600 rg BT /F4 9.00 Tf 325.00 241.00 Td (Role: agency \(Hashed / JWT\)) Tj ET
+0.090 0.450 0.750 rg 48.00 211.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 209.00 Td (1. Commercial Package Catalog & Publishing) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 199.00 Td (Design, publish, and price curated vacation packages \(e.g., European Roman Holiday, Tokyo Adventure\) with) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 187.00 Td (itineraries, inclusions, lodging tiers, and bulk booking discounts.) Tj ET
+0.090 0.450 0.750 rg 48.00 170.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 168.00 Td (2. Client Trip Creation & Group Passenger Manifest) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 158.00 Td (Book wholesale packages and tailor itineraries for institutional or family groups. Manages comprehensive) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 146.00 Td (passenger manifests with passport details and flight arrangements.) Tj ET
+0.090 0.450 0.750 rg 48.00 129.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 127.00 Td (3. Automated Commission Ledger & Financial Earnings) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 117.00 Td (Tracks earned commissions per booking. Lifecycle: Pending upon reservation -> Earned upon trip confirmation) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 105.00 Td (-> Settled upon trip completion. Full transparency without synthetic inflation.) Tj ET
+0.090 0.450 0.750 rg 48.00 88.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 86.00 Td (4. Platform Subscriptions & Featured Listings) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 76.00 Td (Subscribe to agency tiers \(Basic, Gold, Platinum\). Purchase featured homepage promotional slots to drive) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 64.00 Td (organic traveler inquiries.) Tj ET
+
+endstream
+endobj
+9 0 obj
+<< /Length 6670 >>
+stream
+0.090 0.280 0.540 rg 40.00 760.00 532.00 3.00 re f
+0.400 0.450 0.550 rg BT /F2 8.00 Tf 40.00 768.00 Td (GlobeSync Platform  ?  System Architecture & Actor-wise Functional Specifications) Tj ET
+0.800 0.850 0.900 rg 40.00 36.00 532.00 0.75 re f
+0.500 0.550 0.650 rg BT /F1 8.00 Tf 40.00 24.00 Td (GlobeSync Travel Platform  |  Confidential Documentation) Tj ET
+0.500 0.550 0.650 rg BT /F2 8.00 Tf 532.00 24.00 Td (Page 3) Tj ET
+0.090 0.450 0.750 rg 48.00 739.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 737.00 Td (5. Promotional Campaign Engine) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 727.00 Td (Create promotional discount vouchers with percentage reductions, maximum redemption limits, and validity) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 715.00 Td (date ranges.) Tj ET
+0.750 0.850 0.950 RG 1.00 w 0.930 0.960 0.990 rg 40.00 685.00 532.00 24.00 re B
+0.090 0.380 0.680 rg 40.00 685.00 5.00 24.00 re f
+0.050 0.200 0.450 rg BT /F2 12.00 Tf 54.00 692.00 Td (4. CUSTOMER SUPPORT PORTAL \(DISPUTES & CARE\)) Tj ET
+0.350 0.450 0.550 rg BT /F3 9.00 Tf 45.00 667.00 Td (24/7 Operations Desk, Ticket Resolution & Dispute Adjudication) Tj ET
+0.820 0.880 0.950 RG 1.00 w 0.980 0.990 1.000 rg 40.00 570.00 532.00 75.00 re B
+0.050 0.550 0.650 rg 40.00 570.00 6.00 75.00 re f
+0.080 0.150 0.300 rg BT /F2 13.00 Tf 56.00 627.00 Td (Support Specialist Account) Tj ET
+0.050 0.550 0.650 rg 502.00 623.00 60.00 16.00 re f
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 510.00 627.00 Td (SUPPORT) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 56.00 607.00 Td (Name:) Tj ET
+0.100 0.150 0.250 rg BT /F1 9.50 Tf 105.00 607.00 Td (Aisha) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 220.00 607.00 Td (Email Login:) Tj ET
+0.050 0.300 0.600 rg BT /F4 9.50 Tf 290.00 607.00 Td (Aisha@gmail.com) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 56.00 587.00 Td (Account Type:) Tj ET
+0.100 0.500 0.200 rg BT /F1 9.00 Tf 125.00 587.00 Td (Academic Demo Account) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 260.00 587.00 Td (Auth Access:) Tj ET
+0.200 0.400 0.600 rg BT /F4 9.00 Tf 325.00 587.00 Td (Role: support \(Hashed / JWT\)) Tj ET
+0.090 0.450 0.750 rg 48.00 557.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 555.00 Td (1. Centralized Support Ticket Queue) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 545.00 Td (Monitor inbound support tickets categorized by Booking Issues, Guide Inquiries, Cancellations, and Safety) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 533.00 Td (Emergencies. Dynamic sorting by urgency \(Low, Medium, High\).) Tj ET
+0.090 0.450 0.750 rg 48.00 516.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 514.00 Td (2. Cancellation Dispute & Refund Claim Adjudication) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 504.00 Td (Review traveler refund requests under PolicyService rules. Support specialists adjudicate extenuating) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 492.00 Td (emergency overrides with audit logging and threshold escalation.) Tj ET
+0.090 0.450 0.750 rg 48.00 475.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 473.00 Td (3. Live Customer Chat & Incident Resolution) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 463.00 Td (Maintain direct communication with travelers during ongoing trips, facilitating flight reschedule alerts) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 451.00 Td (and emergency medical coordination.) Tj ET
+0.750 0.850 0.950 RG 1.00 w 0.930 0.960 0.990 rg 40.00 421.00 532.00 24.00 re B
+0.090 0.380 0.680 rg 40.00 421.00 5.00 24.00 re f
+0.050 0.200 0.450 rg BT /F2 12.00 Tf 54.00 428.00 Td (5. PLATFORM ADMINISTRATOR \(OPERATIONAL GOVERNANCE\)) Tj ET
+0.350 0.450 0.550 rg BT /F3 9.00 Tf 45.00 403.00 Td (Platform Oversight, Partner Vetting, Guide Credentialing & Auditing) Tj ET
+0.820 0.880 0.950 RG 1.00 w 0.980 0.990 1.000 rg 40.00 306.00 532.00 75.00 re B
+0.200 0.350 0.600 rg 40.00 306.00 6.00 75.00 re f
+0.080 0.150 0.300 rg BT /F2 13.00 Tf 56.00 363.00 Td (Administrator Account) Tj ET
+0.200 0.350 0.600 rg 514.00 359.00 48.00 16.00 re f
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 522.00 363.00 Td (ADMIN) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 56.00 343.00 Td (Name:) Tj ET
+0.100 0.150 0.250 rg BT /F1 9.50 Tf 105.00 343.00 Td (Manoj) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 220.00 343.00 Td (Email Login:) Tj ET
+0.050 0.300 0.600 rg BT /F4 9.50 Tf 290.00 343.00 Td (Manoj@gmail.com) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 56.00 323.00 Td (Account Type:) Tj ET
+0.100 0.500 0.200 rg BT /F1 9.00 Tf 125.00 323.00 Td (Academic Demo Account) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 260.00 323.00 Td (Auth Access:) Tj ET
+0.200 0.400 0.600 rg BT /F4 9.00 Tf 325.00 323.00 Td (Role: admin \(Hashed / JWT\)) Tj ET
+0.090 0.450 0.750 rg 48.00 293.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 291.00 Td (1. Agency Partner Vetting & Onboarding) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 281.00 Td (Review new travel agency registration dossiers, tax IDs, and commercial certifications. One-click Approve) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 269.00 Td (or Reject toggle to activate agency booking privileges.) Tj ET
+0.090 0.450 0.750 rg 48.00 252.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 250.00 Td (2. Guide Rate Fixing & Credential Verification) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 240.00 Td (Administrators establish the contractual price per trip for each guide and verify official background) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 228.00 Td (experience records before issuing the platform trust badge.) Tj ET
+0.090 0.450 0.750 rg 48.00 211.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 209.00 Td (3. System-Wide Itinerary & Booking Governance) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 199.00 Td (Administrative oversight to review, reassign, or cancel bookings across any actor account with full audit) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 187.00 Td (trail logging.) Tj ET
+0.090 0.450 0.750 rg 48.00 170.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 168.00 Td (4. Operational Audit Trails & Analytics) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 158.00 Td (Inspect system logs, error metrics, and operational performance reports ensuring regulatory compliance.) Tj ET
+0.750 0.850 0.950 RG 1.00 w 0.930 0.960 0.990 rg 40.00 128.00 532.00 24.00 re B
+0.090 0.380 0.680 rg 40.00 128.00 5.00 24.00 re f
+0.050 0.200 0.450 rg BT /F2 12.00 Tf 54.00 135.00 Td (6. SUPER ADMINISTRATOR \(EXECUTIVE & FINANCIAL CONTROL\)) Tj ET
+0.350 0.450 0.550 rg BT /F3 9.00 Tf 45.00 110.00 Td (Global Financial Policy, Revenue Parameters & Infrastructure Control) Tj ET
+
+endstream
+endobj
+10 0 obj
+<< /Length 6522 >>
+stream
+0.090 0.280 0.540 rg 40.00 760.00 532.00 3.00 re f
+0.400 0.450 0.550 rg BT /F2 8.00 Tf 40.00 768.00 Td (GlobeSync Platform  ?  System Architecture & Actor-wise Functional Specifications) Tj ET
+0.800 0.850 0.900 rg 40.00 36.00 532.00 0.75 re f
+0.500 0.550 0.650 rg BT /F1 8.00 Tf 40.00 24.00 Td (GlobeSync Travel Platform  |  Confidential Documentation) Tj ET
+0.500 0.550 0.650 rg BT /F2 8.00 Tf 532.00 24.00 Td (Page 4) Tj ET
+0.820 0.880 0.950 RG 1.00 w 0.980 0.990 1.000 rg 40.00 657.00 532.00 75.00 re B
+0.750 0.150 0.250 rg 40.00 657.00 6.00 75.00 re f
+0.080 0.150 0.300 rg BT /F2 13.00 Tf 56.00 714.00 Td (Super Administrator Account) Tj ET
+0.750 0.150 0.250 rg 490.00 710.00 72.00 16.00 re f
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 498.00 714.00 Td (SUPERUSER) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 56.00 694.00 Td (Name:) Tj ET
+0.100 0.150 0.250 rg BT /F1 9.50 Tf 105.00 694.00 Td (Super Admin) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 220.00 694.00 Td (Email Login:) Tj ET
+0.050 0.300 0.600 rg BT /F4 9.50 Tf 290.00 694.00 Td (superuser@globesync.com) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 56.00 674.00 Td (Account Type:) Tj ET
+0.100 0.500 0.200 rg BT /F1 9.00 Tf 125.00 674.00 Td (Academic Demo Account) Tj ET
+0.400 0.450 0.550 rg BT /F2 9.00 Tf 260.00 674.00 Td (Auth Access:) Tj ET
+0.200 0.400 0.600 rg BT /F4 9.00 Tf 325.00 674.00 Td (Role: superuser \(Hashed / JWT\)) Tj ET
+0.090 0.450 0.750 rg 48.00 644.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 642.00 Td (1. Revenue Parameters & Commission Configuration) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 632.00 Td (Manage platform-wide financial percentages: Default Booking Commission %, Agency Resell Split %, and) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 620.00 Td (Cancellation Penalty Deductions \(with strict 0-100% boundary validation\).) Tj ET
+0.090 0.450 0.750 rg 48.00 603.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 601.00 Td (2. Subscription Plan Architecture) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 591.00 Td (Configure agency tier limits, monthly booking allowances, premium listing quotas, and recurring) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 579.00 Td (subscription fees.) Tj ET
+0.090 0.450 0.750 rg 48.00 562.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 560.00 Td (3. Administrative Staff Provisioning) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 550.00 Td (Create, manage, and deactivate Platform Administrator and Support Staff accounts with enterprise role-based) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 538.00 Td (privilege isolation.) Tj ET
+0.090 0.450 0.750 rg 48.00 521.00 4.00 4.00 re f
+0.100 0.200 0.350 rg BT /F2 9.50 Tf 58.00 519.00 Td (4. Genuine Revenue Analytics & Settlement Auditing) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 509.00 Td (View immutable financial summaries derived strictly from settled ledger transactions \(no synthetic or) Tj ET
+0.200 0.250 0.320 rg BT /F1 9.00 Tf 58.00 497.00 Td (falsified numbers\).) Tj ET
+0.750 0.850 0.950 RG 1.00 w 0.930 0.960 0.990 rg 40.00 467.00 532.00 24.00 re B
+0.090 0.380 0.680 rg 40.00 467.00 5.00 24.00 re f
+0.050 0.200 0.450 rg BT /F2 12.00 Tf 54.00 474.00 Td (7. CORE BUSINESS RULES & POLICY MATRIX) Tj ET
+0.350 0.450 0.550 rg BT /F3 9.00 Tf 45.00 449.00 Td (Real-World Online Travel Agency Rules Implemented Across Backend & Frontend) Tj ET
+0.100 0.200 0.400 RG 1.00 w 0.120 0.280 0.520 rg 40.00 417.00 532.00 18.00 re B
+1.000 1.000 1.000 rg BT /F2 9.00 Tf 46.00 422.00 Td (Cancellation Timeline) Tj ET
+1.000 1.000 1.000 rg BT /F2 9.00 Tf 171.00 422.00 Td (Standard Refund) Tj ET
+1.000 1.000 1.000 rg BT /F2 9.00 Tf 251.00 422.00 Td (With Protection) Tj ET
+1.000 1.000 1.000 rg BT /F2 9.00 Tf 336.00 422.00 Td (Fee/Deduction) Tj ET
+1.000 1.000 1.000 rg BT /F2 9.00 Tf 421.00 422.00 Td (System & UI Action) Tj ET
+0.850 0.880 0.930 RG 0.50 w 1.000 1.000 1.000 rg 40.00 399.00 532.00 18.00 re B
+0.050 0.150 0.300 rg BT /F2 8.50 Tf 46.00 404.00 Td (>= 3 Days \(>=72h\)) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 171.00 404.00 Td (65% Refund) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 251.00 404.00 Td (90% Refund) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 336.00 404.00 Td (35% \(10% prot.\)) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 421.00 404.00 Td (Pre-flight preview; ledger refund processed) Tj ET
+0.850 0.880 0.930 RG 0.50 w 0.960 0.980 1.000 rg 40.00 381.00 532.00 18.00 re B
+0.050 0.150 0.300 rg BT /F2 8.50 Tf 46.00 386.00 Td (12h to 3 Days \(<72h\)) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 171.00 386.00 Td (0% Refund) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 251.00 386.00 Td (50% Refund) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 336.00 386.00 Td (100% \(50% prot.\)) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 421.00 386.00 Td (Permitted cancellation; fee retained) Tj ET
+0.850 0.880 0.930 RG 0.50 w 1.000 1.000 1.000 rg 40.00 363.00 532.00 18.00 re B
+0.050 0.150 0.300 rg BT /F2 8.50 Tf 46.00 368.00 Td (< 12 Hours \(Departure\)) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 171.00 368.00 Td (BLOCKED) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 251.00 368.00 Td (Support Escalation) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 336.00 368.00 Td (Operational Lock) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 421.00 368.00 Td (Blocked online; routed to Support desk) Tj ET
+0.850 0.750 0.300 RG 1.00 w 0.980 0.980 0.920 rg 40.00 273.00 532.00 76.00 re B
+0.850 0.750 0.300 rg 40.00 273.00 4.00 76.00 re f
+0.500 0.350 0.050 rg BT /F2 9.50 Tf 54.00 335.00 Td (NOTE: 12-Hour Cancellation Cutoff Policy) Tj ET
+0.300 0.300 0.250 rg BT /F1 9.00 Tf 54.00 325.00 Td (In accordance with real travel industry logistics \(Airlines, Hotels, Tour Operators\), trips cannot be) Tj ET
+0.300 0.300 0.250 rg BT /F1 9.00 Tf 54.00 313.00 Td (cancelled online within 12 hours of departure because local transport, private guides, and hotel) Tj ET
+0.300 0.300 0.250 rg BT /F1 9.00 Tf 54.00 301.00 Td (reservations have already mobilized. For critical emergencies, travelers are provided a direct line to the) Tj ET
+0.300 0.300 0.250 rg BT /F1 9.00 Tf 54.00 289.00 Td (24/7 Support Desk with an auditable Emergency Override workflow.) Tj ET
+0.750 0.850 0.950 RG 1.00 w 0.930 0.960 0.990 rg 40.00 255.00 532.00 24.00 re B
+0.090 0.380 0.680 rg 40.00 255.00 5.00 24.00 re f
+0.050 0.200 0.450 rg BT /F2 12.00 Tf 54.00 262.00 Td (8. QUALITY ASSURANCE & VERIFICATION REPORT) Tj ET
+0.350 0.450 0.550 rg BT /F3 9.00 Tf 45.00 237.00 Td (Automated Test Suites, Referential Integrity & Git Delivery) Tj ET
+
+endstream
+endobj
+11 0 obj
+<< /Length 7532 >>
+stream
+0.090 0.280 0.540 rg 40.00 760.00 532.00 3.00 re f
+0.400 0.450 0.550 rg BT /F2 8.00 Tf 40.00 768.00 Td (GlobeSync Platform  ?  System Architecture & Actor-wise Functional Specifications) Tj ET
+0.800 0.850 0.900 rg 40.00 36.00 532.00 0.75 re f
+0.500 0.550 0.650 rg BT /F1 8.00 Tf 40.00 24.00 Td (GlobeSync Travel Platform  |  Confidential Documentation) Tj ET
+0.500 0.550 0.650 rg BT /F2 8.00 Tf 532.00 24.00 Td (Page 5) Tj ET
+0.100 0.200 0.400 RG 1.00 w 0.120 0.280 0.520 rg 40.00 722.00 532.00 18.00 re B
+1.000 1.000 1.000 rg BT /F2 9.00 Tf 46.00 727.00 Td (Test Suite Name) Tj ET
+1.000 1.000 1.000 rg BT /F2 9.00 Tf 206.00 727.00 Td (Scope & Invariants Checked) Tj ET
+1.000 1.000 1.000 rg BT /F2 9.00 Tf 436.00 727.00 Td (Tests) Tj ET
+1.000 1.000 1.000 rg BT /F2 9.00 Tf 481.00 727.00 Td (Result) Tj ET
+0.850 0.880 0.930 RG 0.50 w 1.000 1.000 1.000 rg 40.00 704.00 532.00 18.00 re B
+0.050 0.150 0.300 rg BT /F2 8.50 Tf 46.00 709.00 Td (backend-fixes.spec.ts) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 206.00 709.00 Td (Status transitions, 12h cutoff, 65% refund, revenue bounds) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 436.00 709.00 Td (26) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 481.00 709.00 Td (26 Passed \(100%\)) Tj ET
+0.850 0.880 0.930 RG 0.50 w 0.960 0.980 1.000 rg 40.00 686.00 532.00 18.00 re B
+0.050 0.150 0.300 rg BT /F2 8.50 Tf 46.00 691.00 Td (support-users.service.spec.ts) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 206.00 691.00 Td (Support profile immutability, ticket integrity) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 436.00 691.00 Td (16) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 481.00 691.00 Td (16 Passed \(100%\)) Tj ET
+0.850 0.880 0.930 RG 0.50 w 1.000 1.000 1.000 rg 40.00 668.00 532.00 18.00 re B
+0.050 0.150 0.300 rg BT /F2 8.50 Tf 46.00 673.00 Td (agencies.service.spec.ts) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 206.00 673.00 Td (Agency registration, password masking, status updates) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 436.00 673.00 Td (17) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 481.00 673.00 Td (17 Passed \(100%\)) Tj ET
+0.850 0.880 0.930 RG 0.50 w 0.960 0.980 1.000 rg 40.00 650.00 532.00 18.00 re B
+0.050 0.150 0.300 rg BT /F2 8.50 Tf 46.00 655.00 Td (admins.service.spec.ts) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 206.00 655.00 Td (Admin RBAC, profile updates, ownership checks) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 436.00 655.00 Td (17) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 481.00 655.00 Td (17 Passed \(100%\)) Tj ET
+0.850 0.880 0.930 RG 0.50 w 1.000 1.000 1.000 rg 40.00 632.00 532.00 18.00 re B
+0.050 0.150 0.300 rg BT /F2 8.50 Tf 46.00 637.00 Td (roles-guard-ownership.spec.ts) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 206.00 637.00 Td (Cross-actor ownership barriers & RBAC guards) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 436.00 637.00 Td (17) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 481.00 637.00 Td (17 Passed \(100%\)) Tj ET
+0.850 0.880 0.930 RG 0.50 w 0.960 0.980 1.000 rg 40.00 614.00 532.00 18.00 re B
+0.050 0.150 0.300 rg BT /F2 8.50 Tf 46.00 619.00 Td (child-resource-ownership.spec.ts) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 206.00 619.00 Td (Itinerary, Payment, Refund ownership enforcement) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 436.00 619.00 Td (19) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 481.00 619.00 Td (19 Passed \(100%\)) Tj ET
+0.850 0.880 0.930 RG 0.50 w 1.000 1.000 1.000 rg 40.00 596.00 532.00 18.00 re B
+0.050 0.150 0.300 rg BT /F2 8.50 Tf 46.00 601.00 Td (revenue-rbac.spec.ts) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 206.00 601.00 Td (Agency commission ledger, subscription tiers, promos) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 436.00 601.00 Td (23) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 481.00 601.00 Td (23 Passed \(100%\)) Tj ET
+0.850 0.880 0.930 RG 0.50 w 0.960 0.980 1.000 rg 40.00 578.00 532.00 18.00 re B
+0.050 0.150 0.300 rg BT /F2 8.50 Tf 46.00 583.00 Td (auth-security.spec.ts) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 206.00 583.00 Td (JWT tokens, role escalation, bcrypt cost >= 12, lockout) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 436.00 583.00 Td (13) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 481.00 583.00 Td (13 Passed \(100%\)) Tj ET
+0.850 0.880 0.930 RG 0.50 w 1.000 1.000 1.000 rg 40.00 560.00 532.00 18.00 re B
+0.050 0.150 0.300 rg BT /F2 8.50 Tf 46.00 565.00 Td (policy.spec.ts) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 206.00 565.00 Td (Table-driven 73h/72h/12h/0h tiers, snapshots, overrides) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 436.00 565.00 Td (21) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 481.00 565.00 Td (21 Passed \(100%\)) Tj ET
+0.850 0.880 0.930 RG 0.50 w 0.960 0.980 1.000 rg 40.00 542.00 532.00 18.00 re B
+0.050 0.150 0.300 rg BT /F2 8.50 Tf 46.00 547.00 Td (booking-concurrency.spec.ts) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 206.00 547.00 Td (Concurrent seats, 15m hold expiry, webhooks, pricing) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 436.00 547.00 Td (10) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 481.00 547.00 Td (10 Passed \(100%\)) Tj ET
+0.850 0.880 0.930 RG 0.50 w 1.000 1.000 1.000 rg 40.00 524.00 532.00 18.00 re B
+0.050 0.150 0.300 rg BT /F2 8.50 Tf 46.00 529.00 Td (realtime.spec.ts) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 206.00 529.00 Td (Socket.IO JWT auth, user/booking rooms, notifications) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 436.00 529.00 Td (15) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 481.00 529.00 Td (15 Passed \(100%\)) Tj ET
+0.850 0.880 0.930 RG 0.50 w 0.960 0.980 1.000 rg 40.00 506.00 532.00 18.00 re B
+0.050 0.150 0.300 rg BT /F2 8.50 Tf 46.00 511.00 Td (production-readiness.spec.ts) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 206.00 511.00 Td (Fail-fast env, correlation IDs, virus scan, audit logs) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 436.00 511.00 Td (12) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 481.00 511.00 Td (12 Passed \(100%\)) Tj ET
+0.850 0.880 0.930 RG 0.50 w 1.000 1.000 1.000 rg 40.00 488.00 532.00 18.00 re B
+0.050 0.150 0.300 rg BT /F2 8.50 Tf 46.00 493.00 Td (full-lifecycle.integration.spec.ts) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 206.00 493.00 Td (Supertest full DB user journey \(register -> review\)) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 436.00 493.00 Td (12) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 481.00 493.00 Td (12 Passed \(100%\)) Tj ET
+0.850 0.880 0.930 RG 0.50 w 0.960 0.980 1.000 rg 40.00 470.00 532.00 18.00 re B
+0.050 0.150 0.300 rg BT /F2 8.50 Tf 46.00 475.00 Td (Playwright E2E Suites) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 206.00 475.00 Td (Actor login picker, RBAC portal isolation, full traveler flow) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 436.00 475.00 Td (9) Tj ET
+0.200 0.250 0.300 rg BT /F1 8.50 Tf 481.00 475.00 Td (9 Passed \(100%\)) Tj ET
+0.150 0.200 0.300 rg BT /F1 9.00 Tf 40.00 462.00 Td (Summary: All 227 automated unit, integration, and end-to-end tests execute cleanly with zero failures \(100% pass) Tj ET
+0.150 0.200 0.300 rg BT /F1 9.00 Tf 40.00 449.00 Td (rate\). Core business services exceed the 80% coverage threshold \(PolicyService: 86.0%, BookingStateMachine:) Tj ET
+0.150 0.200 0.300 rg BT /F1 9.00 Tf 40.00 436.00 Td (95.2%, PricingService: 92.9%, Overall Suite: 90.1%\). Both the Vite React Frontend and NestJS Backend compile into) Tj ET
+0.150 0.200 0.300 rg BT /F1 9.00 Tf 40.00 423.00 Td (production artifacts without warnings or type discrepancies. Changes are fully synced to GitHub repository) Tj ET
+0.150 0.200 0.300 rg BT /F1 9.00 Tf 40.00 410.00 Td ('IIIT-Sricity-FSD-2024-2028/50_GlobeSync' on branch main.) Tj ET
+
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R >> >> /Contents 7 0 R >>
+endobj
+13 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R >> >> /Contents 8 0 R >>
+endobj
+14 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R >> >> /Contents 9 0 R >>
+endobj
+15 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R >> >> /Contents 10 0 R >>
+endobj
+16 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R >> >> /Contents 11 0 R >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [12 0 R 13 0 R 14 0 R 15 0 R 16 0 R] /Count 5 >>
+endobj
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+xref
+0 17
+0000000000 65535 f 
+0000036944 00000 n 
+0000036858 00000 n 
+0000036567 00000 n 
+0000036637 00000 n 
+0000036712 00000 n 
+0000036790 00000 n 
+0000000015 00000 n 
+0000007290 00000 n 
+0000014898 00000 n 
+0000021620 00000 n 
+0000028195 00000 n 
+0000035780 00000 n 
+0000035937 00000 n 
+0000036094 00000 n 
+0000036251 00000 n 
+0000036409 00000 n 
+trailer
+<< /Size 17 /Root 1 0 R >>
+startxref
+36993
+%%EOF

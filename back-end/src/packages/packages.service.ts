@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import {
   packages, Package,
   trips,
@@ -8,13 +13,27 @@ import {
   payments,
   packageBookings,
   commissionLedger,
+  agencies,
+  agencySubscriptions,
+  subscriptionPlans,
 } from '../data';
 import { CreatePackageDto, UpdatePackageDto } from './dto';
+import { PaginationQueryDto, PaginatedResult } from '../common/dto/pagination-query.dto';
+import { paginateCollection } from '../common/utils/pagination.util';
 
 @Injectable()
 export class PackagesService {
-  findAll(): Package[] {
-    return packages;
+  findAll(): Package[];
+  findAll(query: PaginationQueryDto): Package[] | PaginatedResult<Package>;
+  findAll(query?: PaginationQueryDto): any {
+    return paginateCollection(packages, query, ['name', 'destinations', 'description']);
+  }
+
+  findByAgency(agencyId: number): Package[];
+  findByAgency(agencyId: number, query: PaginationQueryDto): Package[] | PaginatedResult<Package>;
+  findByAgency(agencyId: number, query?: PaginationQueryDto): any {
+    const list = packages.filter((p) => p.agencyId === agencyId);
+    return paginateCollection(list, query, ['name', 'destinations', 'description']);
   }
 
   findOne(id: number): Package {
@@ -25,7 +44,61 @@ export class PackagesService {
     return pkg;
   }
 
-  create(dto: CreatePackageDto): Package {
+  /**
+   * Create a package.
+   * Enforces:
+   * 1. Only APPROVED agencies can publish packages.
+   * 2. Subscription tier limits (booking allowance, package allowance, featured slots).
+   */
+  create(dto: CreatePackageDto, creatorRole?: string, creatorId?: number): Package {
+    const agencyId = dto.agencyId ?? (creatorRole?.toLowerCase() === 'agency' ? creatorId : undefined);
+
+    if (agencyId) {
+      const agency = agencies.find((a) => a.agencyId === agencyId);
+      if (!agency) {
+        throw new NotFoundException(`Agency with ID ${agencyId} not found`);
+      }
+
+      // 1. Approval check
+      const isApproved =
+        agency.status === 'approved' ||
+        (agency as any).approvalStatus === 'APPROVED' ||
+        (agency as any).approval_status === 'APPROVED';
+
+      if (!isApproved) {
+        throw new ForbiddenException('Only APPROVED agencies can publish packages.');
+      }
+
+      // 2. Subscription tier limits check
+      const sub = agencySubscriptions.find(
+        (s) => s.agency_id === agencyId && s.status !== 'CANCELLED',
+      );
+      const plan = sub
+        ? subscriptionPlans.find((p) => p.plan_id === sub.plan_id)
+        : subscriptionPlans[0]; // Default Basic plan
+
+      const existingAgencyPackages = packages.filter((p) => p.agencyId === agencyId);
+
+      // Package limit check
+      const maxPackages = plan?.maxPackages ?? 10;
+      if (existingAgencyPackages.length >= maxPackages) {
+        throw new ForbiddenException(
+          `Subscription limit reached: Current tier (${plan?.name || 'BASIC'}) allows up to ${maxPackages} packages. Please upgrade your subscription.`,
+        );
+      }
+
+      // Featured slot limit check
+      if (dto.isFeatured) {
+        const featuredCount = existingAgencyPackages.filter((p) => p.isFeatured).length;
+        const maxFeatured = plan?.maxFeaturedSlots ?? 2;
+        if (featuredCount >= maxFeatured) {
+          throw new ForbiddenException(
+            `Featured slots limit reached: Current tier (${plan?.name || 'BASIC'}) allows up to ${maxFeatured} featured packages.`,
+          );
+        }
+      }
+    }
+
     const maxId = packages.length > 0
       ? Math.max(...packages.map((p) => p.packageId))
       : 0;
@@ -39,6 +112,9 @@ export class PackagesService {
       description: dto.description || '',
       highlights: dto.highlights || '',
       image: dto.image || '',
+      agencyId,
+      isFeatured: dto.isFeatured ?? false,
+      status: dto.status || 'published',
     };
 
     packages.push(newPackage);

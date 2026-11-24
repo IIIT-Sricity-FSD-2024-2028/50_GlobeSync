@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import StatusBadge from '../common/StatusBadge';
 
 /**
@@ -16,7 +17,27 @@ export default function TripCard({
   onSelect,
   isSelected = false,
 }) {
+  const navigate = useNavigate();
   if (!trip) return null;
+
+  const tripId = trip.tripId || trip.id;
+  const isDraft = trip.status === 'Planning';
+  const guideDue = trip.guideResponseDueAt ? Date.parse(trip.guideResponseDueAt) : NaN;
+  const guideExpired = trip.guideStatus === 'Pending' && !isNaN(guideDue) && Date.now() > guideDue;
+  const guideLine = !trip.guideId
+    ? null
+    : trip.guideStatus === 'Accepted'
+      ? { color: '#047857', text: `✅ Guide accepted (ID #${trip.guideId})` }
+      : trip.guideStatus === 'Declined'
+        ? { color: '#b91c1c', text: `❌ Guide declined. Choose another guide.` }
+        : guideExpired
+          ? { color: '#b45309', text: '⌛ Guide did not reply in 3 hours. Choose another guide.' }
+          : trip.guideStatus === 'Pending'
+            ? {
+                color: '#b45309',
+                text: `⏳ Waiting for guide reply${!isNaN(guideDue) ? ` (by ${new Date(guideDue).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })})` : ' (within 3 hours)'}`,
+              }
+            : { color: '#047857', text: `👤 Guide Assigned (ID #${trip.guideId})` };
 
   const canCancel = trip.status !== 'Cancelled' && trip.status !== 'Completed';
 
@@ -57,10 +78,9 @@ export default function TripCard({
         {/* Schedule & Metadata */}
         <div style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px' }}>
           <div>📅 {trip.startDate || 'TBD'} → {trip.endDate || 'TBD'}</div>
-          {trip.guideId && (
-            <div style={{ color: '#047857' }}>
-              👤 Guide Assigned (ID #{trip.guideId})
-            </div>
+          {guideLine && <div style={{ color: guideLine.color, fontWeight: 600 }}>{guideLine.text}</div>}
+          {isDraft && (
+            <div style={{ color: '#475569', fontSize: '12px' }}>📝 Draft: nothing booked yet</div>
           )}
           {trip.packageId && (
             <div style={{ color: '#6d28d9' }}>
@@ -137,6 +157,18 @@ export default function TripCard({
           }}
           onClick={(e) => e.stopPropagation()} // Prevent card click if onSelect is present
         >
+          {isDraft && (
+            <button
+              type="button"
+              onClick={() => navigate(`/traveler/plan?resumeTripId=${tripId}`)}
+              className="btn btn-primary"
+              style={{ padding: '6px 12px', fontSize: '12px', fontWeight: 700, borderRadius: '8px' }}
+              title="Open the saved plan and continue booking"
+            >
+              ▶ Continue booking
+            </button>
+          )}
+
           {onSelect && (
             <button
               type="button"

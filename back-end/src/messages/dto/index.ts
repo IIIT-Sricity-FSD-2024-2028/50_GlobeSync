@@ -1,1 +1,1 @@
-export { CreateMessageDto } from './message.dto';
+export { CreateMessageDto, ConversationQueryDto } from './message.dto';

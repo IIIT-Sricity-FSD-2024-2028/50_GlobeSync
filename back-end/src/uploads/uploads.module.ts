@@ -1,13 +1,11 @@
 import { Module } from '@nestjs/common';
 import { UploadsController } from './uploads.controller';
+import { VirusScannerService } from './virus-scanner.service';
+import { StorageService } from './storage.service';
 
-/**
- * UploadsModule — provides the POST /uploads/attachment endpoint.
- *
- * Relies on multer (already bundled inside @nestjs/platform-express)
- * via FileInterceptor. No additional runtime npm package is needed.
- */
 @Module({
   controllers: [UploadsController],
+  providers: [VirusScannerService, StorageService],
+  exports: [VirusScannerService, StorageService],
 })
 export class UploadsModule {}

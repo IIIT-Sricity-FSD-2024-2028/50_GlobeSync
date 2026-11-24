@@ -1,14 +1,18 @@
+import { AuthUserId, AuthRole } from '../common/decorators/current-user.decorator';
 import {
   Controller,
   Get,
   Put,
+  Patch,
   Post,
   Delete,
   Param,
   Body,
+  Query,
   Headers,
   ParseIntPipe,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -24,19 +28,63 @@ import {
   UpdateIntegrationDto,
   CreateSystemAdminDto,
   CreateSystemSupportDto,
+  UpdatePolicyDto,
+  UpdateStaffStatusDto,
 } from './dto';
+import { PolicyService } from '../policy/policy.service';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { ApiUserHeaders } from '../common/decorators/api-user-headers.decorator';
 import { Role } from '../common/enums/role.enum';
 import { ErrorResponseDto } from '../common/dto/error-response.dto';
 import { admins } from '../data';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { AuditLogFilterDto } from '../admins/dto/audit-log-filter.dto';
 
 @ApiTags('system-config')
 @Controller()
 @UseGuards(RolesGuard)
 export class SystemConfigController {
-  constructor(private readonly systemConfigService: SystemConfigService) {}
+  constructor(
+    private readonly systemConfigService: SystemConfigService,
+    private readonly policyService: PolicyService,
+  ) {}
+
+  // =========================================================================
+  // Policy & Cancellation Configuration
+  // =========================================================================
+
+  @Get('system-config/policy')
+  @Roles(
+    Role.TRAVELER,
+    Role.GUIDE,
+    Role.AGENCY,
+    Role.ADMIN,
+    Role.SUPERUSER,
+    Role.SUPPORT,
+  )
+  @ApiUserHeaders()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current centralized business policy configuration' })
+  @ApiResponse({ status: 200, description: 'Policy configuration returned successfully' })
+  getPolicy() {
+    return this.policyService.getConfig();
+  }
+
+  @Put('system-config/policy')
+  @Roles(Role.SUPERUSER)
+  @ApiUserHeaders()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update centralized business policy configuration (Superuser only)' })
+  @ApiResponse({ status: 200, description: 'Policy configuration updated successfully' })
+  @ApiResponse({ status: 400, description: 'Validation error (percentages must be 0-100)', type: ErrorResponseDto })
+  @ApiResponse({ status: 403, description: 'Forbidden — Superuser role required', type: ErrorResponseDto })
+  updatePolicy(
+    @Body() dto: UpdatePolicyDto,
+    @AuthUserId() userId?: string,
+  ) {
+    return this.policyService.updateConfig(dto);
+  }
 
   // =========================================================================
   // Platform Operational Rules
@@ -63,20 +111,30 @@ export class SystemConfigController {
   @Roles(Role.SUPERUSER)
   @ApiUserHeaders()
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update platform operational rules (Superuser only)' })
+  @ApiOperation({ summary: 'Update platform rules (Superuser only)' })
   @ApiResponse({ status: 200, description: 'Rules updated successfully' })
   @ApiResponse({ status: 400, description: 'Validation error', type: ErrorResponseDto })
   @ApiResponse({ status: 403, description: 'Forbidden — Superuser role required', type: ErrorResponseDto })
   updateRules(
     @Body() dto: UpdateRulesDto,
-    @Headers('x-user-id') userId?: string,
+    @AuthUserId() userId?: string,
   ) {
     const author = this.resolveAuthorName(userId);
     return this.systemConfigService.updateRules(dto, author);
   }
 
+  @Get('system-config/history')
+  @Roles(Role.SUPERUSER, Role.ADMIN)
+  @ApiUserHeaders()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get settings change history' })
+  @ApiResponse({ status: 200, description: 'Change history returned successfully' })
+  getHistory(@Query() query: PaginationQueryDto) {
+    return this.systemConfigService.getSettingsChangeHistory(query);
+  }
+
   // =========================================================================
-  // Payment Methods & Gateway Configuration
+  // Payment Gateways & Methods
   // =========================================================================
 
   @Get('system-config/payment-methods')
@@ -90,42 +148,41 @@ export class SystemConfigController {
   )
   @ApiUserHeaders()
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get configured checkout payment methods and gateway statuses' })
-  @ApiResponse({ status: 200, description: 'Payment methods returned successfully' })
+  @ApiOperation({ summary: 'List all payment channels and gateway connectors' })
+  @ApiResponse({ status: 200, description: 'Payment methods returned' })
   getPaymentMethods() {
     return this.systemConfigService.getPaymentMethods();
   }
 
   @Put('system-config/payment-methods/:id')
-
   @Roles(Role.SUPERUSER)
   @ApiUserHeaders()
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update payment method status or configuration (Superuser only)' })
-  @ApiParam({ name: 'id', type: String, description: 'Payment method ID (e.g. pm-card, pm-upi)' })
-  @ApiResponse({ status: 200, description: 'Payment method updated successfully' })
-  @ApiResponse({ status: 400, description: 'Bad Request — validation or last method protection', type: ErrorResponseDto })
+  @ApiOperation({ summary: 'Update or toggle payment gateway config (Superuser only)' })
+  @ApiParam({ name: 'id', type: String, description: 'Payment method ID' })
+  @ApiResponse({ status: 200, description: 'Payment method updated' })
+  @ApiResponse({ status: 400, description: 'Blocked — cannot disable all native channels', type: ErrorResponseDto })
   @ApiResponse({ status: 403, description: 'Forbidden — Superuser role required', type: ErrorResponseDto })
   @ApiResponse({ status: 404, description: 'Payment method not found', type: ErrorResponseDto })
   updatePaymentMethod(
     @Param('id') id: string,
     @Body() dto: UpdatePaymentMethodDto,
-    @Headers('x-user-id') userId?: string,
+    @AuthUserId() userId?: string,
   ) {
     const author = this.resolveAuthorName(userId);
     return this.systemConfigService.updatePaymentMethod(id, dto, author);
   }
 
   // =========================================================================
-  // Third-Party Integrations & Connectors
+  // Third-Party Integrations
   // =========================================================================
 
   @Get('system-config/integrations')
   @Roles(Role.SUPERUSER, Role.ADMIN)
   @ApiUserHeaders()
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get third-party integration connectors and health states (Admin/Superuser)' })
-  @ApiResponse({ status: 200, description: 'Integrations list returned successfully' })
+  @ApiOperation({ summary: 'List third-party integrations and service connectors' })
+  @ApiResponse({ status: 200, description: 'Integrations list returned' })
   @ApiResponse({ status: 403, description: 'Forbidden', type: ErrorResponseDto })
   getIntegrations() {
     return this.systemConfigService.getIntegrations();
@@ -135,37 +192,37 @@ export class SystemConfigController {
   @Roles(Role.SUPERUSER)
   @ApiUserHeaders()
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update integration connector status (Superuser only)' })
-  @ApiParam({ name: 'id', type: Number, description: 'Integration service numeric ID' })
+  @ApiOperation({ summary: 'Update integration status or credentials (Superuser only)' })
+  @ApiParam({ name: 'id', type: Number, description: 'Integration connector ID' })
   @ApiResponse({ status: 200, description: 'Integration updated successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden — Superuser role required', type: ErrorResponseDto })
   @ApiResponse({ status: 404, description: 'Integration not found', type: ErrorResponseDto })
   updateIntegration(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateIntegrationDto,
-    @Headers('x-user-id') userId?: string,
+    @AuthUserId() userId?: string,
   ) {
     const author = this.resolveAuthorName(userId);
     return this.systemConfigService.updateIntegration(id, dto, author);
   }
 
   // =========================================================================
-  // System Audit Trail
+  // System Audit Logs
   // =========================================================================
 
   @Get('system-config/audit-logs')
   @Roles(Role.SUPERUSER, Role.ADMIN)
   @ApiUserHeaders()
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get system policy and configuration change audit trail (Admin/Superuser)' })
+  @ApiOperation({ summary: 'Get system policy and configuration change audit trail with filters' })
   @ApiResponse({ status: 200, description: 'Audit trail returned successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden', type: ErrorResponseDto })
-  getAuditLogs() {
-    return this.systemConfigService.getAuditLogs();
+  getAuditLogs(@Query() query: AuditLogFilterDto) {
+    return this.systemConfigService.getAuditLogs(query);
   }
 
   // =========================================================================
-  // Authorized Superuser Staff Administration (Full System Control)
+  // Authorized Superuser Staff Administration (Create / Deactivate Staff)
   // =========================================================================
 
   @Get('super/admins')
@@ -173,10 +230,10 @@ export class SystemConfigController {
   @ApiUserHeaders()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List all platform administrators (Superuser only)' })
-  @ApiResponse({ status: 200, description: 'Administrators list returned (passwords excluded)' })
+  @ApiResponse({ status: 200, description: 'Administrators list returned' })
   @ApiResponse({ status: 403, description: 'Forbidden — Superuser role required', type: ErrorResponseDto })
-  getAdmins() {
-    return this.systemConfigService.getAdmins();
+  getAdmins(@Query() query: PaginationQueryDto) {
+    return this.systemConfigService.getAdmins(query);
   }
 
   @Post('super/admins')
@@ -189,10 +246,28 @@ export class SystemConfigController {
   @ApiResponse({ status: 403, description: 'Forbidden — Superuser role required', type: ErrorResponseDto })
   createAdmin(
     @Body() dto: CreateSystemAdminDto,
-    @Headers('x-user-id') userId?: string,
+    @AuthUserId() userId?: string,
   ) {
     const author = this.resolveAuthorName(userId);
     return this.systemConfigService.createAdmin(dto, author);
+  }
+
+  @Patch('super/admins/:id/status')
+  @Roles(Role.SUPERUSER)
+  @ApiUserHeaders()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Activate or deactivate an administrator staff account (Superuser only)' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiResponse({ status: 200, description: 'Administrator status updated' })
+  updateAdminStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateStaffStatusDto,
+    @Req() req: any,
+    @AuthUserId() userId?: string,
+  ) {
+    const requesterId = Number(req.user?.id || userId || 1);
+    const author = this.resolveAuthorName(userId);
+    return this.systemConfigService.updateAdminStatus(id, dto.status, requesterId, author);
   }
 
   @Delete('super/admins/:id')
@@ -207,7 +282,7 @@ export class SystemConfigController {
   @ApiResponse({ status: 404, description: 'Administrator not found', type: ErrorResponseDto })
   deleteAdmin(
     @Param('id', ParseIntPipe) id: number,
-    @Headers('x-user-id') userId?: string,
+    @AuthUserId() userId?: string,
   ) {
     const requesterId = userId ? Number.parseInt(userId, 10) : -1;
     const author = this.resolveAuthorName(userId);
@@ -219,10 +294,10 @@ export class SystemConfigController {
   @ApiUserHeaders()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List customer care support accounts (Admin/Superuser)' })
-  @ApiResponse({ status: 200, description: 'Support users list returned (passwords excluded)' })
+  @ApiResponse({ status: 200, description: 'Support users list returned' })
   @ApiResponse({ status: 403, description: 'Forbidden', type: ErrorResponseDto })
-  getSupportUsers() {
-    return this.systemConfigService.getSupportUsers();
+  getSupportUsers(@Query() query: PaginationQueryDto) {
+    return this.systemConfigService.getSupportUsers(query);
   }
 
   @Post('super/support-users')
@@ -235,10 +310,26 @@ export class SystemConfigController {
   @ApiResponse({ status: 403, description: 'Forbidden', type: ErrorResponseDto })
   createSupportUser(
     @Body() dto: CreateSystemSupportDto,
-    @Headers('x-user-id') userId?: string,
+    @AuthUserId() userId?: string,
   ) {
     const author = this.resolveAuthorName(userId);
     return this.systemConfigService.createSupportUser(dto, author);
+  }
+
+  @Patch('super/support-users/:id/status')
+  @Roles(Role.SUPERUSER, Role.ADMIN)
+  @ApiUserHeaders()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Activate or deactivate a customer care staff account' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiResponse({ status: 200, description: 'Support user status updated' })
+  updateSupportUserStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateStaffStatusDto,
+    @AuthUserId() userId?: string,
+  ) {
+    const author = this.resolveAuthorName(userId);
+    return this.systemConfigService.updateSupportUserStatus(id, dto.status, author);
   }
 
   @Delete('super/support-users/:id')
@@ -252,7 +343,7 @@ export class SystemConfigController {
   @ApiResponse({ status: 404, description: 'Support user not found', type: ErrorResponseDto })
   deleteSupportUser(
     @Param('id', ParseIntPipe) id: number,
-    @Headers('x-user-id') userId?: string,
+    @AuthUserId() userId?: string,
   ) {
     const author = this.resolveAuthorName(userId);
     return this.systemConfigService.deleteSupportUser(id, author);

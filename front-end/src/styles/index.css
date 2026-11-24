@@ -67,4 +67,15 @@ button {
   .main-layout-container {
     margin-left: 0 !important;
   }
+
+  .dashboard-header {
+    padding: 12px 16px !important;
+  }
+}
+
+/* Two-column page layouts (form + summary, filter + list) stack on phones. */
+@media (max-width: 900px) {
+  .responsive-two-col {
+    grid-template-columns: 1fr !important;
+  }
 }

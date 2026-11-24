@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsIn, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsArray, IsIn, IsNumber, IsOptional, IsString, Min, IsObject } from 'class-validator';
 
 export class UpdateTripDto {
   @ApiPropertyOptional({ example: 'Alps Family Holiday' }) @IsOptional() @IsString() title?: string;
@@ -16,6 +16,14 @@ export class UpdateTripDto {
   @IsOptional() @IsString() @IsIn(['Planning', 'Pending', 'Confirmed', 'Active', 'Completed', 'Cancelled']) status?: string;
   @ApiPropertyOptional({ example: 'Accepted', enum: ['Pending', 'Accepted', 'Declined'] })
   @IsOptional() @IsString() @IsIn(['Pending', 'Accepted', 'Declined']) guideStatus?: string;
+  @ApiPropertyOptional({ example: 'Schedule conflict or verified availability' })
+  @IsOptional()
+  @IsString()
+  guideDecisionReason?: string;
+  @ApiPropertyOptional({ example: 'Schedule conflict' })
+  @IsOptional()
+  @IsString()
+  reason?: string;
   @ApiPropertyOptional({ example: [3, 4] }) @IsOptional() @IsArray() passengerIds?: number[];
   @ApiPropertyOptional() @IsOptional() transportDetails?: Record<string, any>;
   @ApiPropertyOptional() @IsOptional() @IsArray() itineraryDays?: any[];
@@ -26,4 +34,8 @@ export class UpdateTripDto {
   @ApiPropertyOptional({ example: '2026-11-13T10:00:00Z' }) @IsOptional() @IsString() cancelledAt?: string;
   @ApiPropertyOptional({ example: 65 }) @IsOptional() @IsNumber() refundPercentage?: number;
   @ApiPropertyOptional({ example: 120250 }) @IsOptional() @IsNumber() refundAmount?: number;
+
+  @ApiPropertyOptional({ description: 'Unfinished trip plan saved as a draft so the traveler can resume booking' })
+  @IsOptional() @IsObject()
+  draftPlan?: Record<string, any>;
 }

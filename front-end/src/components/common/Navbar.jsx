@@ -18,6 +18,17 @@ export default function Navbar() {
         <span className="brand-title">GlobeSync</span>
       </Link>
 
+      {/* Phone-size menu button (the open/closed state existed but had no button) */}
+      <button
+        type="button"
+        className="nav-mobile-toggle"
+        aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+        aria-expanded={isMobileMenuOpen}
+        onClick={() => setIsMobileMenuOpen((v) => !v)}
+      >
+        {isMobileMenuOpen ? '✕' : '☰'}
+      </button>
+
       {/* Desktop & Mobile Menu */}
       <ul className={`nav-links-list ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
         <li>
@@ -69,7 +80,7 @@ export default function Navbar() {
       </ul>
 
       {/* CTA action buttons */}
-      <div className="nav-cta-group">
+      <div className={`nav-cta-group ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
         {isAuthenticated ? (
           <>
             <Link

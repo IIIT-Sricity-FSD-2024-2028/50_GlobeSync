@@ -2,24 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import { useSession, getDashboardPath } from '../../context/SessionContext';
 import { authApi, ApiError } from '../../services/api';
-
-// Client-side access codes for staff roles (preserved from legacy frontend)
-const ACCESS_CODES = {
-  admin: 'ADMIN-TICP',
-  superuser: 'SUPER-2026',
-  guide: 'GUIDE-2026',
-  support: 'SUPP-2026',
-};
-
-// Seed credentials from in-memory backend for instant testing
-const DEMO_CREDENTIALS = {
-  traveler: { email: 'Arjun@gmail.com', password: 'traveler123', code: '' },
-  guide: { email: 'Devansh@gmail.com', password: 'guide123', code: 'GUIDE-2026' },
-  support: { email: 'Aisha.johnson@gmail.com', password: 'support123', code: 'SUPP-2026' },
-  admin: { email: 'admin@ticp.com', password: 'admin123', code: 'ADMIN-TICP' },
-  superuser: { email: 'superadmin@ticp.com', password: 'super123', code: 'SUPER-2026' },
-  agency: { email: 'ops@horizontravel.com', password: 'horizon123', code: '' },
-};
+import { DEMO_ACTORS, isDemoAccountsEnabled } from '../../config/demoActors';
 
 export default function LoginPage({ initialRole = 'traveler' }) {
   const navigate = useNavigate();
@@ -27,60 +10,60 @@ export default function LoginPage({ initialRole = 'traveler' }) {
   const [searchParams] = useSearchParams();
   const { login, isAuthenticated, role: activeRole, user: activeUser } = useSession();
 
-  // If already logged in, offer immediate dashboard jump
   const redirectTarget = location.state?.from?.pathname;
-
-  // Determine starting role from prop or query param (?role=admin)
   const roleFromQuery = searchParams.get('role');
-  const startingRole = roleFromQuery || initialRole || 'traveler';
+  const showDemoPicker = isDemoAccountsEnabled();
 
-  // Controlled form state initialized with the role's demo credentials
-  const [selectedRole, setSelectedRole] = useState(startingRole);
-  const [email, setEmail] = useState(() => DEMO_CREDENTIALS[startingRole]?.email || '');
-  const [password, setPassword] = useState(() => DEMO_CREDENTIALS[startingRole]?.password || '');
-  const [accessCode, setAccessCode] = useState(() => DEMO_CREDENTIALS[startingRole]?.code || '');
+  // Find initial actor
+  const initialActor = DEMO_ACTORS.find(
+    (a) => a.role === (roleFromQuery || initialRole)
+  ) || DEMO_ACTORS[0];
+
+  // Selected actor in the picker
+  const [selectedActor, setSelectedActor] = useState(initialActor);
+
+  // Form input fields
+  const [email, setEmail] = useState(() => (showDemoPicker && initialActor ? initialActor.email : ''));
+  const [password, setPassword] = useState(() => (showDemoPicker && initialActor ? initialActor.password : ''));
   const [showPassword, setShowPassword] = useState(false);
+  const [copiedField, setCopiedField] = useState(null);
 
-  // UI status state
+  // UI feedback
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Switch active role and immediately populate corresponding valid credentials
-  const selectRoleAndFillCredentials = (roleKey) => {
-    setSelectedRole(roleKey);
-    const creds = DEMO_CREDENTIALS[roleKey];
-    if (creds) {
-      setEmail(creds.email);
-      setPassword(creds.password);
-      setAccessCode(creds.code);
-    } else {
-      setEmail('');
-      setPassword('');
-      setAccessCode('');
-    }
+  // When actor is selected from the picker, show details and auto-fill form
+  const handleActorSelect = (actor) => {
+    setSelectedActor(actor);
+    setEmail(actor.email);
+    setPassword(actor.password);
     setErrorMessage('');
   };
 
-  // Update form credentials if query param changes
+  // Sync with query param if it changes
   useEffect(() => {
-    if (roleFromQuery && ['traveler', 'guide', 'support', 'admin', 'superuser', 'agency'].includes(roleFromQuery)) {
-      selectRoleAndFillCredentials(roleFromQuery);
+    if (roleFromQuery) {
+      const match = DEMO_ACTORS.find((a) => a.role === roleFromQuery);
+      if (match) {
+        handleActorSelect(match);
+      }
     }
   }, [roleFromQuery]);
 
-  // Fill quick demo credentials
-  const handleQuickFill = (roleKey) => {
-    selectRoleAndFillCredentials(roleKey);
+  // Copy helper with brief UI feedback
+  const handleCopy = (text, fieldName) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(fieldName);
+    setTimeout(() => setCopiedField(null), 2000);
   };
 
-  // Form submit event handler
+  // Form submit handler
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
 
-    // 1. Client-side validation
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
       setErrorMessage('Please enter your email address.');
@@ -91,103 +74,32 @@ export default function LoginPage({ initialRole = 'traveler' }) {
       return;
     }
 
-    // 2. Client-side access code validation for staff roles (if user explicitly typed a code)
-    const requiredCode = ACCESS_CODES[selectedRole];
-    if (requiredCode && accessCode.trim() && accessCode.trim() !== requiredCode) {
-      setErrorMessage(
-        `Invalid access code for ${selectedRole}. (Required code: ${requiredCode})`
-      );
-      return;
-    }
-
-    // 3. Backend API authentication with smart role fallback
     setIsSubmitting(true);
     try {
-      let authResponse = null;
+      // Real cryptographic JWT login (POST /auth/login)
+      const authResponse = await authApi.login({
+        email: trimmedEmail,
+        password,
+      });
 
-      // Primary attempt based on selected role
-      try {
-        if (selectedRole === 'traveler') {
-          authResponse = await authApi.loginTraveler({
-            email: trimmedEmail,
-            password,
-          });
-        } else if (selectedRole === 'agency') {
-          authResponse = await authApi.loginAgency({
-            email: trimmedEmail,
-            password,
-          });
-        } else {
-          authResponse = await authApi.loginStaff({
-            email: trimmedEmail,
-            password,
-          });
+      const userRole = (authResponse.user?.role || authResponse.role || 'traveler').toLowerCase();
+      const userData = authResponse.user || { email: trimmedEmail, role: userRole };
+      const token = authResponse.accessToken;
 
-          // Verify the authenticated role matches the selected role
-          if (authResponse.role !== selectedRole && !(selectedRole === 'admin' && authResponse.role === 'superuser')) {
-            throw new ApiError(
-              `Credentials belong to a ${authResponse.role} account, not ${selectedRole}.`,
-              401
-            );
-          }
-        }
-      } catch (primaryErr) {
-        // Smart Cross-Role Fallback: if credentials match another valid role, auto-switch and sign in
-        let fallbackFound = false;
+      // Save into session context and storage
+      login(userRole, userData, token);
 
-        // Try staff
-        if (!authResponse && !['admin', 'superuser', 'guide', 'support'].includes(selectedRole)) {
-          try {
-            const staffResp = await authApi.loginStaff({ email: trimmedEmail, password });
-            if (staffResp && staffResp.role) {
-              authResponse = staffResp;
-              setSelectedRole(staffResp.role);
-              fallbackFound = true;
-            }
-          } catch {}
-        }
+      setSuccessMessage(
+        `Welcome, ${userData.name || userData.email}! Redirecting to ${userRole.toUpperCase()} workspace...`
+      );
 
-        // Try agency
-        if (!authResponse && selectedRole !== 'agency') {
-          try {
-            const agencyResp = await authApi.loginAgency({ email: trimmedEmail, password });
-            if (agencyResp && agencyResp.role) {
-              authResponse = agencyResp;
-              setSelectedRole('agency');
-              fallbackFound = true;
-            }
-          } catch {}
-        }
-
-        // Try traveler
-        if (!authResponse && selectedRole !== 'traveler') {
-          try {
-            const travelerResp = await authApi.loginTraveler({ email: trimmedEmail, password });
-            if (travelerResp && travelerResp.role) {
-              authResponse = travelerResp;
-              setSelectedRole('traveler');
-              fallbackFound = true;
-            }
-          } catch {}
-        }
-
-        if (!fallbackFound) {
-          throw primaryErr;
-        }
-      }
-
-      // 4. Save session into SessionContext and localStorage
-      login(authResponse.role, authResponse.user);
-      setSuccessMessage(`Welcome back, ${authResponse.user.name || authResponse.user.businessName || 'User'}!`);
-
-      // 5. Navigate to destination or role dashboard safely
-      const dashboardPath = getDashboardPath(authResponse.role);
+      // Determine redirect destination
+      const dashboardPath = getDashboardPath(userRole);
       let nextPath = dashboardPath;
 
       if (redirectTarget && redirectTarget !== '/unauthorized' && redirectTarget !== '/login') {
-        // Only honor redirectTarget if the authenticated role is authorized for that path
-        const rolePrefix = `/${authResponse.role}`;
-        if (redirectTarget.startsWith(rolePrefix) || authResponse.role === 'superuser') {
+        const rolePrefix = `/${userRole}`;
+        if (redirectTarget.startsWith(rolePrefix) || userRole === 'superuser') {
           nextPath = redirectTarget;
         }
       }
@@ -197,7 +109,7 @@ export default function LoginPage({ initialRole = 'traveler' }) {
       }, 500);
 
     } catch (err) {
-      console.error('Login failed:', err);
+      console.error('Login error:', err);
       setErrorMessage(err.message || 'Authentication failed. Please verify credentials.');
     } finally {
       setIsSubmitting(false);
@@ -205,18 +117,18 @@ export default function LoginPage({ initialRole = 'traveler' }) {
   };
 
   return (
-    <div style={{ maxWidth: '480px', margin: '40px auto', padding: '0 20px' }}>
+    <div style={{ maxWidth: '580px', margin: '40px auto', padding: '0 20px' }}>
       <div className="card" style={{ padding: '32px', borderRadius: '16px' }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <div style={{ fontSize: '36px', marginBottom: '8px' }}>🌐</div>
           <h2 style={{ fontSize: '24px', fontWeight: 800 }}>GlobeSync Portal Login</h2>
           <p style={{ color: 'var(--muted)', fontSize: '14px', marginTop: '4px' }}>
-            Sign in to access your role workspace
+            Sign in to access your role workspace with JWT authentication
           </p>
         </div>
 
-        {/* Currently signed-in session banner */}
+        {/* Active Session Notification */}
         {isAuthenticated && activeUser && (
           <div
             style={{
@@ -233,7 +145,7 @@ export default function LoginPage({ initialRole = 'traveler' }) {
             }}
           >
             <span>
-              ℹ️ Signed in as <strong>{activeUser.name || activeUser.businessName || activeUser.email}</strong> ({activeRole})
+              ℹ️ Currently signed in as <strong>{activeUser.name || activeUser.email}</strong> ({activeRole})
             </span>
             <Link
               to={getDashboardPath(activeRole)}
@@ -244,61 +156,142 @@ export default function LoginPage({ initialRole = 'traveler' }) {
           </div>
         )}
 
-        {/* Role Selector Tabs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '20px' }}>
-          {[
-            { key: 'traveler', label: 'Traveler' },
-            { key: 'guide', label: 'Guide' },
-            { key: 'support', label: 'Support' },
-            { key: 'agency', label: 'Agency' },
-            { key: 'admin', label: 'Admin' },
-            { key: 'superuser', label: 'Super-Admin' },
-          ].map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => selectRoleAndFillCredentials(item.key)}
-              style={{
-                padding: '8px 4px',
-                fontSize: '12px',
-                fontWeight: selectedRole === item.key ? 700 : 500,
-                background: selectedRole === item.key ? 'var(--gradient)' : '#f3f4f6',
-                color: selectedRole === item.key ? '#fff' : 'var(--text)',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+        {/* ======================================================== */}
+        {/* LOGIN PAGE ACTOR PICKER (Rendered ONLY if demo enabled) */}
+        {/* ======================================================== */}
+        {showDemoPicker && (
+          <div
+            style={{
+              marginBottom: '24px',
+              padding: '16px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#475569' }}>
+                🎭 Choose Actor (Academic Demo Mode)
+              </span>
+              <span style={{ fontSize: '11px', background: '#e0e7ff', color: '#4338ca', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>
+                1-Click Preset
+              </span>
+            </div>
 
-        {/* Active Role & Auto-filled Notice */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '8px 12px',
-            background: '#f0fdf4',
-            border: '1px solid #bbf7d0',
-            borderRadius: '8px',
-            marginBottom: '16px',
-            fontSize: '12px',
-            color: '#166534',
-          }}
-        >
-          <span>
-            🔑 Ready-to-test credentials loaded for <strong>{selectedRole === 'superuser' ? 'Super-Admin' : selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}</strong>
-          </span>
-          <span style={{ fontSize: '11px', background: '#dcfce7', padding: '2px 8px', borderRadius: '10px', fontWeight: 700 }}>
-            Pre-filled ✓
-          </span>
-        </div>
+            {/* Actor Selection Grid / Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '14px' }}>
+              {DEMO_ACTORS.map((actor) => {
+                const isSelected = selectedActor.key === actor.key;
+                return (
+                  <button
+                    key={actor.key}
+                    type="button"
+                    aria-label={actor.name}
+                    data-testid={`actor-btn-${actor.key}`}
+                    onClick={() => handleActorSelect(actor)}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      padding: '12px 8px',
+                      borderRadius: '8px',
+                      border: isSelected ? `2px solid ${actor.badgeColor}` : '1px solid #cbd5e1',
+                      background: isSelected ? '#ffffff' : '#f1f5f9',
+                      boxShadow: isSelected ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease-in-out',
+                    }}
+                  >
+                    <span style={{ fontSize: '20px', marginBottom: '4px' }}>{actor.avatarIcon}</span>
+                    <span style={{ fontSize: '13px', fontWeight: isSelected ? 800 : 700, color: isSelected ? actor.badgeColor : '#1e293b' }}>
+                      {actor.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
 
-        {/* Error / Success Feedback Alerts */}
+            {/* Selected Actor Details Card */}
+            {selectedActor && (
+              <div
+                style={{
+                  padding: '12px 14px',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '18px' }}>{selectedActor.avatarIcon}</span>
+                    <strong style={{ fontSize: '14px', color: '#0f172a' }}>{selectedActor.name} Workspace</strong>
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        background: `${selectedActor.badgeColor}15`,
+                        color: selectedActor.badgeColor,
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {selectedActor.role}
+                    </span>
+                  </div>
+                </div>
+
+                {/* One-line Portal Description */}
+                <p style={{ margin: '4px 0 10px 0', color: '#475569', fontSize: '11px', lineHeight: '1.4' }}>
+                  ℹ️ <strong>Portal:</strong> {selectedActor.portalDescription}
+                </p>
+
+                {/* Quick Copy Credentials Bar */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '4px 8px', borderRadius: '6px' }}>
+                    <span style={{ color: '#64748b', fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      📧 {selectedActor.email}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(selectedActor.email, 'email')}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: 'var(--primary)', padding: '0 4px' }}
+                      title="Copy Email"
+                    >
+                      {copiedField === 'email' ? '✓' : '📋'}
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '4px 8px', borderRadius: '6px' }}>
+                    <span style={{ color: '#64748b', fontSize: '11px', fontFamily: 'monospace' }}>
+                      🔑 {showPassword ? selectedActor.password : '••••••••'}
+                    </span>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((p) => !p)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: '#64748b' }}
+                        title={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? '🙈' : '👁️'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(selectedActor.password, 'password')}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: 'var(--primary)' }}
+                        title="Copy Password"
+                      >
+                        {copiedField === 'password' ? '✓' : '📋'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Error / Success Feedback */}
         {errorMessage && (
           <div
             style={{
@@ -331,13 +324,13 @@ export default function LoginPage({ initialRole = 'traveler' }) {
           </div>
         )}
 
-        {/* Controlled Form */}
+        {/* Controlled Form — Real Login */}
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
+            <label htmlFor="loginpage-field-1" style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
               Email Address
             </label>
-            <input
+            <input id="loginpage-field-1"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -357,7 +350,7 @@ export default function LoginPage({ initialRole = 'traveler' }) {
 
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <label style={{ fontSize: '13px', fontWeight: 600 }}>Password</label>
+              <label htmlFor="loginpage-field-2" style={{ fontSize: '13px', fontWeight: 600 }}>Password</label>
               <button
                 type="button"
                 onClick={() => setShowPassword((p) => !p)}
@@ -367,7 +360,7 @@ export default function LoginPage({ initialRole = 'traveler' }) {
                 {showPassword ? '🙈 Hide' : '👁️ Show'}
               </button>
             </div>
-            <input
+            <input id="loginpage-field-2"
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -385,45 +378,6 @@ export default function LoginPage({ initialRole = 'traveler' }) {
             />
           </div>
 
-          {/* Access Code Input for Staff Roles */}
-          {ACCESS_CODES[selectedRole] && (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 600 }}>Staff Access Code</label>
-                <button
-                  type="button"
-                  onClick={() => setAccessCode(ACCESS_CODES[selectedRole])}
-                  style={{
-                    fontSize: '11px',
-                    color: 'var(--primary)',
-                    background: '#fdf2f8',
-                    border: '1px solid #fbcfe8',
-                    borderRadius: '4px',
-                    padding: '2px 6px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Insert Code ({ACCESS_CODES[selectedRole]})
-                </button>
-              </div>
-              <input
-                type="text"
-                value={accessCode}
-                onChange={(e) => setAccessCode(e.target.value)}
-                placeholder={ACCESS_CODES[selectedRole]}
-                disabled={isSubmitting}
-                style={{
-                  width: '100%',
-                  padding: '11px 14px',
-                  border: '1px solid var(--border)',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontFamily: 'monospace',
-                }}
-              />
-            </div>
-          )}
-
           <button
             type="submit"
             disabled={isSubmitting}
@@ -437,39 +391,11 @@ export default function LoginPage({ initialRole = 'traveler' }) {
               opacity: isSubmitting ? 0.7 : 1,
             }}
           >
-            {isSubmitting ? 'Signing In...' : `Sign In as ${selectedRole === 'superuser' ? 'Super-Admin' : selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)} →`}
+            {isSubmitting ? 'Verifying Credentials...' : 'Sign In with JWT →'}
           </button>
         </form>
 
-        {/* Quick Demo Fill Buttons for Viva / Reviewers */}
-        <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
-          <div style={{ fontSize: '11px', color: 'var(--muted)', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase' }}>
-            ⚡ Instant Demo Accounts (1-Click Fill)
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            {Object.keys(DEMO_CREDENTIALS).map((key) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => handleQuickFill(key)}
-                style={{
-                  padding: '4px 10px',
-                  fontSize: '11px',
-                  fontWeight: selectedRole === key ? 700 : 500,
-                  background: selectedRole === key ? '#ffeef5' : '#f9fafb',
-                  color: selectedRole === key ? 'var(--primary)' : 'var(--text-secondary)',
-                  border: selectedRole === key ? '1px solid var(--primary)' : '1px solid #e5e7eb',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                }}
-              >
-                {key === 'superuser' ? 'super-admin' : key}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Footer links */}
+        {/* Registration Links */}
         <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: 'var(--muted)' }}>
           Don't have an account?{' '}
           <Link to="/signup/traveler" style={{ color: 'var(--primary)', fontWeight: 600 }}>

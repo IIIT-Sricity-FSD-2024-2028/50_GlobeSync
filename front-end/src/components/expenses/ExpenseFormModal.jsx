@@ -26,12 +26,15 @@ export default function ExpenseFormModal({
   onClose,
 }) {
   const isEdit = Boolean(editingExpense);
+  // An expense tied to a booking (flight, hotel, bus...) keeps the booking's price, category and trip.
+  const isBookedItem = Boolean(editingExpense?.bookingId);
 
   const [formData, setFormData] = useState({
     description: '',
     amount: '',
     type: 'Food',
     tripId: '',
+    bookingId: '',
   });
 
   const [errors, setErrors] = useState({});
@@ -57,6 +60,7 @@ export default function ExpenseFormModal({
           amount: editingExpense.amount !== undefined && editingExpense.amount !== null ? String(editingExpense.amount) : '',
           type: editingExpense.type || 'Food',
           tripId: editingExpense.tripId ? String(editingExpense.tripId) : '',
+          bookingId: editingExpense.bookingId ? String(editingExpense.bookingId) : '',
         });
       } else {
         const defaultTripId = tripsRef.current.length > 0
@@ -67,6 +71,7 @@ export default function ExpenseFormModal({
           amount: '',
           type: 'Food',
           tripId: defaultTripId,
+          bookingId: '',
         });
       }
       setErrors({});
@@ -97,11 +102,11 @@ export default function ExpenseFormModal({
     }
 
     const numAmount = Number(formData.amount);
-    if (formData.amount === '' || isNaN(numAmount) || numAmount <= 0) {
+    if (!isBookedItem && (formData.amount === '' || isNaN(numAmount) || numAmount <= 0)) {
       newErrors.amount = 'Amount must be a positive number greater than 0.';
     }
 
-    if (!EXPENSE_TYPES.includes(formData.type)) {
+    if (!isBookedItem && !EXPENSE_TYPES.includes(formData.type)) {
       newErrors.type = 'Please select a valid expense category.';
     }
 
@@ -122,12 +127,14 @@ export default function ExpenseFormModal({
     setIsSubmitting(true);
     setBackendError(null);
 
-    const payload = {
-      description: formData.description.trim(),
-      amount: Number(formData.amount),
-      type: formData.type,
-      tripId: Number(formData.tripId),
-    };
+    const payload = isBookedItem
+      ? { description: formData.description.trim() }
+      : {
+          description: formData.description.trim(),
+          amount: Number(formData.amount),
+          type: formData.type,
+          tripId: Number(formData.tripId),
+        };
 
     try {
       if (isEdit) {
@@ -172,8 +179,10 @@ export default function ExpenseFormModal({
           borderRadius: '16px',
           width: '100%',
           maxWidth: '500px',
+          maxHeight: 'calc(100vh - 40px)',
+          overflowY: 'auto',
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-          overflow: 'hidden',
+          overflowX: 'hidden',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -261,8 +270,12 @@ export default function ExpenseFormModal({
                 step="0.01"
                 placeholder="0.00"
                 value={formData.amount}
+                readOnly={isBookedItem}
+                disabled={isBookedItem}
+                title={isBookedItem ? 'Price comes from your booking and cannot be edited' : undefined}
                 onChange={(e) => handleInputChange('amount', e.target.value)}
                 style={{
+                  background: isBookedItem ? '#f1f5f9' : '#fff',
                   width: '100%',
                   padding: '10px 14px',
                   borderRadius: '8px',
@@ -295,7 +308,7 @@ export default function ExpenseFormModal({
                   background: '#fff',
                 }}
               >
-                {EXPENSE_TYPES.map((t) => (
+                {(isBookedItem ? [formData.type] : EXPENSE_TYPES).map((t) => (
                   <option key={t} value={t}>
                     {t}
                   </option>
@@ -305,12 +318,13 @@ export default function ExpenseFormModal({
           </div>
 
           {/* Associated Trip */}
-          <div style={{ marginBottom: '24px' }}>
+          <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
               Associated Trip *
             </label>
             <select
               value={formData.tripId}
+              disabled={isBookedItem}
               onChange={(e) => handleInputChange('tripId', e.target.value)}
               style={{
                 width: '100%',
@@ -335,6 +349,22 @@ export default function ExpenseFormModal({
               </span>
             )}
           </div>
+
+          {isBookedItem && (
+            <div
+              style={{
+                marginBottom: '24px',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                background: '#f8fafc',
+                border: '1px solid var(--border)',
+                fontSize: '12px',
+                color: '#475569',
+              }}
+            >
+              🔒 Booking #{formData.bookingId}: the price and category come from your booking and cannot be changed here.
+            </div>
+          )}
 
           {/* Actions */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>

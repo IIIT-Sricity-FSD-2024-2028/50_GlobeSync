@@ -223,7 +223,7 @@ export default function TravelerSupportPage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(420px, 100%), 1fr))',
           gap: '28px',
           alignItems: 'start',
         }}

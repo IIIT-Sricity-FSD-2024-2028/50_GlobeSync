@@ -239,7 +239,7 @@ export default function AgencyItineraryBuilder({
                 </div>
 
                 {/* Slots: Morning, Afternoon, Evening */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: '10px' }}>
                   <div>
                     <label style={{ fontSize: '11px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '2px' }}>
                       🌅 Morning Slot

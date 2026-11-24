@@ -5,6 +5,8 @@ import {
   revenueConfig,
   RevenueConfig
 } from '../data';
+import { PaginationQueryDto, PaginatedResult } from '../common/dto/pagination-query.dto';
+import { paginateCollection } from '../common/utils/pagination.util';
 
 @Injectable()
 export class RevenueService {
@@ -136,17 +138,17 @@ export class RevenueService {
     return newTx;
   }
 
-  calculatePackageMarkup(bookingRef: number, providerCost: number, sellingPrice: number) {
-    const markup = sellingPrice - providerCost;
+  recordPackageMarkup(bookingRef: number, amount: number, markupPercentage: number) {
+    const commission = (amount * markupPercentage) / 100;
 
     const newTx: RevenueTransaction = {
       transaction_id: revenueTransactions.length + 1,
       revenue_type: 'PACKAGE_MARKUP',
       booking_reference: bookingRef,
-      gross_amount: sellingPrice,
-      commission_rate: null, // Markup is absolute, not percentage here
-      revenue_amount: markup,
-      payout_amount: providerCost,
+      gross_amount: amount,
+      commission_rate: markupPercentage,
+      revenue_amount: commission,
+      payout_amount: amount - commission,
       currency: 'INR',
       status: 'EARNED',
       agency_id: null,
@@ -170,7 +172,7 @@ export class RevenueService {
       revenue_amount: amount,
       payout_amount: 0,
       currency: 'INR',
-      status: 'EARNED', // or SETTLED
+      status: 'SETTLED',
       agency_id: agencyId,
       guide_id: null,
       provider_id: null,
@@ -192,7 +194,7 @@ export class RevenueService {
       revenue_amount: amount,
       payout_amount: 0,
       currency: 'INR',
-      status: 'EARNED',
+      status: 'SETTLED',
       agency_id: agencyId,
       guide_id: null,
       provider_id: null,
@@ -205,7 +207,6 @@ export class RevenueService {
   }
 
   refundRevenue(bookingRef: number) {
-    // Find all EARNED or SETTLED transactions for this booking and mark as REFUNDED
     const txs = revenueTransactions.filter(t => t.booking_reference === bookingRef);
     txs.forEach(t => {
       t.status = 'REFUNDED';
@@ -215,12 +216,96 @@ export class RevenueService {
 
   // ================= QUERIES =================
   
-  getAllTransactions() {
-    return revenueTransactions;
+  getAllTransactions(): RevenueTransaction[];
+  getAllTransactions(query: PaginationQueryDto): RevenueTransaction[] | PaginatedResult<RevenueTransaction>;
+  getAllTransactions(query?: PaginationQueryDto): any {
+    return paginateCollection(revenueTransactions, query, ['revenue_type', 'currency']);
   }
 
-  getAgencyTransactions(agencyId: number) {
-    return revenueTransactions.filter(t => t.agency_id === agencyId);
+  getAgencyTransactions(agencyId: number, query?: PaginationQueryDto): RevenueTransaction[] | PaginatedResult<RevenueTransaction> {
+    const list = revenueTransactions.filter(t => t.agency_id === agencyId);
+    return paginateCollection(list, query, ['revenue_type', 'currency']);
+  }
+
+  /**
+   * Settled Revenue Analytics computed ONLY from settled transactions / ledger entries with date filters.
+   * Strictly returns ZERO when there is no settled data.
+   */
+  getSettledRevenueAnalytics(startDate?: string, endDate?: string) {
+    let settledTxs = revenueTransactions.filter(t => t.status === 'SETTLED');
+
+    if (startDate) {
+      const start = new Date(startDate).getTime();
+      settledTxs = settledTxs.filter(t => new Date(t.settled_at || t.created_at).getTime() >= start);
+    }
+
+    if (endDate) {
+      const end = new Date(endDate).getTime();
+      settledTxs = settledTxs.filter(t => new Date(t.settled_at || t.created_at).getTime() <= end);
+    }
+
+    if (settledTxs.length === 0) {
+      return {
+        totalSettledRevenue: 0,
+        grossBookingValue: 0,
+        totalPayouts: 0,
+        settledCount: 0,
+        averageRevenue: 0,
+        monthlyTrend: [],
+        breakdown: {
+          BOOKING_COMMISSION: 0,
+          AGENCY_COMMISSION: 0,
+          GUIDE_COMMISSION: 0,
+          PROVIDER_COMMISSION: 0,
+          PACKAGE_MARKUP: 0,
+          SUBSCRIPTION: 0,
+          FEATURED_LISTING: 0,
+        },
+        transactions: [],
+      };
+    }
+
+    let totalSettledRevenue = 0;
+    let grossBookingValue = 0;
+    let totalPayouts = 0;
+    const breakdown = {
+      BOOKING_COMMISSION: 0,
+      AGENCY_COMMISSION: 0,
+      GUIDE_COMMISSION: 0,
+      PROVIDER_COMMISSION: 0,
+      PACKAGE_MARKUP: 0,
+      SUBSCRIPTION: 0,
+      FEATURED_LISTING: 0,
+    };
+
+    const monthMap = new Map<string, number>();
+
+    settledTxs.forEach(t => {
+      totalSettledRevenue += t.revenue_amount || 0;
+      grossBookingValue += t.gross_amount || 0;
+      totalPayouts += t.payout_amount || 0;
+      if (breakdown[t.revenue_type] !== undefined) {
+        breakdown[t.revenue_type] += t.revenue_amount;
+      }
+      const d = new Date(t.settled_at || t.created_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      monthMap.set(key, (monthMap.get(key) || 0) + (t.revenue_amount || 0));
+    });
+
+    const monthlyTrend = Array.from(monthMap.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([period, revenue]) => ({ period, revenue }));
+
+    return {
+      totalSettledRevenue,
+      grossBookingValue,
+      totalPayouts,
+      settledCount: settledTxs.length,
+      averageRevenue: Math.round((totalSettledRevenue / settledTxs.length) * 100) / 100,
+      monthlyTrend,
+      breakdown,
+      transactions: settledTxs,
+    };
   }
 
   getRevenueSummary() {
@@ -277,7 +362,7 @@ export class RevenueService {
           if (trendItem.breakdown[t.revenue_type] !== undefined) {
             trendItem.breakdown[t.revenue_type] += t.revenue_amount;
           } else {
-            trendItem.breakdown.BOOKING_COMMISSION += t.revenue_amount; // fallback
+            trendItem.breakdown.BOOKING_COMMISSION += t.revenue_amount;
           }
         }
       }

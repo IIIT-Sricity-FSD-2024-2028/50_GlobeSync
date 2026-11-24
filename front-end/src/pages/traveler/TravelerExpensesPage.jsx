@@ -20,6 +20,7 @@ export default function TravelerExpensesPage() {
 
   const [trips, setTrips] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [budgetGauges, setBudgetGauges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [partialError, setPartialError] = useState(null);
@@ -98,6 +99,7 @@ export default function TravelerExpensesPage() {
         // Required data failed completely
         setError('Failed to load expense records for your trips. Please check your backend connection.');
         setExpenses([]);
+        setBudgetGauges([]);
         setPartialError(null);
       } else if (failedTrips.length > 0) {
         // Partial results: Display loaded expenses with prominent incomplete warning
@@ -112,6 +114,18 @@ export default function TravelerExpensesPage() {
         setExpenses(successfulExpenses);
         setPartialError(null);
       }
+
+      // 3. Fetch real budget gauges per trip (real expenses vs real budget)
+      const gaugeResults = await Promise.allSettled(
+        loadedTrips.map((t) => expensesApi.getBudgetGauge(t.tripId || t.id, { signal }))
+      );
+      const gauges = [];
+      gaugeResults.forEach((res) => {
+        if (res.status === 'fulfilled' && res.value) {
+          gauges.push(res.value);
+        }
+      });
+      setBudgetGauges(gauges);
     } catch (err) {
       if (!err.isCancelled && !signal?.aborted) {
         console.error('[TravelerExpensesPage] Failed to load expense data:', err);
@@ -338,6 +352,109 @@ export default function TravelerExpensesPage() {
               >
                 Retry Missing Expenses ↺
               </button>
+            </div>
+          )}
+
+          {/* Real-time Budget Gauges */}
+          {budgetGauges.length > 0 && (
+            <div
+              className="card"
+              style={{
+                padding: '22px',
+                borderRadius: '16px',
+                background: '#fff',
+                border: '1px solid var(--border)',
+                marginBottom: '24px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <div>
+                  <h4 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                    🎯 Trip Budget Gauges (Live)
+                  </h4>
+                  <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '4px 0 0' }}>
+                    Computed in real time from booked reservations + itemized on-trip expenses vs total itinerary budget.
+                  </p>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
+                  gap: '16px',
+                }}
+              >
+                {budgetGauges.map((gauge) => {
+                  const pct = Math.min(100, Math.max(0, gauge.percentageUsed || 0));
+                  const isOver = gauge.status === 'over_budget' || (gauge.percentageUsed || 0) > 100;
+                  const isWarn = gauge.status === 'warning' || (gauge.percentageUsed || 0) >= 85;
+                  const statusColor = isOver ? '#ef4444' : isWarn ? '#f59e0b' : '#10b981';
+                  const statusBg = isOver ? '#fef2f2' : isWarn ? '#fffbeb' : '#ecfdf5';
+                  const statusBorder = isOver ? '#fecaca' : isWarn ? '#fde68a' : '#a7f3d0';
+                  const statusLabel = isOver ? '⚠️ Over Budget' : isWarn ? '⚡ Near Limit' : '✓ On Track';
+
+                  return (
+                    <div
+                      key={gauge.tripId}
+                      style={{
+                        padding: '16px',
+                        borderRadius: '12px',
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontWeight: 700, fontSize: '14px', color: '#1e293b' }}>
+                          Trip #{gauge.tripId}: {gauge.destination}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            color: statusColor,
+                            background: statusBg,
+                            border: `1px solid ${statusBorder}`,
+                          }}
+                        >
+                          {statusLabel}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#64748b', marginBottom: '6px' }}>
+                        <span>Used: <strong>₹{(gauge.totalExpenses || 0).toLocaleString('en-IN')}</strong> ({gauge.percentageUsed}%)</span>
+                        <span>Budget: <strong>₹{(gauge.budget || 0).toLocaleString('en-IN')}</strong></span>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div style={{ height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px' }}>
+                        <div
+                          style={{
+                            height: '100%',
+                            width: `${pct}%`,
+                            background: statusColor,
+                            borderRadius: '4px',
+                            transition: 'width 0.4s ease',
+                          }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b' }}>
+                        <span>
+                          Remaining: <strong style={{ color: gauge.remaining < 0 ? '#ef4444' : '#10b981' }}>
+                            ₹{(gauge.remaining || 0).toLocaleString('en-IN')}
+                          </strong>
+                        </span>
+                        <span>
+                          Bookings: ₹{(gauge.breakdown?.bookingExpenses || 0).toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 

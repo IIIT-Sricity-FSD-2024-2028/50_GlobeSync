@@ -163,7 +163,7 @@ export default function SupportProfilePage() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', alignItems: 'start' }}>
+      <div className="responsive-two-col" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', alignItems: 'start' }}>
         {/* Left Column: Identity Summary Card */}
         <div
           className="card"

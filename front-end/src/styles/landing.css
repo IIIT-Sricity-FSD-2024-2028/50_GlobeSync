@@ -502,3 +502,33 @@
   .roles-grid-showcase { grid-template-columns: 1fr; }
   .footer-top-grid { grid-template-columns: 1fr; }
 }
+
+/* Public navbar on phones: collapse links and buttons behind a menu button
+   (before this, the nav row was ~830px wide and every public page scrolled sideways at 390px). */
+.nav-mobile-toggle {
+  display: none;
+  background: none;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 20px;
+  line-height: 1;
+  padding: 6px 10px;
+  color: var(--primary);
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .landing-nav { flex-wrap: wrap; gap: 12px; }
+  .nav-mobile-toggle { display: inline-flex; margin-left: auto; }
+  .nav-links-list,
+  .nav-cta-group { display: none; width: 100%; }
+  .nav-links-list.mobile-open {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 8px 0 0;
+    margin: 0;
+  }
+  .nav-cta-group.mobile-open { display: flex; flex-wrap: wrap; }
+}

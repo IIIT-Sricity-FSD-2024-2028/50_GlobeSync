@@ -152,8 +152,10 @@ export default function PassengerFormModal({
           borderRadius: '16px',
           width: '100%',
           maxWidth: '460px',
+          maxHeight: 'calc(100vh - 40px)',
+          overflowY: 'auto',
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-          overflow: 'hidden',
+          overflowX: 'hidden',
         }}
         onClick={(e) => e.stopPropagation()}
       >

@@ -24,7 +24,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 logs/
-uploads/
+# Runtime upload folders only; back-end/src/uploads/ is source code and must be committed.
+/uploads/
+back-end/uploads/
+front-end/uploads/
 *.tmp
 scratch/
 

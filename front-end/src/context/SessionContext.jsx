@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { setAccessToken, clearAccessToken, getAccessToken, authApi } from '../services/api';
 
 // ==========================================================
-// GlobeSync — SessionContext
+// GlobeSync — SessionContext (JWT Authenticated)
 // ==========================================================
-// Manages shared user authentication and active role state.
-// Handles session persistence and robust malformed-data recovery.
+// Manages authenticated user state, verified role, and token
+// lifecycle across all dashboard portals.
 // ==========================================================
 
 export const SessionContext = createContext(null);
@@ -40,76 +41,69 @@ function restoreSession() {
   try {
     const storedRole = localStorage.getItem('role');
     const storedUserRaw = localStorage.getItem('user');
+    const storedToken = getAccessToken();
 
     if (!storedRole || !storedUserRaw) {
       return { user: null, role: null };
     }
 
-    // Role validity check
     if (!VALID_ROLES.includes(storedRole)) {
-      console.warn(`[Session] Corrupted role "${storedRole}" encountered. Purging.`);
-      localStorage.removeItem('role');
-      localStorage.removeItem('user');
+      clearAccessToken();
       return { user: null, role: null };
     }
 
-    // Malformed JSON parsing check
     const parsedUser = JSON.parse(storedUserRaw);
-
-    // Verify parsed data is a valid user object with an ID
     if (!parsedUser || typeof parsedUser !== 'object') {
-      console.warn('[Session] User data was not a valid object. Purging.');
-      localStorage.removeItem('role');
-      localStorage.removeItem('user');
-      return { user: null, role: null };
-    }
-
-    const hasIdentifier =
-      parsedUser.travelerId || parsedUser.traveler_id ||
-      parsedUser.adminId    || parsedUser.admin_id ||
-      parsedUser.guideId    || parsedUser.guide_id ||
-      parsedUser.careId     || parsedUser.care_id ||
-      parsedUser.agencyId   || parsedUser.agency_id ||
-      parsedUser.id;
-
-    if (!hasIdentifier) {
-      console.warn('[Session] User object lacks valid identifier. Purging.');
-      localStorage.removeItem('role');
-      localStorage.removeItem('user');
+      clearAccessToken();
       return { user: null, role: null };
     }
 
     return { user: parsedUser, role: storedRole };
   } catch (err) {
-    console.error('[Session] JSON parse failed on stored session. Purging malformed data:', err);
-    localStorage.removeItem('role');
-    localStorage.removeItem('user');
+    console.error('[Session] Error parsing stored session:', err);
+    clearAccessToken();
     return { user: null, role: null };
   }
 }
 
 export function SessionProvider({ children }) {
-  // Initialize state directly with safe restoration
   const [{ user, role }, setSession] = useState(() => restoreSession());
 
-  // Store session in state and localStorage
-  const login = (newRole, newUser) => {
-    if (!VALID_ROLES.includes(newRole)) {
+  /**
+   * Save authenticated session with JWT access token
+   */
+  const login = (newRole, newUser, token) => {
+    const normalizedRole = (newRole || '').toLowerCase();
+    if (!VALID_ROLES.includes(normalizedRole)) {
       throw new Error(`Cannot login with unrecognized role: ${newRole}`);
     }
-    setSession({ user: newUser, role: newRole });
-    localStorage.setItem('role', newRole);
+
+    if (token) {
+      setAccessToken(token);
+    }
+
+    setSession({ user: newUser, role: normalizedRole });
+    localStorage.setItem('role', normalizedRole);
     localStorage.setItem('user', JSON.stringify(newUser));
   };
 
-  // Clear session from state and localStorage
-  const logout = () => {
-    setSession({ user: null, role: null });
-    localStorage.removeItem('role');
-    localStorage.removeItem('user');
-  };
+  /**
+   * Clear session and revoke tokens
+   */
+  const logout = useCallback(async () => {
+    try {
+      await authApi.logout();
+    } catch (err) {
+      // Best-effort logout: continue clearing client state even if backend unreachable
+    } finally {
+      clearAccessToken();
+      setSession({ user: null, role: null });
+    }
+  }, []);
 
-  // Update user details in active session and localStorage after profile changes
+  /**
+   * Update active user details in session and localStorage
+   */
   const updateUser = (updatedUserFields) => {
     setSession((prev) => {
       const mergedUser = { ...prev.user, ...updatedUserFields };
@@ -137,9 +131,6 @@ export function SessionProvider({ children }) {
   );
 }
 
-/**
- * Custom hook to consume session state
- */
 export function useSession() {
   const context = useContext(SessionContext);
   if (!context) {
@@ -148,6 +139,5 @@ export function useSession() {
   return context;
 }
 
-// Backwards-compatible alias for useAuth
 export const useAuth = useSession;
 export default SessionContext;

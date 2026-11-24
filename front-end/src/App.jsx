@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { SessionProvider } from './context/SessionContext';
+import { RealtimeProvider } from './context/RealtimeContext';
 import PublicLayout from './layouts/PublicLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 import LandingPage from './pages/public/LandingPage';
@@ -70,8 +71,9 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 export default function App() {
   return (
     <SessionProvider>
-      <BrowserRouter>
-        <Routes>
+      <RealtimeProvider>
+        <BrowserRouter>
+          <Routes>
           {/* Public Pages with Top Navbar and Footer */}
           <Route element={<PublicLayout />}>
             <Route path="/" element={<LandingPage />} />
@@ -518,6 +520,7 @@ export default function App() {
           />
         </Routes>
       </BrowserRouter>
-    </SessionProvider>
+    </RealtimeProvider>
+  </SessionProvider>
   );
 }

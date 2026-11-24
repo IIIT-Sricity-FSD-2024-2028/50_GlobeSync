@@ -1,8 +1,11 @@
 import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { CommonModule } from './common/common.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
+import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
+import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor';
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
 import { TravelersModule } from './travelers/travelers.module';
@@ -27,9 +30,26 @@ import { RevenueModule } from './revenue/revenue.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { PromotionsModule } from './promotions/promotions.module';
 import { SystemConfigModule } from './system-config/system-config.module';
+import { PolicyModule } from './policy/policy.module';
+import { InventoryModule } from './inventory/inventory.module';
+import { RepositoriesModule } from './repositories';
+import { RealtimeModule } from './realtime/realtime.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { GlobalAuthGuard } from './auth/guards/global-auth.guard';
 
 @Module({
   imports: [
+    // Rate limiting per client IP. Read from RATE_LIMIT_TTL / RATE_LIMIT_MAX at startup
+    // (previously hard-coded to 120/min, which blocked normal use: one dashboard
+    // page issues 8-12 API calls). Auth routes keep their stricter @Throttle limits.
+    ThrottlerModule.forRootAsync({
+      useFactory: () => [
+        {
+          ttl: parseInt(process.env.RATE_LIMIT_TTL || '60000', 10),
+          limit: parseInt(process.env.RATE_LIMIT_MAX || '600', 10),
+        },
+      ],
+    }),
     CommonModule,
     HealthModule,
     AuthModule,
@@ -55,42 +75,30 @@ import { SystemConfigModule } from './system-config/system-config.module';
     SubscriptionsModule,
     PromotionsModule,
     SystemConfigModule,
+    PolicyModule,
+    InventoryModule,
+    RepositoriesModule,
+    RealtimeModule,
+    NotificationsModule,
   ],
   providers: [
-    // APP_FILTER registers GlobalExceptionFilter as a DI-managed global exception filter.
-    // This replaces the manual `app.useGlobalFilters(new GlobalExceptionFilter())` in main.ts
-    // and enables constructor injection (e.g. LogFileService) which the manual approach cannot do.
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
+    { provide: APP_INTERCEPTOR, useClass: AuditLogInterceptor },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // Verifies the JWT and enforces @Roles + ownership on every protected route
+    { provide: APP_GUARD, useClass: GlobalAuthGuard },
   ],
 })
 export class AppModule implements NestModule {
-  /**
-   * configure() is the NestJS "router-level middleware" mechanism.
-   *
-   * How it differs from the other NestJS global-scope mechanisms:
-   *
-   *   app.use()                  — Raw Express global middleware; runs before NestJS
-   *                                routing even knows about the request. Has no access
-   *                                to NestJS DI (no @Injectable, no constructor injection).
-   *
-   *   app.useGlobalGuards()      — NestJS-level, runs AFTER middleware, BEFORE route
-   *   app.useGlobalPipes()         handlers. Operates on the resolved route context
-   *   app.useGlobalFilters()       (knows about @Roles decorators, DTOs, etc.).
-   *                                These also bypass DI unless you use the APP_GUARD /
-   *                                APP_PIPE / APP_FILTER token approach.
-   *
-   *   MiddlewareConsumer (here)  — Applied at the Express router level, but wired through
-   *                                NestJS's module system, so @Injectable middleware classes
-   *                                get full DI support (constructor injection works).
-   *                                Can be scoped to specific routes, HTTP methods, or
-   *                                entire route groups via .forRoutes().
-   */
   configure(consumer: MiddlewareConsumer): void {
+    // 1. Correlation ID assigned first
+    consumer
+      .apply(CorrelationIdMiddleware)
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
+
+    // 2. Structured access logging with correlation ID
     consumer
       .apply(LoggerMiddleware)
       .forRoutes({ path: '*', method: RequestMethod.ALL });
   }
 }
-
-
-

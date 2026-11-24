@@ -6,8 +6,10 @@ import {
   Body,
   Patch,
   Param,
+  Query,
   UseGuards,
   ParseIntPipe,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -23,6 +25,7 @@ import { Role } from '../common/enums/role.enum';
 import { ErrorResponseDto } from '../common/dto/error-response.dto';
 import { ApiUserHeaders } from '../common/decorators/api-user-headers.decorator';
 import { ApiRoleHeader } from '../common/decorators/api-role-header.decorator';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @ApiTags('agencies')
 @Controller('agencies')
@@ -48,6 +51,7 @@ export class AgenciesController {
   createDirect(@Body() createDirectAgencyDto: CreateDirectAgencyDto) {
     return this.agenciesService.createDirect(createDirectAgencyDto);
   }
+
   @Get('lookup')
   @Roles(Role.TRAVELER, Role.GUIDE, Role.ADMIN, Role.SUPERUSER, Role.SUPPORT)
   @ApiRoleHeader()
@@ -58,16 +62,15 @@ export class AgenciesController {
     return this.agenciesService.findAllLookup();
   }
 
-
   @Get()
   @Roles(Role.ADMIN, Role.SUPERUSER)
   @ApiRoleHeader()
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get all agencies (Admin/Superuser only)' })
+  @ApiOperation({ summary: 'Get all agencies with pagination, search, and sorting' })
   @ApiResponse({ status: 200, description: 'Return all agencies' })
   @ApiResponse({ status: 403, description: 'Forbidden', type: ErrorResponseDto })
-  findAll() {
-    return this.agenciesService.findAll();
+  findAll(@Query() query: PaginationQueryDto) {
+    return this.agenciesService.findAll(query);
   }
 
   @Get(':id')
@@ -86,24 +89,27 @@ export class AgenciesController {
   @Roles(Role.ADMIN, Role.SUPERUSER)
   @ApiRoleHeader()
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update agency status & commission (Admin/Superuser only)' })
+  @ApiOperation({ summary: 'Update agency status with required reason (Admin/Superuser only)' })
   @ApiResponse({ status: 200, description: 'Status updated' })
   @ApiResponse({ status: 403, description: 'Forbidden', type: ErrorResponseDto })
   @ApiResponse({ status: 404, description: 'Not Found', type: ErrorResponseDto })
   updateStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateAgencyStatusDto: UpdateAgencyStatusDto,
+    @Req() req: any,
   ) {
-    return this.agenciesService.updateStatus(id, updateAgencyStatusDto);
+    const author = req.user?.name || req.user?.email || 'Admin';
+    return this.agenciesService.updateStatus(id, updateAgencyStatusDto, author);
   }
 
   @Patch(':id')
   @Roles(Role.AGENCY, Role.ADMIN, Role.SUPERUSER)
   @ApiUserHeaders()
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update agency profile (Agency only ownership checked, or Admin/Superuser)' })
-  @ApiResponse({ status: 200, description: 'Agency updated' })
-  @ApiResponse({ status: 403, description: 'Forbidden', type: ErrorResponseDto })
+  @ApiOperation({ summary: 'Update an agency profile' })
+  @ApiResponse({ status: 200, description: 'Agency updated successfully' })
+  @ApiResponse({ status: 400, description: 'Validation error / Email in use', type: ErrorResponseDto })
+  @ApiResponse({ status: 403, description: 'Forbidden (not owner)', type: ErrorResponseDto })
   @ApiResponse({ status: 404, description: 'Not Found', type: ErrorResponseDto })
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -113,11 +119,12 @@ export class AgenciesController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN, Role.SUPERUSER)
+  @Roles(Role.SUPERUSER)
   @ApiRoleHeader()
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete an agency (Admin/Superuser only)' })
-  @ApiResponse({ status: 200, description: 'Agency deleted' })
+  @ApiOperation({ summary: 'Delete an agency (Superuser only)' })
+  @ApiResponse({ status: 200, description: 'Agency deleted successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden (Superuser only)', type: ErrorResponseDto })
   @ApiResponse({ status: 404, description: 'Not Found', type: ErrorResponseDto })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.agenciesService.remove(id);

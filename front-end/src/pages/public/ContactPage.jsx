@@ -62,7 +62,7 @@ export default function ContactPage() {
         className="contact-layout"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))',
           gap: '32px',
           maxWidth: '960px',
           margin: '0 auto',
@@ -91,10 +91,10 @@ export default function ContactPage() {
             >
               <div style={{ fontSize: '44px', marginBottom: '12px' }}>✅</div>
               <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#059669', marginBottom: '8px' }}>
-                Message Sent!
+                Details checked, but not sent yet
               </h3>
               <p style={{ fontSize: '14px', color: '#065f46', lineHeight: '1.6', marginBottom: '20px' }}>
-                Thank you for reaching out. We'll get back to you within 24 hours.
+                This demo cannot deliver contact messages yet, so nobody will receive this form. Please email us at the address shown on this page and we will reply there.
               </p>
               <div
                 style={{
@@ -121,10 +121,10 @@ export default function ContactPage() {
           ) : (
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>
+                <label htmlFor="contactpage-field-1" style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>
                   Name
                 </label>
-                <input
+                <input id="contactpage-field-1"
                   type="text"
                   placeholder="Your name"
                   value={name}
@@ -150,10 +150,10 @@ export default function ContactPage() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>
+                <label htmlFor="contactpage-field-2" style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>
                   Email
                 </label>
-                <input
+                <input id="contactpage-field-2"
                   type="email"
                   placeholder="you@gmail.com"
                   value={email}
@@ -179,10 +179,10 @@ export default function ContactPage() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>
+                <label htmlFor="contactpage-field-3" style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>
                   Message
                 </label>
-                <textarea
+                <textarea id="contactpage-field-3"
                   rows={4}
                   placeholder="How can we help you?"
                   value={message}
