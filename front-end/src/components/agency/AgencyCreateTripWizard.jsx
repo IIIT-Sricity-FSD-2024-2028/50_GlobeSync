@@ -186,7 +186,7 @@ export default function AgencyCreateTripWizard({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(140px, 100%), 1fr))',
           gap: '12px',
           marginBottom: '28px',
           borderBottom: '1px solid #e2e8f0',
@@ -254,7 +254,7 @@ export default function AgencyCreateTripWizard({
             Define client trip details, destination, dates, and pick passengers from your agency roster.
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px', marginBottom: '16px' }}>
+          <div className="responsive-two-col" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px', marginBottom: '16px' }}>
             <div>
               <label style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: '6px' }}>
                 Trip Title *
@@ -296,7 +296,7 @@ export default function AgencyCreateTripWizard({
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: '16px', marginBottom: '16px' }}>
             <div>
               <label style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: '6px' }}>
                 Departure City (From)

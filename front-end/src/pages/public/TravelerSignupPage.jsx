@@ -108,22 +108,16 @@ export default function TravelerSignupPage() {
     };
 
     try {
-      // Calls POST /travelers
-      const createdTraveler = await authApi.registerTraveler(payload);
+      // Calls POST /auth/register/traveler
+      await authApi.registerTraveler(payload);
 
-      if (!createdTraveler || (!createdTraveler.travelerId && !createdTraveler.id)) {
-        throw new Error('Account was created but no traveler identifier was returned.');
-      }
-
-      // Automatically initialize authenticated traveler session
-      login('traveler', {
-        travelerId: createdTraveler.travelerId || createdTraveler.id,
-        name: createdTraveler.name,
-        email: createdTraveler.email,
-        phone: createdTraveler.phone || '',
-        gender: createdTraveler.gender || '',
-        age: createdTraveler.age || null,
+      // Authenticate via real JWT login
+      const loginResp = await authApi.login({
+        email: payload.email,
+        password: payload.password,
       });
+
+      login('traveler', loginResp.user, loginResp.accessToken);
 
       // Navigate to Traveler Dashboard
       navigate('/traveler/dashboard');
@@ -197,10 +191,10 @@ export default function TravelerSignupPage() {
         <form onSubmit={handleSubmit} noValidate>
           {/* Full Name */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
+            <label htmlFor="travelersignuppage-field-1" style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
               Full Name *
             </label>
-            <input
+            <input id="travelersignuppage-field-1"
               type="text"
               placeholder="e.g. Priya Sharma"
               value={formData.name}
@@ -223,10 +217,10 @@ export default function TravelerSignupPage() {
 
           {/* Email Address */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
+            <label htmlFor="travelersignuppage-field-2" style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
               Email Address *
             </label>
-            <input
+            <input id="travelersignuppage-field-2"
               type="email"
               placeholder="e.g. priya@gmail.com"
               value={formData.email}
@@ -251,7 +245,7 @@ export default function TravelerSignupPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 600 }}>Password *</label>
+                <label htmlFor="travelersignuppage-field-3" style={{ fontSize: '13px', fontWeight: 600 }}>Password *</label>
                 <button
                   type="button"
                   onClick={() => setShowPassword((p) => !p)}
@@ -261,7 +255,7 @@ export default function TravelerSignupPage() {
                   {showPassword ? '🙈' : '👁️'}
                 </button>
               </div>
-              <input
+              <input id="travelersignuppage-field-3"
                 type={showPassword ? 'text' : 'password'}
                 placeholder="At least 6 chars"
                 value={formData.password}
@@ -284,9 +278,9 @@ export default function TravelerSignupPage() {
 
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 600 }}>Confirm Password *</label>
+                <label htmlFor="travelersignuppage-field-4" style={{ fontSize: '13px', fontWeight: 600 }}>Confirm Password *</label>
               </div>
-              <input
+              <input id="travelersignuppage-field-4"
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Re-enter password"
                 value={formData.confirmPassword}
@@ -311,10 +305,10 @@ export default function TravelerSignupPage() {
           {/* Phone & Gender */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
+              <label htmlFor="travelersignuppage-field-5" style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
                 Phone Number
               </label>
-              <input
+              <input id="travelersignuppage-field-5"
                 type="text"
                 placeholder="9876543210"
                 value={formData.phone}
@@ -331,10 +325,10 @@ export default function TravelerSignupPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
+              <label htmlFor="travelersignuppage-field-6" style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
                 Gender
               </label>
-              <select
+              <select id="travelersignuppage-field-6"
                 value={formData.gender}
                 onChange={(e) => handleInputChange('gender', e.target.value)}
                 style={{
@@ -356,10 +350,10 @@ export default function TravelerSignupPage() {
 
           {/* Age */}
           <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
+            <label htmlFor="travelersignuppage-field-7" style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
               Age (Optional)
             </label>
-            <input
+            <input id="travelersignuppage-field-7"
               type="number"
               placeholder="e.g. 26"
               min="1"

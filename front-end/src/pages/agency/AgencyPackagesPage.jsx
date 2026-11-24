@@ -203,7 +203,7 @@ export default function AgencyPackagesPage() {
       )}
 
       {/* 2-Column Layout: Sidebar Filters + Main Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', alignItems: 'start' }}>
+      <div className="responsive-two-col" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', alignItems: 'start' }}>
         {/* Filter Sidebar */}
         <div
           style={{
@@ -390,7 +390,7 @@ export default function AgencyPackagesPage() {
               </p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(310px, 100%), 1fr))', gap: '20px' }}>
               {filteredPackages.map((pkg) => {
                 const pkgId = pkg.packageId || pkg.id;
                 const pkgTitle = pkg.name || pkg.title || 'Curated Holiday Tour';

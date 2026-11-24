@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, ParseIntPipe, Headers } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, Query, ParseIntPipe, Headers, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { GuidesService } from './guides.service';
 import { CreateGuideDto, UpdateGuideDto } from './dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { ApiRoleHeader } from '../common/decorators/api-role-header.decorator';
 import { Role } from '../common/enums/role.enum';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @ApiTags('guides')
 @Controller('guides')
@@ -14,21 +15,19 @@ export class GuidesController {
   @Get()
   @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY)
   @ApiRoleHeader()
-  @ApiOperation({ summary: 'Get all guides', description: 'Returns list of all guides. Accessible by superuser, admin, traveler, guide, and agency.' })
+  @ApiOperation({ summary: 'Get all guides with pagination, search, and sorting' })
   @ApiResponse({ status: 200, description: 'List of guides returned successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden — insufficient role' })
-  findAll() {
-    return this.guidesService.findAll();
+  findAll(@Query() query: PaginationQueryDto) {
+    return this.guidesService.findAll(query);
   }
 
   @Get(':id')
   @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY)
   @ApiRoleHeader()
-  @ApiOperation({ summary: 'Get guide by ID', description: 'Returns a single guide. Accessible by superuser, admin, traveler, guide, and agency.' })
+  @ApiOperation({ summary: 'Get guide by ID' })
   @ApiParam({ name: 'id', type: Number, description: 'Guide ID' })
   @ApiResponse({ status: 200, description: 'Guide found' })
   @ApiResponse({ status: 404, description: 'Guide not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden — insufficient role' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.guidesService.findOne(id);
   }
@@ -36,10 +35,9 @@ export class GuidesController {
   @Post()
   @Roles(Role.SUPERUSER, Role.ADMIN)
   @ApiRoleHeader()
-  @ApiOperation({ summary: 'Create a new guide', description: 'Creates a guide account. Accessible by superuser and admin.' })
+  @ApiOperation({ summary: 'Create a new guide' })
   @ApiResponse({ status: 201, description: 'Guide created successfully' })
   @ApiResponse({ status: 400, description: 'Validation error' })
-  @ApiResponse({ status: 403, description: 'Forbidden — insufficient role' })
   create(@Body() dto: CreateGuideDto) {
     return this.guidesService.create(dto);
   }
@@ -47,35 +45,35 @@ export class GuidesController {
   @Put(':id')
   @Roles(Role.SUPERUSER, Role.ADMIN, Role.GUIDE)
   @ApiRoleHeader()
-  @ApiOperation({ summary: 'Update a guide', description: 'Updates guide details. Accessible by superuser, admin, and the guide themselves.' })
+  @ApiOperation({ summary: 'Update a guide (rate and experience are read-only for guides)' })
   @ApiParam({ name: 'id', type: Number, description: 'Guide ID' })
   @ApiResponse({ status: 200, description: 'Guide updated successfully' })
-  @ApiResponse({ status: 400, description: 'Validation error' })
-  @ApiResponse({ status: 404, description: 'Guide not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden — insufficient role' })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateGuideDto,
-    @Headers('x-user-role') role?: string,
+    @Req() req: any,
+    @Headers('x-user-role') roleHeader?: string,
   ) {
-    // Contract: Price per Trip, Rating, and Experience cannot be modified by Guide.
-    if (role === Role.GUIDE) {
+    const callerRole = (req.user?.role || roleHeader || '').toLowerCase();
+    if (callerRole === Role.GUIDE || callerRole === 'guide') {
       delete dto.pricePerTrip;
+      delete (dto as any).rate;
+      delete (dto as any).adminSetRateMinor;
       delete dto.rating;
       delete dto.experience;
+      delete (dto as any).verifiedExperienceYears;
       delete dto.adminId;
     }
-    return this.guidesService.update(id, dto);
+    return this.guidesService.update(id, dto, callerRole);
   }
 
   @Delete(':id')
   @Roles(Role.SUPERUSER, Role.ADMIN)
   @ApiRoleHeader()
-  @ApiOperation({ summary: 'Delete a guide', description: 'Removes a guide. Accessible by superuser and admin.' })
+  @ApiOperation({ summary: 'Delete a guide' })
   @ApiParam({ name: 'id', type: Number, description: 'Guide ID' })
   @ApiResponse({ status: 200, description: 'Guide deleted successfully' })
   @ApiResponse({ status: 404, description: 'Guide not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden — insufficient role' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.guidesService.remove(id);
   }

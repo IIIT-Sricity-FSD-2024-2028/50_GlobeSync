@@ -1,11 +1,19 @@
+import { syncAuthAccount } from '../auth/identity.util';
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { travelers, Traveler } from '../data';
 import { CreateTravelerDto, UpdateTravelerDto } from './dto';
+import { PaginationQueryDto, PaginatedResult } from '../common/dto/pagination-query.dto';
+import { paginateCollection } from '../common/utils/pagination.util';
+import { findLegacyAccount, hashLegacyPassword } from '../auth/identity.util';
+import { testDb } from '../database/test-database';
 
 @Injectable()
 export class TravelersService {
-  findAll(): Omit<Traveler, 'password'>[] {
-    return travelers.map(({ password, ...rest }) => rest);
+  findAll(): Omit<Traveler, 'password'>[];
+  findAll(query: PaginationQueryDto): Omit<Traveler, 'password'>[] | PaginatedResult<Omit<Traveler, 'password'>>;
+  findAll(query?: PaginationQueryDto): any {
+    const safe = travelers.map(({ password, ...rest }) => rest);
+    return paginateCollection(safe, query, ['name', 'email', 'phone']);
   }
 
   findOne(id: number): Omit<Traveler, 'password'> {
@@ -18,8 +26,11 @@ export class TravelersService {
   }
 
   create(dto: CreateTravelerDto): Omit<Traveler, 'password'> {
-    // Check if email already registered
-    if (travelers.some((t) => t.email.toLowerCase() === dto.email.toLowerCase())) {
+    // Check if email already registered (by any account type)
+    if (
+      findLegacyAccount(dto.email) ||
+      testDb.users.some((u) => u.email.toLowerCase() === dto.email.toLowerCase())
+    ) {
       throw new BadRequestException('Email is already registered. Please log in or use another email.');
     }
 
@@ -31,7 +42,7 @@ export class TravelersService {
       travelerId: maxId + 1,
       name: dto.name,
       email: dto.email,
-      password: dto.password,
+      password: hashLegacyPassword(dto.password),
       phone: dto.phone || '',
       gender: dto.gender || '',
       age: dto.age || 0,
@@ -53,13 +64,14 @@ export class TravelersService {
       ...existing,
       ...(dto.name !== undefined && { name: dto.name }),
       ...(dto.email !== undefined && { email: dto.email }),
-      ...(dto.password !== undefined && { password: dto.password }),
+      ...(dto.password !== undefined && { password: hashLegacyPassword(dto.password) }),
       ...(dto.phone !== undefined && { phone: dto.phone }),
       ...(dto.gender !== undefined && { gender: dto.gender }),
       ...(dto.age !== undefined && { age: dto.age }),
     };
 
     travelers[index] = updated;
+    syncAuthAccount(existing.email, { email: dto.email, password: dto.password });
     const { password, ...rest } = updated;
     return rest;
   }

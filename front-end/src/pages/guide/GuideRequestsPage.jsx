@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSession } from '../../context/SessionContext';
+import { useRealtimeEvent } from '../../context/RealtimeContext';
 import { tripsApi, travelersApi, agenciesApi, messagesApi } from '../../services/api';
 import GuideRequestList from '../../components/guide/GuideRequestList';
 import {
@@ -54,6 +55,10 @@ export default function GuideRequestsPage() {
 
   // Top feedback alert banner
   const [feedback, setFeedback] = useState(null); // { type: 'success' | 'warning' | 'error', message: string }
+
+  // Reason modal for accept/decline actions
+  const [reasonModal, setReasonModal] = useState(null); // { trip, action: 'accept' | 'decline' }
+  const [reasonText, setReasonText] = useState('');
 
   // Fetch guide trips and resolve requestor names
   const fetchRequestsData = async (signal) => {
@@ -143,6 +148,38 @@ export default function GuideRequestsPage() {
     };
   }, [guideId]);
 
+  // Realtime updates without full page reload
+  useRealtimeEvent('guide_request.created', (event) => {
+    if (event?.trip) {
+      setTrips((prev) => {
+        if (prev.some((t) => t.tripId === event.trip.tripId)) {
+          return prev.map((t) => (t.tripId === event.trip.tripId ? { ...t, ...event.trip } : t));
+        }
+        return [{ ...event.trip, requestorName: 'New Client Request' }, ...prev];
+      });
+      setFeedback({
+        type: 'success',
+        message: `⚡ Live Update: New trip request received for ${event.destination || event.trip.destination}!`,
+      });
+    }
+  });
+
+  useRealtimeEvent('guide_request.accepted', (event) => {
+    if (event?.tripId) {
+      setTrips((prev) =>
+        prev.map((t) => (t.tripId === event.tripId ? { ...t, guideStatus: 'Accepted' } : t)),
+      );
+    }
+  });
+
+  useRealtimeEvent('guide_request.declined', (event) => {
+    if (event?.tripId) {
+      setTrips((prev) =>
+        prev.map((t) => (t.tripId === event.tripId ? { ...t, guideStatus: 'Declined' } : t)),
+      );
+    }
+  });
+
   // Tab counts calculation
   const counts = useMemo(() => {
     let pending = 0;
@@ -204,22 +241,31 @@ export default function GuideRequestsPage() {
       });
   }, [trips, activeTab, searchQuery, sortBy]);
 
-  // Accept Handler
-  const handleAccept = async (trip) => {
+  // Accept Handler — opens reason modal first
+  const handleAccept = (trip) => {
+    setReasonText('');
+    setReasonModal({ trip, action: 'accept' });
+  };
+
+  // Actual accept commit after modal confirm
+  const commitAccept = async (trip, reason) => {
     const tripId = trip.tripId;
-    if (actionLoading[tripId]) return; // Prevent double-clicks
+    setReasonModal(null);
+    if (actionLoading[tripId]) return;
 
     setActionLoading((prev) => ({ ...prev, [tripId]: 'accepting' }));
     setFeedback(null);
 
     try {
-      // 1. Perform backend trip update with guideStatus extension
-      // Coherent decision: guideStatus = 'Accepted', keeping trip status aligned without falsely declaring payment
-      await tripsApi.update(tripId, { guideStatus: 'Accepted' });
+      // 1. Perform backend trip update with guideStatus extension + optional reason
+      await tripsApi.update(tripId, {
+        guideStatus: 'Accepted',
+        ...(reason?.trim() ? { guideDecisionReason: reason.trim() } : {}),
+      });
 
       // Update state locally immediately
       setTrips((prev) =>
-        prev.map((t) => (t.tripId === tripId ? { ...t, guideStatus: 'Accepted' } : t))
+        prev.map((t) => (t.tripId === tripId ? { ...t, guideStatus: 'Accepted', guideDecisionReason: reason?.trim() || undefined } : t))
       );
 
       // 2. Decoupled notification attempt
@@ -274,31 +320,33 @@ export default function GuideRequestsPage() {
     }
   };
 
-  // Decline Handler
-  const handleDecline = async (trip) => {
-    const tripId = trip.tripId;
-    if (actionLoading[tripId]) return; // Prevent double-clicks
+  // Decline Handler — opens reason modal first
+  const handleDecline = (trip) => {
+    setReasonText('');
+    setReasonModal({ trip, action: 'decline' });
+  };
 
-    const confirmed = window.confirm(
-      `Are you sure you want to decline the request for ${trip.destination} (Trip #${tripId})?\n\nThis will decline the request without modifying trip payment or booking status.`
-    );
-    if (!confirmed) return;
+  // Actual decline commit after modal confirm
+  const commitDecline = async (trip, reason) => {
+    const tripId = trip.tripId;
+    setReasonModal(null);
+    if (actionLoading[tripId]) return; // Prevent double-clicks
 
     setActionLoading((prev) => ({ ...prev, [tripId]: 'declining' }));
     setFeedback(null);
 
     try {
-      // 1. Perform backend trip update to mark guideStatus as Declined
-      // Does NOT force status: 'Planning' to avoid invalid FSM transitions on Confirmed/Pending trips
+      // 1. Perform backend trip update to mark guideStatus as Declined with optional reason
       await tripsApi.update(tripId, {
         guideStatus: 'Declined',
+        ...(reason?.trim() ? { guideDecisionReason: reason.trim() } : {}),
       });
 
       // Update state locally immediately
       setTrips((prev) =>
         prev.map((t) =>
           t.tripId === tripId
-            ? { ...t, guideStatus: 'Declined' }
+            ? { ...t, guideStatus: 'Declined', guideDecisionReason: reason?.trim() || undefined }
             : t
         )
       );
@@ -607,6 +655,96 @@ export default function GuideRequestsPage() {
           onDecline={handleDecline}
           onRetryNotification={handleRetryNotification}
         />
+      )}
+
+      {/* Decision Reason Modal */}
+      {reasonModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: '16px',
+            padding: '24px',
+            width: '90%',
+            maxWidth: '480px',
+            maxHeight: 'calc(100vh - 40px)',
+            overflowY: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
+          }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: '18px', fontWeight: 700 }}>
+              {reasonModal.action === 'accept' ? 'Accept Tour Request' : 'Decline Tour Request'}
+            </h3>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
+              {reasonModal.action === 'accept'
+                ? `You are accepting Trip #${reasonModal.trip.tripId} to ${reasonModal.trip.destination}. Optionally include a message or note:`
+                : `You are declining Trip #${reasonModal.trip.tripId} to ${reasonModal.trip.destination}. Please provide an optional reason:`}
+            </p>
+            <textarea
+              rows={3}
+              value={reasonText}
+              onChange={(e) => setReasonText(e.target.value)}
+              placeholder={reasonModal.action === 'accept' ? 'Looking forward to guiding you... (optional)' : 'e.g. Scheduling conflict, fully booked... (optional)'}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '13px',
+                marginBottom: '16px',
+                boxSizing: 'border-box',
+                resize: 'vertical',
+              }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => { setReasonModal(null); setReasonText(''); }}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  background: '#fff',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (reasonModal.action === 'accept') {
+                    commitAccept(reasonModal.trip, reasonText);
+                  } else {
+                    commitDecline(reasonModal.trip, reasonText);
+                  }
+                }}
+                style={{
+                  padding: '8px 18px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: reasonModal.action === 'accept' ? '#10b981' : '#ef4444',
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                }}
+              >
+                {reasonModal.action === 'accept' ? 'Confirm Acceptance' : 'Confirm Decline'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

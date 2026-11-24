@@ -1,10 +1,3 @@
-/**
- * Travel guides seed data
- * Source: front-end/JS/mockData.js → DB.travelGuides
- *
- * Relationships:
- *   - adminId → admins.adminId (assigned admin)
- */
 export interface Guide {
   guideId: number;
   name: string;
@@ -15,92 +8,39 @@ export interface Guide {
   contact: string;
   adminId: number;
   email: string;
-  password: string;
+  password?: string;
   role: 'guide';
   bio?: string;
   specialties?: string[];
   availability?: 'available' | 'on_tour' | 'away';
+  adminSetRateMinor?: number;
+  verifiedExperienceYears?: number;
+  verifiedBy?: number;
+  verifiedAt?: string;
+  proofUrl?: string;
+  verificationStatus?: 'VERIFIED' | 'UNVERIFIED' | 'PENDING';
+  verificationNotes?: string;
 }
 
 export const guides: Guide[] = [
   {
     guideId: 1,
     name: 'Devansh',
-    languages: ['English', 'Hindi', 'French'],
-    experience: 5,
-    rating: 4.8,
-    pricePerTrip: 5500,
-    contact: '9876501234',
-    adminId: 1,
     email: 'Devansh@gmail.com',
-    password: 'guide123',
-    role: 'guide',
-    bio: 'Passionate local tour specialist with over 5 years of verified expertise guiding travelers through historic landmarks, architectural gems, and hidden culinary spots.',
-    specialties: ['Heritage Walks', 'Cultural Tours', 'Local Culinary & Street Food', 'Photography Trails'],
-    availability: 'available',
-  },
-  {
-    guideId: 2,
-    name: 'Mateo',
-    languages: ['English', 'Japanese', 'Hindi'],
-    experience: 8,
-    rating: 4.5,
-    pricePerTrip: 8500,
-    contact: '9876509876',
-    adminId: 1,
-    email: 'Mateo@gmail.com',
-    password: 'guide123',
-    role: 'guide',
-    bio: 'Multilingual city explorer specializing in nightlife, modern culture, and temple heritage.',
-    specialties: ['City Highlights', 'Temple History', 'Street Food'],
-    availability: 'available',
-  },
-  {
-    guideId: 3,
-    name: 'Elena',
-    languages: ['English', 'Spanish', 'Hindi'],
-    experience: 3,
-    rating: 4.2,
-    pricePerTrip: 5000,
-    contact: '9871234567',
-    adminId: 2,
-    email: 'Elena@gmail.com',
-    password: 'guide123',
-    role: 'guide',
-    bio: 'Enthusiastic eco-tour guide focusing on nature trails, botanical parks, and scenic viewpoints.',
-    specialties: ['Eco-Trekking', 'Museums', 'Wine & Dine'],
-    availability: 'available',
-  },
-  {
-    guideId: 4,
-    name: 'Kael',
-    languages: ['English', 'German', 'Hindi'],
-    experience: 12,
+    contact: '9876543211',
     rating: 4.9,
-    pricePerTrip: 12000,
-    contact: '9812345678',
+    experience: 5,
+    pricePerTrip: 2500,
+    languages: ['English', 'Hindi', 'French'],
     adminId: 2,
-    email: 'Kael@gmail.com',
-    password: 'guide123',
     role: 'guide',
-    bio: 'Senior alpine guide with twelve years leading mountain excursions and wilderness survival treks.',
-    specialties: ['Alpine Climbing', 'Ski Expeditions', 'Wilderness Safety'],
-    availability: 'available',
-  },
-  {
-    guideId: 5,
-    name: 'Omar',
-    languages: ['English', 'Hindi'],
-    experience: 15,
-    rating: 5.0,
-    pricePerTrip: 15000,
-    contact: '9900112233',
-    adminId: 3,
-    email: 'Omar@gmail.com',
+    specialties: ['Mountain Trekking', 'Cultural Heritage', 'Photography'],
+    bio: 'Senior Certified Alpine and Heritage Guide with 5+ years leading Himalayan and European expeditions.',
+    adminSetRateMinor: 250000,
+    verifiedExperienceYears: 5,
+    verifiedBy: 2,
+    verifiedAt: '2026-01-15T10:00:00.000Z',
     password: 'guide123',
-    role: 'guide',
-    bio: 'Distinguished master guide known for VIP royal palace tours, desert safaris, and bespoke heritage itineraries.',
-    specialties: ['Desert Safaris', 'Royal Palaces', 'VIP Private Tours'],
     availability: 'available',
   },
 ];

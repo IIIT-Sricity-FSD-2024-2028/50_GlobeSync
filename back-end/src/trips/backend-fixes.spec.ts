@@ -36,7 +36,14 @@ import {
   commissionLedger,
   revenueConfig,
   revenueTransactions,
+  guides,
 } from '../data';
+
+// Fixture: trips now reject guide ids that do not exist, so the reassignment tests
+// need a real second guide alongside the seeded guide #1.
+if (!guides.some((g) => g.guideId === 2)) {
+  guides.push({ ...guides[0], guideId: 2, name: 'Fixture Guide Two', email: 'fixture.guide2@test.local' });
+}
 
 // ─── Test Harness ────────────────────────────────────────────────────────────
 let passed = 0;
@@ -70,6 +77,70 @@ function run(name: string, fn: () => void | Promise<void>) {
 const packagesService = new PackagesService();
 const tripsService = new TripsService();
 const revenueService = new RevenueService();
+
+// ─── Test Database Fixture Setup (Migrated from static seeds) ────────────────
+packages.length = 0;
+trips.length = 0;
+bookings.length = 0;
+payments.length = 0;
+commissionLedger.length = 0;
+
+packages.push({
+  packageId: 1,
+  name: 'Paris Explorer',
+  destinations: 'Paris',
+  budget: 100000,
+  duration: 5,
+  description: 'Explore Paris',
+  highlights: 'Eiffel Tower',
+  image: 'paris.png',
+});
+
+trips.push({
+  tripId: 1,
+  packageId: 1,
+  travelerId: 1,
+  guideId: 1,
+  origin: 'Mumbai',
+  destination: 'Paris',
+  startDate: '2026-11-20',
+  endDate: '2026-11-25',
+  budget: 100000,
+  status: 'Confirmed',
+  guideStatus: 'Accepted',
+});
+
+bookings.push({
+  bookingId: 1,
+  tripId: 1,
+  travelerId: 1,
+  packageId: 1,
+  amount: 48000,
+  status: 'Confirmed',
+  bookingDate: '2026-11-01',
+  service: 'Air France',
+  type: 'Flight',
+});
+
+payments.push({
+  paymentId: 1,
+  tripId: 1,
+  travelerId: 1,
+  amount: 48000,
+  status: 'Paid',
+  paymentDate: '2026-11-01',
+});
+
+commissionLedger.push({
+  commissionId: 1,
+  agencyId: 1,
+  tripId: 1,
+  grossAmount: 48000,
+  commissionAmount: 4800,
+  rate: 10,
+  status: 'earned',
+  createdAt: new Date().toISOString(),
+});
 
 console.log('\n======================================================');
 console.log('GlobeSync Backend Repairs — Verification Test Suite');
@@ -597,8 +668,15 @@ run('Agency totals reflect genuine data without synthetic inflation', () => {
   );
 });
 
-// ─── Test Summary ─────────────────────────────────────────────────────────────
+// ─── Test Summary & Rollback ──────────────────────────────────────────────────
 setTimeout(() => {
+  // Rollback test database fixture
+  packages.length = 0;
+  trips.length = 0;
+  bookings.length = 0;
+  payments.length = 0;
+  commissionLedger.length = 0;
+
   console.log(`\n======================================================`);
   console.log(`Results: ${passed} passed, ${failed} failed`);
   console.log(`======================================================\n`);

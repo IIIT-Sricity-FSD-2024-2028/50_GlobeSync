@@ -24,6 +24,8 @@ export default function GuideReviewsPage() {
   const [tripsMap, setTripsMap] = useState(new Map());
   const [travelersMap, setTravelersMap] = useState(new Map());
   const [guideProfile, setGuideProfile] = useState(null);
+  // Real aggregated stats from backend (never faked)
+  const [apiStats, setApiStats] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState(null);
 
@@ -62,7 +64,7 @@ export default function GuideReviewsPage() {
     setErrorMessage(null);
 
     try {
-      const [reviewsData, tripsData, travelersData, guideData] = await Promise.all([
+      const [reviewsData, tripsData, travelersData, guideData, statsData] = await Promise.all([
         reviewsApi.getByGuide(guideId, { signal: controller.signal }).catch(async () => {
           // Fallback to filtering all reviews if guide route is cached/proxied
           const all = await reviewsApi.getAll({ signal: controller.signal });
@@ -71,12 +73,17 @@ export default function GuideReviewsPage() {
         tripsApi.getByGuide(guideId, { signal: controller.signal }).catch(() => []),
         travelersApi.getAll({ signal: controller.signal }).catch(() => []),
         guidesApi.getById(guideId, { signal: controller.signal }).catch(() => null),
+        // Fetch real aggregated stats — returns { guideId, count, avg, starBreakdown, recommendPercentage }
+        reviewsApi.getGuideStats(guideId, { signal: controller.signal }).catch(() => null),
       ]);
 
       if (controller.signal.aborted) return;
 
       const rawReviews = Array.isArray(reviewsData) ? reviewsData : [];
       setReviews(rawReviews);
+
+      // Store real server-computed stats (may be null if endpoint not yet reachable)
+      setApiStats(statsData || null);
 
       // Index trips by ID
       const tMap = new Map();
@@ -109,16 +116,17 @@ export default function GuideReviewsPage() {
     };
   }, [guideId]);
 
-  // Aggregate Metrics
+  // Aggregate Metrics — computed from actual reviews, with real zeros when empty
   const stats = useMemo(() => {
     const total = reviews.length;
     if (total === 0) {
+      // Use server-computed stats for real zero values; never fake 5.0 or 100%
       return {
         total: 0,
-        avgGuideRating: guideProfile?.rating || 5.0,
-        avgTripRating: 5.0,
-        distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
-        recommendationPct: 100,
+        avgGuideRating: apiStats?.avg ?? 0,
+        avgTripRating: 0,
+        distribution: apiStats?.starBreakdown ?? { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+        recommendationPct: apiStats?.recommendPercentage ?? 0,
       };
     }
 
@@ -145,7 +153,7 @@ export default function GuideReviewsPage() {
       distribution: dist,
       recommendationPct,
     };
-  }, [reviews, guideProfile]);
+  }, [reviews, guideProfile, apiStats]);
 
   // Filtered & Sorted Reviews
   const filteredReviews = useMemo(() => {
@@ -188,9 +196,15 @@ export default function GuideReviewsPage() {
       });
   }, [reviews, starFilter, searchQuery, sortBy, travelersMap, tripsMap]);
 
-  // Reply submission
-  const handleSaveReply = (reviewId) => {
+  // Reply submission — persists to backend via POST /reviews/:id/response
+  const handleSaveReply = async (reviewId) => {
     if (!replyText.trim()) return;
+    try {
+      await reviewsApi.respond(reviewId, { response: replyText.trim() });
+    } catch (err) {
+      // Backend not reachable or feature not yet live; fall back to localStorage
+      console.warn('[GuideReviewsPage] Reply API failed, falling back to localStorage:', err);
+    }
     const nextReplies = {
       ...guideReplies,
       [reviewId]: {
@@ -263,7 +277,7 @@ export default function GuideReviewsPage() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))',
               gap: '20px',
               marginBottom: '24px',
             }}
@@ -295,6 +309,11 @@ export default function GuideReviewsPage() {
               <div style={{ fontSize: '13px', color: '#64748b' }}>
                 Based on <strong>{stats.total}</strong> verified traveler review{stats.total === 1 ? '' : 's'}
               </div>
+              {stats.total === 0 && (
+                <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px', fontStyle: 'italic' }}>
+                  Stats will appear after your first completed tour
+                </div>
+              )}
             </div>
 
             {/* Rating Breakdown Bars */}

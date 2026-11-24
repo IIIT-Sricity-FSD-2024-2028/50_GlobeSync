@@ -1,11 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { itineraries, Itinerary } from '../data';
 import { CreateItineraryDto, UpdateItineraryDto } from './dto';
+import { PaginationQueryDto, PaginatedResult } from '../common/dto/pagination-query.dto';
+import { paginateCollection } from '../common/utils/pagination.util';
 
 @Injectable()
 export class ItinerariesService {
-  findByTrip(tripId: number): Itinerary[] {
-    return itineraries.filter((i) => i.tripId === tripId);
+  findByTrip(tripId: number, query?: PaginationQueryDto): Itinerary[] | PaginatedResult<Itinerary> {
+    const list = itineraries.filter((i) => i.tripId === tripId);
+    return paginateCollection(list, query, ['city', 'activity']);
   }
 
   create(dto: CreateItineraryDto): Itinerary {

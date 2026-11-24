@@ -294,7 +294,7 @@ export default function TravelerProfilePage() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(440px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(440px, 100%), 1fr))',
             gap: '28px',
             alignItems: 'start',
           }}

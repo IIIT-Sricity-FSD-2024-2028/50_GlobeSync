@@ -19,7 +19,56 @@ export default function TripCreationSuccessView({
   onPlanAnotherTrip,
   onClearSubmission,
 }) {
+  if (createdTrip.awaitingGuide) {
+    const due = createdTrip.guideResponseDueAt ? new Date(createdTrip.guideResponseDueAt) : null;
+    const dueText = due && !isNaN(due.getTime())
+      ? due.toLocaleString('en-IN', { hour: 'numeric', minute: '2-digit', day: 'numeric', month: 'short' })
+      : 'within 3 hours';
+    return (
+      <div style={{ maxWidth: '640px', margin: '40px auto', textAlign: 'center' }}>
+        <div className="card" style={{ padding: '36px 28px', borderRadius: '20px', background: '#fff', border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: '52px', marginBottom: '12px' }}>⏳</div>
+          <h2 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '8px' }}>Request sent to your guide</h2>
+          <p style={{ color: '#475569', fontSize: '14px', maxWidth: '480px', margin: '0 auto 20px', lineHeight: 1.6 }}>
+            <strong>{createdTrip.guideName || 'Your guide'}</strong> will reply within <strong>3 hours</strong> (by <strong>{dueText}</strong>)
+            to say whether they will travel with you.
+          </p>
+          <div
+            style={{
+              textAlign: 'left',
+              background: '#f8fafc',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              padding: '16px 20px',
+              fontSize: '13px',
+              color: '#334155',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              marginBottom: '22px',
+            }}
+          >
+            <div><strong>Trip:</strong> #{createdTrip.tripId} • {createdTrip.destination} ({createdTrip.startDate} → {createdTrip.endDate})</div>
+            <div><strong>Status:</strong> Saved as draft, waiting for guide</div>
+            <div>✓ Your choices (transport, hotel, guide) are saved. Nothing is booked or charged yet.</div>
+            <div>✓ When the guide accepts, you get a notification. Open <strong>My Trips</strong> and press <strong>Continue booking</strong> to book and pay.</div>
+            <div>✓ If the guide declines or does not reply in 3 hours, you can choose another guide or continue without one.</div>
+          </div>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link to="/traveler/trips" className="btn btn-primary" style={{ padding: '10px 22px', fontWeight: 700 }}>
+              Go to My Trips
+            </Link>
+            <button type="button" onClick={onPlanAnotherTrip} className="btn btn-secondary" style={{ padding: '10px 22px', fontWeight: 600 }}>
+              Plan another trip
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const actualStatus = createdTrip.status || submissionProgress.tripStatus || 'Pending';
+  const isDraft = createdTrip.isDraft || actualStatus === 'Planning';
 
   return (
     <div style={{ maxWidth: '680px', margin: '40px auto', textAlign: 'center' }}>
@@ -32,9 +81,9 @@ export default function TripCreationSuccessView({
           border: '1px solid var(--border)',
         }}
       >
-        <div style={{ fontSize: '56px', marginBottom: '16px' }}>🎉</div>
+        <div style={{ fontSize: '56px', marginBottom: '16px' }}>{isDraft ? '📝' : '🎉'}</div>
         <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '8px' }}>
-          Trip Created Successfully!
+          {isDraft ? 'Itinerary Saved as Draft!' : 'Trip Created Successfully!'}
         </h2>
         <p style={{ color: 'var(--muted)', fontSize: '14px', maxWidth: '460px', margin: '0 auto 24px' }}>
           Your itinerary from <strong>{createdTrip.origin || formData?.origin || formData?.currentLocation || 'New Delhi'}</strong> to <strong>{createdTrip.destination}</strong> has been saved with Trip ID{' '}
@@ -130,17 +179,25 @@ export default function TripCreationSuccessView({
         <div
           style={{
             padding: '12px 16px',
-            background: '#fefce8',
-            border: '1px solid #fef08a',
+            background: isDraft ? '#f0fdf4' : '#fefce8',
+            border: isDraft ? '1px solid #bbf7d0' : '1px solid #fef08a',
             borderRadius: '10px',
             fontSize: '12px',
-            color: '#854d0e',
+            color: isDraft ? '#166534' : '#854d0e',
             marginBottom: '24px',
             textAlign: 'left',
             lineHeight: 1.5,
           }}
         >
-          <strong>ℹ️ Next Step:</strong> This trip is saved as <strong>Pending</strong>. Individual transport and hotel bookings require payment to confirm. Once all bookings are paid, your trip transitions to <strong>Confirmed</strong>.
+          {isDraft ? (
+            <div>
+              <strong>ℹ️ Draft Saved:</strong> This itinerary is saved in <strong>Planning</strong> status. No bookings were charged or created yet. You can resume planning, configure transport, and finalize bookings anytime from <strong>My Trips</strong>.
+            </div>
+          ) : (
+            <div>
+              <strong>ℹ️ Next Step:</strong> This trip is saved as <strong>Pending</strong>. Individual transport and hotel bookings require payment to confirm. Once all bookings are paid, your trip transitions to <strong>Confirmed</strong>.
+            </div>
+          )}
         </div>
 
         {/* Action Buttons */}

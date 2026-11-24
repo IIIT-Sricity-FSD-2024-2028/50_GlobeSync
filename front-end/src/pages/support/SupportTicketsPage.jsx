@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
+import { useRealtimeEvent } from '../../context/RealtimeContext';
 import { supportTicketsApi, travelersApi } from '../../services/api';
 import SummaryCard from '../../components/common/SummaryCard';
 import StatusBadge from '../../components/common/StatusBadge';
 import SupportTicketDetailModal from '../../components/support/SupportTicketDetailModal';
 import SupportCreateTicketModal from '../../components/support/SupportCreateTicketModal';
+import { formatLocalDateTime } from '../../utils/dateUtils';
 
 /**
  * SupportTicketsPage
@@ -79,6 +81,31 @@ export default function SupportTicketsPage() {
     loadTicketsData(controller.signal);
     return () => controller.abort();
   }, []);
+
+  // Realtime updates for tickets queue and active ticket threads
+  useRealtimeEvent('ticket.updated', (event) => {
+    if (event?.ticket) {
+      setTickets((prev) => {
+        const idx = prev.findIndex((t) => t.ticketId === event.ticket.ticketId);
+        if (idx !== -1) {
+          const next = [...prev];
+          next[idx] = { ...next[idx], ...event.ticket };
+          return next;
+        }
+        return [event.ticket, ...prev];
+      });
+
+      // If user currently has this ticket modal open, update modal thread in real-time
+      setSelectedTicket((prev) => {
+        if (prev && prev.ticketId === event.ticket.ticketId) {
+          return { ...prev, ...event.ticket };
+        }
+        return prev;
+      });
+
+      showToast(`⚡ Live Update: Ticket #${event.ticket.ticketId} (${event.action || 'Updated'})`);
+    }
+  });
 
   // Filtered tickets
   const filteredTickets = useMemo(() => {
@@ -157,6 +184,8 @@ export default function SupportTicketsPage() {
 
   const getPriorityStyle = (priority) => {
     switch (priority?.toLowerCase()) {
+      case 'urgent':
+        return { background: '#7f1d1d', color: '#fff', border: '1px solid #991b1b' };
       case 'high':
         return { background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' };
       case 'medium':
@@ -165,6 +194,18 @@ export default function SupportTicketsPage() {
         return { background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe' };
       default:
         return { background: '#f3f4f6', color: '#6b7280', border: '1px solid #e5e7eb' };
+    }
+  };
+
+  const getSlaBadgeStyle = (status) => {
+    switch (status?.toUpperCase()) {
+      case 'BREACHED':
+        return { background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' };
+      case 'CRITICAL':
+        return { background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a' };
+      case 'OK':
+      default:
+        return { background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' };
     }
   };
 
@@ -247,7 +288,7 @@ export default function SupportTicketsPage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))',
           gap: '16px',
           marginBottom: '24px',
         }}
@@ -373,6 +414,7 @@ export default function SupportTicketsPage() {
                   <th style={{ padding: '10px 12px' }}>Traveler</th>
                   <th style={{ padding: '10px 12px' }}>Issue Category</th>
                   <th style={{ padding: '10px 12px' }}>Priority</th>
+                  <th style={{ padding: '10px 12px' }}>SLA Timer</th>
                   <th style={{ padding: '10px 12px' }}>Desk Agent</th>
                   <th style={{ padding: '10px 12px' }}>Status</th>
                   <th style={{ padding: '10px 12px' }}>Created</th>
@@ -419,6 +461,31 @@ export default function SupportTicketsPage() {
                           {t.priority || 'Medium'}
                         </span>
                       </td>
+                      <td style={{ padding: '12px' }}>
+                        {t.slaStatus ? (
+                          <span
+                            style={{
+                              padding: '3px 8px',
+                              borderRadius: '12px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              ...getSlaBadgeStyle(t.slaStatus),
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <span>{t.slaStatus === 'BREACHED' ? '🚨' : t.slaStatus === 'CRITICAL' ? '⚠️' : '⏱️'}</span>
+                            <span>
+                              {t.slaStatus === 'BREACHED'
+                                ? `Breached (${Math.abs(t.slaMinutesRemaining || 0)}m)`
+                                : `${Math.floor((t.slaMinutesRemaining || 0) / 60)}h ${Math.abs((t.slaMinutesRemaining || 0) % 60)}m`}
+                            </span>
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--muted)', fontSize: '12px' }}>Standard</span>
+                        )}
+                      </td>
                       <td style={{ padding: '12px', color: 'var(--muted)', fontSize: '13px' }}>
                         {t.careId ? `Desk #${t.careId}` : 'Unassigned'}
                       </td>
@@ -426,7 +493,7 @@ export default function SupportTicketsPage() {
                         <StatusBadge status={t.status} />
                       </td>
                       <td style={{ padding: '12px', color: 'var(--muted)', fontSize: '12px' }}>
-                        {t.created ? new Date(t.created).toLocaleDateString() : 'N/A'}
+                        {formatLocalDateTime(t.created)}
                       </td>
                       <td style={{ padding: '12px', textAlign: 'right' }}>
                         <button

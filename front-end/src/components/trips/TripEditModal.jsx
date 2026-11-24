@@ -3,9 +3,20 @@ import { tripsApi } from '../../services/api';
 
 /**
  * TripEditModal: Controlled form modal for updating trip details
- * Allows travelers to update destination, travel dates, budget, and trip status.
+ * Allows travelers to update origin, destination and travel dates.
+ * Budget and trip status are NOT editable here: the budget is fixed when the trip is
+ * booked, and status changes only through the booking / guide / admin flow.
+ * The earliest start date is tomorrow (today cannot be chosen).
  * Note: Deletion is restricted to admin/superuser in the backend, so it is deliberately omitted here.
  */
+// Tomorrow's date as YYYY-MM-DD in the user's local time zone.
+function tomorrowLocal() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export default function TripEditModal({ trip = null, isOpen = true, onClose, onSave }) {
   // 1. Controlled Form State - Unconditional hooks
   const [formData, setFormData] = useState({
@@ -13,8 +24,6 @@ export default function TripEditModal({ trip = null, isOpen = true, onClose, onS
     destination: trip?.destination || '',
     startDate: trip?.startDate || '',
     endDate: trip?.endDate || '',
-    budget: trip?.budget ?? 0,
-    status: trip?.status || 'Pending',
   });
 
   // 2. Field-level validation error messages
@@ -36,8 +45,6 @@ export default function TripEditModal({ trip = null, isOpen = true, onClose, onS
         destination: trip.destination || '',
         startDate: trip.startDate || '',
         endDate: trip.endDate || '',
-        budget: trip.budget ?? 0,
-        status: trip.status || 'Pending',
       });
       setErrors({});
       setSaveError(null);
@@ -49,6 +56,12 @@ export default function TripEditModal({ trip = null, isOpen = true, onClose, onS
   if (!isOpen || !trip) {
     return null;
   }
+
+  const tomorrow = tomorrowLocal();
+  const originalStart = String(trip.startDate || '').slice(0, 10);
+  const startChanged = formData.startDate !== originalStart;
+  // Allow an unchanged (already set) start date; any new start date must be tomorrow or later.
+  const startMin = !startChanged && originalStart && originalStart < tomorrow ? undefined : tomorrow;
 
   // Input change handler clears error on edit
   const handleInputChange = (field, value) => {
@@ -82,6 +95,8 @@ export default function TripEditModal({ trip = null, isOpen = true, onClose, onS
       newErrors.startDate = 'Start date is required.';
     } else if (isNaN(new Date(formData.startDate).getTime())) {
       newErrors.startDate = 'Please enter a valid start date.';
+    } else if (startChanged && formData.startDate < tomorrow) {
+      newErrors.startDate = 'Trip can start from tomorrow onwards. Today or past dates are not allowed.';
     }
 
     if (!formData.endDate) {
@@ -90,11 +105,6 @@ export default function TripEditModal({ trip = null, isOpen = true, onClose, onS
       newErrors.endDate = 'Please enter a valid end date.';
     } else if (formData.startDate && formData.endDate <= formData.startDate) {
       newErrors.endDate = 'End date must be strictly after start date.';
-    }
-
-    const budgetNum = Number(formData.budget);
-    if (formData.budget === '' || isNaN(budgetNum) || budgetNum < 0) {
-      newErrors.budget = 'Budget must be a non-negative number.';
     }
 
     setErrors(newErrors);
@@ -119,8 +129,6 @@ export default function TripEditModal({ trip = null, isOpen = true, onClose, onS
         destination: formData.destination.trim(),
         startDate: formData.startDate,
         endDate: formData.endDate,
-        budget: Number(formData.budget),
-        status: formData.status,
       };
 
       // Calls PUT /trips/:id — verified traveler endpoint
@@ -161,7 +169,9 @@ export default function TripEditModal({ trip = null, isOpen = true, onClose, onS
           width: '100%',
           maxWidth: '520px',
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-          overflow: 'hidden',
+          maxHeight: 'calc(100vh - 40px)',
+          overflowX: 'hidden',
+          overflowY: 'auto',
         }}
         onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
       >
@@ -180,7 +190,7 @@ export default function TripEditModal({ trip = null, isOpen = true, onClose, onS
               Edit Trip #{trip.tripId}
             </h3>
             <p style={{ color: 'var(--muted)', fontSize: '12px', marginTop: '2px' }}>
-              Modify destination, dates, budget, or status for this itinerary.
+              Change the cities or travel dates. Budget and status cannot be edited here.
             </p>
           </div>
           <button
@@ -275,6 +285,7 @@ export default function TripEditModal({ trip = null, isOpen = true, onClose, onS
               </label>
               <input
                 type="date"
+                min={startMin}
                 value={formData.startDate}
                 onChange={(e) => handleInputChange('startDate', e.target.value)}
                 style={{
@@ -298,6 +309,7 @@ export default function TripEditModal({ trip = null, isOpen = true, onClose, onS
               </label>
               <input
                 type="date"
+                min={formData.startDate || tomorrow}
                 value={formData.endDate}
                 onChange={(e) => handleInputChange('endDate', e.target.value)}
                 style={{
@@ -316,55 +328,27 @@ export default function TripEditModal({ trip = null, isOpen = true, onClose, onS
             </div>
           </div>
 
-          {/* Budget & Status Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+          {/* Budget and status: read-only */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '16px',
+              marginBottom: '24px',
+              padding: '12px 14px',
+              background: '#f8fafc',
+              border: '1px solid var(--border)',
+              borderRadius: '8px',
+              fontSize: '13px',
+              color: '#334155',
+            }}
+          >
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
-                Budget (₹) *
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="500"
-                value={formData.budget}
-                onChange={(e) => handleInputChange('budget', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  border: `1.5px solid ${errors.budget ? 'var(--danger, #ef4444)' : 'var(--border)'}`,
-                  fontSize: '14px',
-                }}
-              />
-              {errors.budget && (
-                <div style={{ color: 'var(--danger, #ef4444)', fontSize: '12px', marginTop: '4px' }}>
-                  {errors.budget}
-                </div>
-              )}
+              <strong>Budget:</strong> ₹{Number(trip.budget ?? 0).toLocaleString('en-IN')}
+              <span style={{ color: '#64748b' }}> (set at booking, cannot be changed)</span>
             </div>
-
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
-                Trip Status
-              </label>
-              <select
-                value={formData.status}
-                onChange={(e) => handleInputChange('status', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  border: '1.5px solid var(--border)',
-                  fontSize: '14px',
-                  background: '#fff',
-                }}
-              >
-                <option value="Planning">Planning</option>
-                <option value="Pending">Pending</option>
-                <option value="Confirmed">Confirmed</option>
-                <option value="Completed">Completed</option>
-                <option value="Cancelled">Cancelled</option>
-              </select>
+              <strong>Status:</strong> {trip.status || 'Pending'}
             </div>
           </div>
 

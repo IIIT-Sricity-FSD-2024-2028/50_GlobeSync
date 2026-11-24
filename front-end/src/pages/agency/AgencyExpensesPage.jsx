@@ -308,7 +308,7 @@ export default function AgencyExpensesPage() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))',
               gap: '16px',
               marginBottom: '28px',
             }}
@@ -343,7 +343,7 @@ export default function AgencyExpensesPage() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))',
               gap: '24px',
               marginBottom: '28px',
             }}
@@ -588,6 +588,8 @@ export default function AgencyExpensesPage() {
               padding: '24px',
               width: '100%',
               maxWidth: '440px',
+              maxHeight: 'calc(100vh - 40px)',
+              overflowY: 'auto',
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
             }}
           >

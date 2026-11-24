@@ -1,30 +1,42 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { syncAuthAccount } from '../auth/identity.util';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Optional,
+} from '@nestjs/common';
 import { agencies, Agency } from '../data';
-import { CreateAgencyDto, UpdateAgencyDto, UpdateAgencyStatusDto, CreateDirectAgencyDto, AgencyResponseDto } from './dto';
-
-/** Type alias for the sanitized public response shape. */
-type SafeAgency = Omit<Agency, 'password'>;
+import { CreateAgencyDto, UpdateAgencyDto, UpdateAgencyStatusDto, CreateDirectAgencyDto, AgencyResponseDto, AgencyLookupDto } from './dto';
+import { RealtimeService } from '../realtime/realtime.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { PaginationQueryDto, PaginatedResult } from '../common/dto/pagination-query.dto';
+import { paginateCollection } from '../common/utils/pagination.util';
+import { systemAuditLogs, SystemAuditLog } from '../data/system-config.data';
 
 @Injectable()
 export class AgenciesService {
-  /**
-   * Strip the password from an Agency before returning it to callers.
-   * This returns a new object and never mutates the stored record,
-   * which must retain its password for auth.service.ts login lookups.
-   */
-  private sanitize(agency: Agency): SafeAgency {
-    const { password: _omitted, ...safe } = agency;
+  constructor(
+    @Optional() private readonly realtimeService?: RealtimeService,
+    @Optional() private readonly notificationsService?: NotificationsService,
+  ) {}
+
+  private sanitize(agency: Agency): AgencyResponseDto {
+    const { password: _, ...safe } = agency;
     return safe;
   }
 
-  findAll(): AgencyResponseDto[] {
-    return agencies.map((a) => this.sanitize(a));
+  findAll(): AgencyResponseDto[];
+  findAll(query: PaginationQueryDto): AgencyResponseDto[] | PaginatedResult<AgencyResponseDto>;
+  findAll(query?: PaginationQueryDto): any {
+    const safeAgencies = agencies.map((a) => this.sanitize(a));
+    return paginateCollection(safeAgencies, query, ['businessName', 'contactEmail', 'contactPerson', 'licenseGstin']);
   }
 
-  findAllLookup() {
-    return agencies.map(a => ({
+  findAllLookup(): AgencyLookupDto[] {
+    return agencies.map((a) => ({
       agencyId: a.agencyId,
       businessName: a.businessName,
+      status: a.status,
     }));
   }
 
@@ -37,7 +49,6 @@ export class AgenciesService {
   }
 
   create(dto: CreateAgencyDto): AgencyResponseDto {
-    // Check if email is already registered
     if (agencies.some(a => a.contactEmail.toLowerCase() === dto.contactEmail.toLowerCase())) {
       throw new BadRequestException('Email already registered');
     }
@@ -49,15 +60,15 @@ export class AgenciesService {
       contactPerson: dto.contactPerson,
       contactEmail: dto.contactEmail,
       contactPhone: dto.contactPhone,
-      password: dto.password,
-      commissionRate: dto.commissionRate != null ? Number(dto.commissionRate) : 1.5,
       licenseGstin: dto.licenseGstin,
       officeAddress: dto.officeAddress,
       payoutBankUpi: dto.payoutBankUpi,
+      password: dto.password,
       status: 'pending',
+      role: 'agency',
       createdAt: new Date().toISOString(),
     };
-    // Push the full record (with password) so auth login continues to work
+
     agencies.push(newAgency);
     return this.sanitize(newAgency);
   }
@@ -71,14 +82,19 @@ export class AgenciesService {
     const newAgency: Agency = {
       agencyId: maxId + 1,
       businessName: dto.businessName,
+      contactPerson: dto.contactPerson,
       contactEmail: dto.contactEmail,
       contactPhone: dto.contactPhone,
+      licenseGstin: dto.licenseGstin,
+      officeAddress: dto.officeAddress,
+      payoutBankUpi: dto.payoutBankUpi,
       password: dto.password,
-      status: (dto.status as Agency['status']) || 'approved',
-      ...(dto.commissionRate !== undefined && { commissionRate: dto.commissionRate }),
+      status: (dto.status as 'pending' | 'approved' | 'rejected') || 'pending',
+      commissionRate: dto.commissionRate,
+      role: 'agency',
       createdAt: new Date().toISOString(),
     };
-    // Push the full record (with password) so auth login continues to work
+
     agencies.push(newAgency);
     return this.sanitize(newAgency);
   }
@@ -104,25 +120,74 @@ export class AgenciesService {
       ...(dto.licenseGstin !== undefined && { licenseGstin: dto.licenseGstin }),
       ...(dto.officeAddress !== undefined && { officeAddress: dto.officeAddress }),
       ...(dto.payoutBankUpi !== undefined && { payoutBankUpi: dto.payoutBankUpi }),
-      // Password update is stored in the in-memory record for auth, but never returned
       ...(dto.password !== undefined && { password: dto.password }),
     };
+    syncAuthAccount(agencies[idx].contactEmail, { email: dto.contactEmail, password: dto.password });
     agencies[idx] = updated;
     return this.sanitize(updated);
   }
 
-  updateStatus(id: number, dto: UpdateAgencyStatusDto): AgencyResponseDto {
+  /**
+   * Update agency status (approve/reject).
+   * Records decision reason and writes an append-only audit log entry.
+   */
+  updateStatus(id: number, dto: UpdateAgencyStatusDto, adminAuthor = 'Admin'): AgencyResponseDto {
     const idx = agencies.findIndex((a) => a.agencyId === id);
     if (idx === -1) {
       throw new NotFoundException(`Agency with ID ${id} not found`);
     }
 
+    const decisionReason = dto.reason?.trim() || `Administrative decision: status set to ${dto.status}`;
+
     const updated: Agency = {
       ...agencies[idx],
       status: dto.status,
       ...(dto.commissionRate !== undefined && { commissionRate: dto.commissionRate }),
+      statusReason: decisionReason,
     };
     agencies[idx] = updated;
+
+    // Append to system audit trail
+    const maxAuditId = systemAuditLogs.length > 0 ? Math.max(...systemAuditLogs.map((l) => l.id)) : 0;
+    const auditEntry: SystemAuditLog = {
+      id: maxAuditId + 1,
+      text: `Agency #${id} (${updated.businessName}) status updated to ${dto.status}. Reason: ${decisionReason}`,
+      author: adminAuthor,
+      time: 'Just now',
+      color: dto.status === 'approved' ? '#10b981' : '#ef4444',
+      category: 'users',
+      timestamp: new Date().toISOString(),
+    };
+    systemAuditLogs.unshift(auditEntry);
+
+    // Realtime events & Notifications
+    if (this.realtimeService) {
+      if (dto.status === 'approved') {
+        this.realtimeService.emitToUser(id, 'agency.approved', { agencyId: id, status: 'approved' }, 'agency');
+        this.realtimeService.emitToRole('agency', 'agency.approved', { agencyId: id, status: 'approved' });
+      } else if (dto.status === 'rejected') {
+        this.realtimeService.emitToUser(id, 'agency.rejected', { agencyId: id, status: 'rejected' }, 'agency');
+      }
+    }
+
+    if (this.notificationsService) {
+      if (dto.status === 'approved') {
+        this.notificationsService.createNotification(
+          id,
+          'Agency Account Approved',
+          `Congratulations! Your agency partner account has been approved. Reason: ${decisionReason}`,
+          { role: 'agency', type: 'agency_status', metadata: { agencyId: id, status: 'approved' } },
+        ).catch(() => {});
+      } else if (dto.status === 'rejected') {
+        this.notificationsService.createNotification(
+          id,
+          'Agency Account Rejected',
+          `Your agency application was reviewed and declined. Reason: ${decisionReason}`,
+          { role: 'agency', type: 'agency_status', metadata: { agencyId: id, status: 'rejected' } },
+        ).catch(() => {});
+      }
+    }
+
     return this.sanitize(updated);
   }
 
@@ -132,6 +197,6 @@ export class AgenciesService {
       throw new NotFoundException(`Agency with ID ${id} not found`);
     }
     agencies.splice(idx, 1);
-    return { message: 'Agency deleted successfully' };
+    return { message: `Agency with ID ${id} deleted successfully` };
   }
 }

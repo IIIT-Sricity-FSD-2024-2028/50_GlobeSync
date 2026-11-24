@@ -246,10 +246,10 @@ export default function AgencySignupPage() {
         <form onSubmit={handleSubmit}>
           {/* Agency Business Name */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
+            <label htmlFor="agencysignuppage-field-1" style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
               Agency Business Name *
             </label>
-            <input
+            <input id="agencysignuppage-field-1"
               type="text"
               value={formData.businessName}
               onChange={(e) => handleInputChange('businessName', e.target.value)}
@@ -273,10 +273,10 @@ export default function AgencySignupPage() {
           {/* Contact Email & Phone */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
+              <label htmlFor="agencysignuppage-field-2" style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
                 Contact Email *
               </label>
-              <input
+              <input id="agencysignuppage-field-2"
                 type="email"
                 value={formData.contactEmail}
                 onChange={(e) => handleInputChange('contactEmail', e.target.value)}
@@ -298,10 +298,10 @@ export default function AgencySignupPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
+              <label htmlFor="agencysignuppage-field-3" style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
                 Contact Phone *
               </label>
-              <input
+              <input id="agencysignuppage-field-3"
                 type="text"
                 value={formData.contactPhone}
                 onChange={(e) => handleInputChange('contactPhone', e.target.value)}
@@ -327,7 +327,7 @@ export default function AgencySignupPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <label htmlFor="agencysignuppage-field-4" style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
                   Account Password *
                 </label>
                 <button
@@ -339,7 +339,7 @@ export default function AgencySignupPage() {
                   {showPassword ? '🙈' : '👁️'}
                 </button>
               </div>
-              <input
+              <input id="agencysignuppage-field-4"
                 type={showPassword ? 'text' : 'password'}
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
@@ -362,11 +362,11 @@ export default function AgencySignupPage() {
 
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <label htmlFor="agencysignuppage-field-5" style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
                   Confirm Password *
                 </label>
               </div>
-              <input
+              <input id="agencysignuppage-field-5"
                 type={showPassword ? 'text' : 'password'}
                 value={formData.confirmPassword}
                 onChange={(e) => handleInputChange('confirmPassword', e.target.value)}

@@ -186,7 +186,7 @@ export default function AgencyCommissionPage() {
               Real-time audit log of partner commissions, client trip gross bookings, and payout settlement status.
             </p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <div
               style={{
                 background: '#f0fdfa',
@@ -230,7 +230,7 @@ export default function AgencyCommissionPage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))',
           gap: '16px',
           marginBottom: '24px',
         }}
@@ -299,7 +299,7 @@ export default function AgencyCommissionPage() {
           marginBottom: '20px',
         }}
       >
-        <div style={{ display: 'flex', gap: '8px', background: '#f1f5f9', padding: '4px', borderRadius: '10px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', background: '#f1f5f9', padding: '4px', borderRadius: '10px' }}>
           {['ALL', 'PENDING', 'EARNED', 'CANCELLED'].map((tab) => (
             <button
               key={tab}

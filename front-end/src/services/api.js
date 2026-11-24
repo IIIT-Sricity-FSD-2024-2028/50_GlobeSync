@@ -1,12 +1,11 @@
 // ==========================================================
-// GlobeSync — Central API Layer
+// GlobeSync — Central API Layer (JWT Authenticated)
 // ==========================================================
 // - Base URL loaded from VITE_API_BASE_URL (defaults to http://localhost:3001)
-// - Sends 'x-user-role' and 'x-user-id' headers required by RolesGuard
+// - Uses standard Authorization: Bearer <jwt-token> and httpOnly cookie credentials
+// - Roles are cryptographically verified by backend from the JWT token
+// - Automatic token refresh on 401 with retry
 // - Supports GET, POST, PUT, PATCH, DELETE with AbortSignal cancellation
-// - Parses NestJS GlobalExceptionFilter error responses
-// - Re-throws real errors without mock fallbacks
-// - Uses standard backend camelCase property names
 // ==========================================================
 
 export const API_BASE_URL =
@@ -23,6 +22,31 @@ export class ApiError extends Error {
     this.data = data;
     this.isCancelled = isCancelled;
   }
+}
+
+/**
+ * In-memory / storage JWT Access Token management
+ */
+let inMemoryAccessToken = localStorage.getItem('access_token') || null;
+
+export function getAccessToken() {
+  return inMemoryAccessToken || localStorage.getItem('access_token') || null;
+}
+
+export function setAccessToken(token) {
+  inMemoryAccessToken = token;
+  if (token) {
+    localStorage.setItem('access_token', token);
+  } else {
+    localStorage.removeItem('access_token');
+  }
+}
+
+export function clearAccessToken() {
+  inMemoryAccessToken = null;
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('role');
+  localStorage.removeItem('user');
 }
 
 /**
@@ -45,7 +69,7 @@ export function getStoredUser() {
 }
 
 /**
- * Extract numeric user ID matching backend identity requirements
+ * Extract active user ID from stored user object for UI helpers
  */
 export function getStoredUserId() {
   const user = getStoredUser();
@@ -63,7 +87,7 @@ export function getStoredUserId() {
 }
 
 /**
- * Build request headers including content-type and role/user identity
+ * Build request headers including content-type and JWT authorization
  */
 export function buildHeaders(customHeaders = {}) {
   const headers = {
@@ -71,21 +95,28 @@ export function buildHeaders(customHeaders = {}) {
     ...customHeaders,
   };
 
-  const role = getStoredRole();
-  if (role) {
-    headers['x-user-role'] = role;
-  }
-
-  const userId = getStoredUserId();
-  if (userId) {
-    headers['x-user-id'] = userId;
+  const token = getAccessToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
   return headers;
 }
 
+let isRefreshing = false;
+let refreshSubscribers = [];
+
+function subscribeTokenRefresh(cb) {
+  refreshSubscribers.push(cb);
+}
+
+function onRefreshed(token) {
+  refreshSubscribers.forEach((cb) => cb(token));
+  refreshSubscribers = [];
+}
+
 /**
- * Core HTTP request handler
+ * Core HTTP request handler with automatic token refresh
  */
 export async function request(endpoint, options = {}) {
   const {
@@ -93,12 +124,14 @@ export async function request(endpoint, options = {}) {
     body = null,
     headers = {},
     signal = null,
+    _retry = false,
   } = options;
 
   const url = `${API_BASE_URL}${endpoint}`;
   const config = {
     method,
     headers: buildHeaders(headers),
+    credentials: 'include', // Transmit httpOnly cookies (refresh_token, access_token)
     signal,
   };
 
@@ -110,16 +143,54 @@ export async function request(endpoint, options = {}) {
   try {
     response = await fetch(url, config);
   } catch (err) {
-    // If request was cancelled via AbortController signal
     if (err.name === 'AbortError') {
       throw new ApiError('Request was cancelled', 0, null, true);
     }
-    // Network or server unreachable error
     throw new ApiError(
       err.message || 'Network connection error. Is backend server running?',
       0,
       null
     );
+  }
+
+  // Handle 401 Unauthorized with token refresh if not already retrying
+  if (response.status === 401 && !_retry && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/refresh')) {
+    if (!isRefreshing) {
+      isRefreshing = true;
+      try {
+        const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+        });
+
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json();
+          if (refreshData.accessToken) {
+            setAccessToken(refreshData.accessToken);
+            onRefreshed(refreshData.accessToken);
+            isRefreshing = false;
+            // Retry the original failed request with the new access token
+            return request(endpoint, { ...options, _retry: true });
+          }
+        }
+      } catch (refreshErr) {
+        console.warn('[Auth] Token auto-refresh failed:', refreshErr);
+      } finally {
+        isRefreshing = false;
+      }
+    } else {
+      // Queue until the ongoing refresh completes
+      return new Promise((resolve, reject) => {
+        subscribeTokenRefresh((newToken) => {
+          if (newToken) {
+            resolve(request(endpoint, { ...options, _retry: true }));
+          } else {
+            reject(new ApiError('Session expired. Please log in again.', 401));
+          }
+        });
+      });
+    }
   }
 
   // 204 No Content
@@ -145,9 +216,7 @@ export async function request(endpoint, options = {}) {
     let errorMsg = `Request failed with status ${response.status}`;
 
     if (data && typeof data === 'object') {
-      // NestJS GlobalExceptionFilter returns: { statusCode, error, message, timestamp, path }
       if (Array.isArray(data.message)) {
-        // ValidationPipe returns an array of validation errors
         errorMsg = data.message.join(', ');
       } else if (typeof data.message === 'string') {
         errorMsg = data.message;
@@ -191,20 +260,43 @@ export function apiDelete(endpoint, options = {}) {
 // ==========================================================
 
 export const authApi = {
+  // Unified cryptographic login endpoint
+  login: (credentials, options) =>
+    apiPost('/auth/login', credentials, options),
+
+  // Registration endpoints (restricted to traveler and agency)
+  registerTraveler: (dto, options) =>
+    apiPost('/auth/register/traveler', dto, options),
+
+  registerAgency: (dto, options) =>
+    apiPost('/auth/register/agency', dto, options),
+
+  // Session & token lifecycle
+  refresh: (refreshToken, options) =>
+    apiPost('/auth/refresh', { refreshToken }, options),
+
+  logout: (options) =>
+    apiPost('/auth/logout', {}, options),
+
+  me: (options) =>
+    apiGet('/auth/me', options),
+
+  // Password reset flow
+  forgotPassword: (email, options) =>
+    apiPost('/auth/forgot-password', { email }, options),
+
+  resetPassword: (token, newPassword, options) =>
+    apiPost('/auth/reset-password', { token, newPassword }, options),
+
+  // Backwards-compatible shims mapping to unified login
   loginTraveler: (credentials, options) =>
-    apiPost('/auth/traveler-login', credentials, options),
+    apiPost('/auth/login', credentials, options),
 
   loginStaff: (credentials, options) =>
-    apiPost('/auth/staff-login', credentials, options),
+    apiPost('/auth/login', credentials, options),
 
   loginAgency: (credentials, options) =>
-    apiPost('/auth/agency-login', credentials, options),
-
-  registerTraveler: (travelerData, options) =>
-    apiPost('/travelers', travelerData, options),
-
-  registerAgency: (agencyData, options) =>
-    apiPost('/agencies/register', agencyData, options),
+    apiPost('/auth/login', credentials, options),
 };
 
 export const travelersApi = {
@@ -344,6 +436,12 @@ export const bookingsApi = {
   update: (id, bookingData, options) =>
     apiPut(`/bookings/${id}`, bookingData, options),
 
+  cancel: (id, reason, options) =>
+    apiPost(`/bookings/${id}/cancel`, { reason }, options),
+
+  cancellationPreview: (id, options) =>
+    apiGet(`/bookings/${id}/cancellation-preview`, options),
+
   delete: (id, options) =>
     apiDelete(`/bookings/${id}`, options),
 };
@@ -351,6 +449,10 @@ export const bookingsApi = {
 export const expensesApi = {
   getByTrip: (tripId, options) =>
     apiGet(`/expenses/trip/${tripId}`, options),
+
+  /** GET /expenses/trip/:tripId/budget-gauge — returns { totalBudget, totalExpenses, percentUsed, remaining } */
+  getBudgetGauge: (tripId, options) =>
+    apiGet(`/expenses/trip/${tripId}/budget-gauge`, options),
 
   create: (expenseData, options) =>
     apiPost('/expenses', expenseData, options),
@@ -426,8 +528,16 @@ export const reviewsApi = {
   getByGuide: (guideId, options) =>
     apiGet(`/reviews/guide/${guideId}`, options),
 
+  /** GET /reviews/guide/:guideId/stats — returns { guideId, count, avg, starBreakdown, recommendPercentage } */
+  getGuideStats: (guideId, options) =>
+    apiGet(`/reviews/guide/${guideId}/stats`, options),
+
   create: (reviewData, options) =>
     apiPost('/reviews', reviewData, options),
+
+  /** POST /reviews/:id/response — guide posts a public response */
+  respond: (id, data, options) =>
+    apiPost(`/reviews/${id}/response`, data, options),
 
   delete: (id, options) =>
     apiDelete(`/reviews/${id}`, options),
@@ -454,6 +564,22 @@ export const supportTicketsApi = {
 
   reply: (id, replyData, options) =>
     apiPost(`/support-tickets/${id}/reply`, replyData, options),
+
+  /** PATCH /support-tickets/:id/assign — assign ticket to a care agent */
+  assign: (id, data, options) =>
+    apiPatch(`/support-tickets/${id}/assign`, data, options),
+
+  /** POST /support-tickets/:id/notes — add an internal note (hidden from traveler/agency) */
+  addInternalNote: (id, data, options) =>
+    apiPost(`/support-tickets/${id}/notes`, data, options),
+
+  /** GET /support-tickets/:id/notes — list internal notes for a ticket */
+  getInternalNotes: (id, options) =>
+    apiGet(`/support-tickets/${id}/notes`, options),
+
+  /** POST /support-tickets/:id/adjudicate — refund adjudication via PolicyService */
+  adjudicate: (id, data, options) =>
+    apiPost(`/support-tickets/${id}/adjudicate`, data, options),
 };
 
 export const messagesApi = {
@@ -569,19 +695,16 @@ export const uploadsApi = {
     formData.append('file', file);
 
     const headers = {};
-    const role = getStoredRole();
-    if (role) {
-      headers['x-user-role'] = role;
-    }
-    const userId = getStoredUserId();
-    if (userId) {
-      headers['x-user-id'] = userId;
+    const token = getAccessToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
     const url = `${API_BASE_URL}/uploads/attachment`;
     const config = {
       method: 'POST',
       headers,
+      credentials: 'include',
       body: formData,
       signal: options.signal,
     };
@@ -637,4 +760,15 @@ export const agencyApi = {
   updateTrip: (id, data, options) => apiPatch(`/api/agency/trips/${id}`, data, options),
   getTicketThread: (id, options) => apiGet(`/api/agency/support/${id}`, options),
   replyTicket: (id, data, options) => apiPost(`/api/agency/support/${id}/reply`, data, options),
+};
+
+export const notificationsApi = {
+  getAll: (params = {}, options = {}) => {
+    const query = new URLSearchParams();
+    if (params.since) query.append('since', params.since);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return apiGet(`/notifications${qs}`, options);
+  },
+  markAsRead: (id, options) => apiPatch(`/notifications/${id}/read`, {}, options),
+  markAllAsRead: (options) => apiPatch('/notifications/read-all', {}, options),
 };

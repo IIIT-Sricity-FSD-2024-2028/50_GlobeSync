@@ -137,7 +137,7 @@ export default function AgencyPaymentsPage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))',
           gap: '16px',
           marginBottom: '28px',
         }}
@@ -177,7 +177,7 @@ export default function AgencyPaymentsPage() {
           marginBottom: '20px',
         }}
       >
-        <div style={{ display: 'flex', gap: '8px', background: '#f1f5f9', padding: '4px', borderRadius: '10px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', background: '#f1f5f9', padding: '4px', borderRadius: '10px' }}>
           {['all', 'paid', 'pending'].map((tab) => (
             <button
               key={tab}

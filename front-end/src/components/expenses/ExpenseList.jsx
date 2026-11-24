@@ -130,14 +130,31 @@ export default function ExpenseList({
                   </td>
                   <td style={{ padding: '16px 18px', textAlign: 'right' }}>
                     <div style={{ display: 'inline-flex', gap: '8px' }}>
-                      <button
-                        type="button"
-                        onClick={() => onEdit(expense)}
-                        className="btn btn-secondary"
-                        style={{ padding: '5px 10px', fontSize: '12px', fontWeight: 600, borderRadius: '6px' }}
-                      >
-                        ✏️ Edit
-                      </button>
+                      {expense.bookingId ? (
+                        // Booked items (flight, hotel, bus...) take their price and category from the booking.
+                        <span
+                          title="Price and category come from your booking and cannot be edited"
+                          style={{
+                            padding: '5px 10px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            borderRadius: '6px',
+                            background: '#f1f5f9',
+                            color: '#475569',
+                          }}
+                        >
+                          🔒 Booked
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onEdit(expense)}
+                          className="btn btn-secondary"
+                          style={{ padding: '5px 10px', fontSize: '12px', fontWeight: 600, borderRadius: '6px' }}
+                        >
+                          ✏️ Edit
+                        </button>
+                      )}
                       {userRole === 'superuser' && onDelete && (
                         <button
                           type="button"

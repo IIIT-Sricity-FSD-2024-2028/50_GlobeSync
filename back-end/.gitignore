@@ -2,4 +2,5 @@
 logs/
 
 # Runtime-generated file uploads — never commit these
-uploads/
+# Anchored to the back-end root: src/uploads/ is source code and must be committed.
+/uploads/

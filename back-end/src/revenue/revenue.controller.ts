@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, ParseIntPipe, Put, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, ParseIntPipe, Put, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -14,6 +14,7 @@ import { ApiUserHeaders } from '../common/decorators/api-user-headers.decorator'
 import { Role } from '../common/enums/role.enum';
 import { ErrorResponseDto } from '../common/dto/error-response.dto';
 import { UpdateRevenueConfigDto } from './dto/update-revenue-config.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @ApiTags('revenue')
 @Controller('api')
@@ -21,7 +22,7 @@ import { UpdateRevenueConfigDto } from './dto/update-revenue-config.dto';
 export class RevenueController {
   constructor(private readonly revenueService: RevenueService) {}
 
-  // ================= ADMIN ROUTES =================
+  // ================= ADMIN & SUPERUSER ROUTES =================
 
   @Get('admin/revenue/overview')
   @Roles(Role.ADMIN, Role.SUPERUSER)
@@ -32,6 +33,22 @@ export class RevenueController {
   @ApiResponse({ status: 403, description: 'Forbidden', type: ErrorResponseDto })
   getAdminOverview() {
     return this.revenueService.getRevenueSummary();
+  }
+
+  @Get('admin/revenue/analytics/settled')
+  @Roles(Role.ADMIN, Role.SUPERUSER)
+  @ApiRoleHeader()
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Settled revenue analytics with date filters',
+    description: 'Computes metrics ONLY from settled ledger transactions. Returns zeros when there is no data.',
+  })
+  @ApiResponse({ status: 200, description: 'Settled revenue analytics' })
+  getSettledAnalytics(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.revenueService.getSettledRevenueAnalytics(startDate, endDate);
   }
 
   @Get('admin/revenue/breakdown')
@@ -49,11 +66,11 @@ export class RevenueController {
   @Roles(Role.ADMIN, Role.SUPERUSER)
   @ApiRoleHeader()
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get all revenue transactions (Admin/Superuser only)' })
+  @ApiOperation({ summary: 'Get all revenue transactions with pagination, search, and sorting' })
   @ApiResponse({ status: 200, description: 'Transaction list returned' })
   @ApiResponse({ status: 403, description: 'Forbidden', type: ErrorResponseDto })
-  getAllTransactions() {
-    return this.revenueService.getAllTransactions();
+  getAllTransactions(@Query() query: PaginationQueryDto) {
+    return this.revenueService.getAllTransactions(query);
   }
 
   @Get('admin/revenue/config')
@@ -91,21 +108,25 @@ export class RevenueController {
   @ApiUserHeaders()
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Get revenue for a specific agency',
+    summary: 'Get revenue for a specific agency with pagination',
     description:
       'AGENCY role: x-user-id must match :id. ADMIN/SUPERUSER may access any agency.',
   })
   @ApiParam({ name: 'id', type: Number, description: 'Agency ID' })
   @ApiResponse({ status: 200, description: 'Agency revenue returned' })
   @ApiResponse({ status: 403, description: 'Forbidden — wrong role or mismatched agency ID', type: ErrorResponseDto })
-  getAgencyRevenue(@Param('id', ParseIntPipe) id: number) {
+  getAgencyRevenue(
+    @Param('id', ParseIntPipe) id: number,
+    @Query() query: PaginationQueryDto,
+  ) {
     const txs = this.revenueService.getAgencyTransactions(id);
 
     const validStatuses = ['EARNED', 'SETTLED'];
     let totalSales = 0;
     let totalCommission = 0;
 
-    txs.forEach(t => {
+    const list = Array.isArray(txs) ? txs : (txs as any).data || [];
+    list.forEach((t: any) => {
       if (t.revenue_type === 'AGENCY_COMMISSION') {
         totalSales += t.gross_amount;
         if (validStatuses.includes(t.status)) {
@@ -122,4 +143,3 @@ export class RevenueController {
     };
   }
 }
-

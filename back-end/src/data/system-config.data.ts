@@ -46,6 +46,12 @@ export interface SystemAuditLog {
   color?: string;
   category: 'rules' | 'payment' | 'integration' | 'users';
   timestamp: string;
+  who?: string;
+  what?: string;
+  before?: any;
+  after?: any;
+  ip?: string;
+  correlationId?: string;
 }
 
 export const platformRules: PlatformRules = {

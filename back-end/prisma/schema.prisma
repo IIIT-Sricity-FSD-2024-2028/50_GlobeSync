@@ -1,0 +1,739 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  TRAVELER
+  GUIDE
+  AGENCY
+  ADMIN
+  SUPERUSER
+  SUPPORT
+}
+
+enum UserStatus {
+  ACTIVE
+  PENDING
+  SUSPENDED
+  INACTIVE
+}
+
+enum AgencyApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TripStatus {
+  Planning
+  Pending
+  Confirmed
+  Active
+  Completed
+  Cancelled
+}
+
+enum GuideStatus {
+  Pending
+  Accepted
+  Declined
+}
+
+enum BookingStatus {
+  DRAFT
+  HELD
+  PAID
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+  REFUNDED
+}
+
+enum BookingItemType {
+  flight
+  hotel
+  transit
+  tour
+  package
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSED
+  REJECTED
+}
+
+enum GuideRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum CommissionStatus {
+  PENDING
+  EARNED
+  SETTLED
+}
+
+enum TimeSlot {
+  morning
+  afternoon
+  evening
+}
+
+enum LedgerEntryType {
+  DEBIT
+  CREDIT
+}
+
+enum AccountType {
+  PLATFORM
+  AGENCY
+  TRAVELER
+  ESCROW
+}
+
+enum ReferenceType {
+  BOOKING
+  PAYMENT
+  REFUND
+  COMMISSION
+  PAYOUT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+model User {
+  id                       Int         @id @default(autoincrement())
+  email                    String      @unique
+  password_hash            String
+  name                     String
+  role                     Role        @default(TRAVELER)
+  status                   UserStatus  @default(ACTIVE)
+  phone                    String?
+  gender                   String?
+  age                      Int?
+  email_verified_at        DateTime?
+  failed_login_attempts    Int         @default(0)
+  locked_until             DateTime?
+  last_login_at            DateTime?
+  password_reset_token     String?
+  password_reset_expiry    DateTime?
+  created_at               DateTime    @default(now())
+  updated_at               DateTime    @updatedAt
+
+  guide_profile     GuideProfile?  @relation("UserGuideProfile")
+  agency_profile    AgencyProfile? @relation("UserAgencyProfile")
+  verified_guides   GuideProfile[] @relation("GuideVerifier")
+  approved_agencies AgencyProfile[] @relation("AgencyApprover")
+
+  traveler_trips    Trip[]         @relation("TravelerTrips")
+  agency_trips      Trip[]         @relation("AgencyTrips")
+  guide_trips       Trip[]         @relation("GuideTrips")
+
+  traveler_bookings Booking[]      @relation("TravelerBookings")
+  agency_bookings   Booking[]      @relation("AgencyBookings")
+
+  payments          Payment[]
+  refunds           Refund[]
+  guide_requests    GuideRequest[]
+  traveler_reviews  Review[]       @relation("TravelerReviews")
+  guide_reviews     Review[]       @relation("GuideReviews")
+  expenses          Expense[]
+  
+  sent_messages     Message[]      @relation("SentMessages")
+  received_messages Message[]      @relation("ReceivedMessages")
+  
+  support_tickets   SupportTicket[] @relation("TicketCreator")
+  assigned_tickets  SupportTicket[] @relation("TicketAssignee")
+  ticket_messages   TicketMessage[]
+
+  agency_packages   AgencyPackage[]
+  commissions       Commission[]
+  promo_codes       PromoCode[]
+  subscriptions     Subscription[]
+  notifications     Notification[]
+  audit_logs        AuditLog[]
+  refresh_tokens    RefreshToken[]
+
+  @@index([email])
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+model RefreshToken {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  token_hash String    @unique
+  expires_at DateTime
+  revoked_at DateTime?
+  created_at DateTime  @default(now())
+
+  @@index([user_id])
+  @@index([token_hash])
+  @@map("refresh_tokens")
+}
+
+model GuideProfile {
+  id                         Int       @id @default(autoincrement())
+  user_id                    Int       @unique
+  user                       User      @relation("UserGuideProfile", fields: [user_id], references: [id], onDelete: Cascade)
+  admin_set_rate_minor       Int       @default(0)
+  verified_experience_years  Int       @default(0)
+  verified_by                Int?
+  verifier                   User?     @relation("GuideVerifier", fields: [verified_by], references: [id])
+  verified_at                DateTime?
+  bio                        String?
+  specialties                String?
+  languages                  String?
+  location                   String?
+  rating                     Float     @default(5.0)
+  total_reviews              Int       @default(0)
+
+  @@index([user_id])
+  @@map("guide_profiles")
+}
+
+model AgencyProfile {
+  id              Int                  @id @default(autoincrement())
+  user_id         Int                  @unique
+  user            User                 @relation("UserAgencyProfile", fields: [user_id], references: [id], onDelete: Cascade)
+  business_name   String
+  tax_id          String
+  approval_status AgencyApprovalStatus @default(PENDING)
+  approved_by     Int?
+  approver        User?                @relation("AgencyApprover", fields: [approved_by], references: [id])
+  approved_at     DateTime?
+  payout_bank_upi String?
+  phone           String?
+  address         String?
+
+  @@index([user_id])
+  @@index([approval_status])
+  @@map("agency_profiles")
+}
+
+model Trip {
+  id                Int          @id @default(autoincrement())
+  traveler_id       Int?
+  traveler          User?        @relation("TravelerTrips", fields: [traveler_id], references: [id])
+  agency_id         Int?
+  agency            User?        @relation("AgencyTrips", fields: [agency_id], references: [id])
+  guide_id          Int?
+  guide             User?        @relation("GuideTrips", fields: [guide_id], references: [id])
+  package_id        Int?
+  package           AgencyPackage? @relation(fields: [package_id], references: [id])
+  title             String?
+  origin            String
+  destination       String
+  start_date        DateTime
+  end_date          DateTime
+  budget_minor      Int          @default(0)
+  status            TripStatus   @default(Planning)
+  guide_status      GuideStatus?
+  travelers_count   Int          @default(1)
+  passenger_ids     Json?
+  transport_details Json?
+  created_at        DateTime     @default(now())
+  updated_at        DateTime     @updatedAt
+
+  itineraries       Itinerary[]
+  bookings          Booking[]
+  payments          Payment[]
+  expenses          Expense[]
+  reviews           Review[]
+  guide_requests    GuideRequest[]
+  commissions       Commission[]
+
+  @@index([traveler_id])
+  @@index([agency_id])
+  @@index([guide_id])
+  @@index([status])
+  @@map("trips")
+}
+
+model Itinerary {
+  id         Int            @id @default(autoincrement())
+  trip_id    Int
+  trip       Trip           @relation(fields: [trip_id], references: [id], onDelete: Cascade)
+  title      String
+  created_at DateTime       @default(now())
+  updated_at DateTime       @updatedAt
+
+  days       ItineraryDay[]
+
+  @@index([trip_id])
+  @@map("itineraries")
+}
+
+model ItineraryDay {
+  id           Int             @id @default(autoincrement())
+  itinerary_id Int
+  itinerary    Itinerary       @relation(fields: [itinerary_id], references: [id], onDelete: Cascade)
+  day_number   Int
+  date         DateTime?
+  title        String?
+  notes        String?
+
+  items        ItineraryItem[]
+
+  @@index([itinerary_id])
+  @@map("itinerary_days")
+}
+
+model ItineraryItem {
+  id               Int          @id @default(autoincrement())
+  itinerary_day_id Int
+  itinerary_day    ItineraryDay @relation(fields: [itinerary_day_id], references: [id], onDelete: Cascade)
+  time_slot        TimeSlot     @default(morning)
+  activity         String
+  location         String?
+  notes            String?
+
+  @@index([itinerary_day_id])
+  @@map("itinerary_items")
+}
+
+model Booking {
+  id                 Int           @id @default(autoincrement())
+  trip_id            Int?
+  trip               Trip?         @relation(fields: [trip_id], references: [id])
+  traveler_id        Int?
+  traveler           User?         @relation("TravelerBookings", fields: [traveler_id], references: [id])
+  agency_id          Int?
+  agency             User?         @relation("AgencyBookings", fields: [agency_id], references: [id])
+  status             BookingStatus @default(HELD)
+  departure_at_utc   DateTime?
+  departure_timezone String        @default("UTC")
+  total_minor        Int           @default(0)
+  currency           String        @default("INR")
+  policy_snapshot    Json?
+  service            String?
+  type               String?
+  booking_date       DateTime      @default(now())
+  created_at         DateTime      @default(now())
+  updated_at         DateTime      @updatedAt
+
+  items              BookingItem[]
+  payments           Payment[]
+  refunds            Refund[]
+  commissions        Commission[]
+  reviews            Review[]
+
+  @@index([trip_id])
+  @@index([traveler_id])
+  @@index([agency_id])
+  @@index([status])
+  @@map("bookings")
+}
+
+model BookingItem {
+  id            Int             @id @default(autoincrement())
+  booking_id    Int
+  booking       Booking         @relation(fields: [booking_id], references: [id], onDelete: Cascade)
+  item_type     BookingItemType
+  inventory_ref String
+  service_name  String
+  amount_minor  Int             @default(0)
+  status        String?
+
+  @@index([booking_id])
+  @@map("booking_items")
+}
+
+model Payment {
+  id              Int           @id @default(autoincrement())
+  booking_id      Int?
+  booking         Booking?      @relation(fields: [booking_id], references: [id])
+  trip_id         Int?
+  trip            Trip?         @relation(fields: [trip_id], references: [id])
+  traveler_id     Int
+  traveler        User          @relation(fields: [traveler_id], references: [id])
+  amount_minor    Int           @default(0)
+  currency        String        @default("INR")
+  status          PaymentStatus @default(COMPLETED)
+  payment_method  String?
+  transaction_ref String?       @unique
+  created_at      DateTime      @default(now())
+
+  refunds         Refund[]
+
+  @@index([booking_id])
+  @@index([trip_id])
+  @@index([traveler_id])
+  @@index([status])
+  @@map("payments")
+}
+
+model Refund {
+  id                Int          @id @default(autoincrement())
+  payment_id        Int
+  payment           Payment      @relation(fields: [payment_id], references: [id])
+  booking_id        Int?
+  booking           Booking?     @relation(fields: [booking_id], references: [id])
+  traveler_id       Int
+  traveler          User         @relation(fields: [traveler_id], references: [id])
+  amount_minor      Int          @default(0)
+  reason            String
+  status            RefundStatus @default(PENDING)
+  refund_percentage Int?         @default(0)
+  requested_at      DateTime     @default(now())
+  processed_at      DateTime?
+
+  @@index([payment_id])
+  @@index([traveler_id])
+  @@index([status])
+  @@map("refunds")
+}
+
+model LedgerEntry {
+  id             Int             @id @default(autoincrement())
+  entry_type     LedgerEntryType
+  account_type   AccountType
+  account_id     Int?
+  amount_minor   Int             @default(0)
+  currency       String          @default("INR")
+  reference_type ReferenceType
+  reference_id   Int
+  description    String?
+  created_at     DateTime        @default(now())
+
+  @@index([account_type, account_id])
+  @@index([reference_type, reference_id])
+  @@map("ledger_entries")
+}
+
+model GuideRequest {
+  id           Int                @id @default(autoincrement())
+  trip_id      Int
+  trip         Trip               @relation(fields: [trip_id], references: [id], onDelete: Cascade)
+  guide_id     Int
+  guide        User               @relation(fields: [guide_id], references: [id])
+  status       GuideRequestStatus @default(PENDING)
+  requested_at DateTime           @default(now())
+  decided_at   DateTime?
+  notes        String?
+
+  @@index([trip_id])
+  @@index([guide_id])
+  @@index([status])
+  @@map("guide_requests")
+}
+
+model Review {
+  id             Int      @id @default(autoincrement())
+  booking_id     Int?
+  booking        Booking? @relation(fields: [booking_id], references: [id])
+  trip_id        Int?
+  trip           Trip?    @relation(fields: [trip_id], references: [id])
+  traveler_id    Int
+  traveler       User     @relation("TravelerReviews", fields: [traveler_id], references: [id])
+  guide_id       Int?
+  guide          User?    @relation("GuideReviews", fields: [guide_id], references: [id])
+  rating         Int      @default(5)
+  comment        String
+  guide_response String?
+  created_at     DateTime @default(now())
+
+  @@unique([booking_id, traveler_id, guide_id])
+  @@index([trip_id])
+  @@index([traveler_id])
+  @@index([guide_id])
+  @@map("reviews")
+}
+
+model Expense {
+  id           Int      @id @default(autoincrement())
+  trip_id      Int
+  trip         Trip     @relation(fields: [trip_id], references: [id], onDelete: Cascade)
+  payer_id     Int
+  payer        User     @relation(fields: [payer_id], references: [id])
+  category     String
+  amount_minor Int      @default(0)
+  description  String
+  receipt_url  String?
+  date         DateTime @default(now())
+
+  @@index([trip_id])
+  @@index([payer_id])
+  @@map("expenses")
+}
+
+model Conversation {
+  id         Int       @id @default(autoincrement())
+  user1_id   Int
+  user2_id   Int
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+
+  messages   Message[]
+
+  @@unique([user1_id, user2_id])
+  @@map("conversations")
+}
+
+model Message {
+  id              Int           @id @default(autoincrement())
+  conversation_id Int?
+  conversation    Conversation? @relation(fields: [conversation_id], references: [id])
+  sender_id       Int
+  sender          User          @relation("SentMessages", fields: [sender_id], references: [id])
+  receiver_id     Int
+  receiver        User          @relation("ReceivedMessages", fields: [receiver_id], references: [id])
+  content         String
+  is_read         Boolean       @default(false)
+  created_at      DateTime      @default(now())
+
+  @@index([conversation_id])
+  @@index([sender_id])
+  @@index([receiver_id])
+  @@map("messages")
+}
+
+model SupportTicket {
+  id          Int            @id @default(autoincrement())
+  user_id     Int
+  user        User           @relation("TicketCreator", fields: [user_id], references: [id])
+  assigned_to Int?
+  assignee    User?          @relation("TicketAssignee", fields: [assigned_to], references: [id])
+  subject     String
+  status      TicketStatus   @default(OPEN)
+  priority    TicketPriority @default(MEDIUM)
+  created_at  DateTime       @default(now())
+  updated_at  DateTime       @updatedAt
+
+  messages    TicketMessage[]
+
+  @@index([user_id])
+  @@index([assigned_to])
+  @@index([status])
+  @@map("support_tickets")
+}
+
+model TicketMessage {
+  id         Int           @id @default(autoincrement())
+  ticket_id  Int
+  ticket     SupportTicket @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  sender_id  Int
+  sender     User          @relation(fields: [sender_id], references: [id])
+  content    String
+  created_at DateTime      @default(now())
+
+  @@index([ticket_id])
+  @@map("ticket_messages")
+}
+
+model AgencyPackage {
+  id            Int      @id @default(autoincrement())
+  agency_id     Int?
+  agency        User?    @relation(fields: [agency_id], references: [id])
+  title         String
+  description   String
+  destination   String
+  price_minor   Int      @default(0)
+  duration_days Int      @default(1)
+  status        String   @default("ACTIVE")
+  created_at    DateTime @default(now())
+
+  trips         Trip[]
+
+  @@index([agency_id])
+  @@map("agency_packages")
+}
+
+model Commission {
+  id                      Int              @id @default(autoincrement())
+  agency_id               Int
+  agency                  User             @relation(fields: [agency_id], references: [id])
+  booking_id              Int?
+  booking                 Booking?         @relation(fields: [booking_id], references: [id])
+  trip_id                 Int?
+  trip                    Trip?            @relation(fields: [trip_id], references: [id])
+  amount_minor            Int              @default(0)
+  commission_rate_percent Float            @default(10.0)
+  status                  CommissionStatus @default(PENDING)
+  earned_at               DateTime         @default(now())
+  settled_at              DateTime?
+
+  @@index([agency_id])
+  @@index([booking_id])
+  @@index([status])
+  @@map("commissions")
+}
+
+model PromoCode {
+  id                    Int       @id @default(autoincrement())
+  code                  String    @unique
+  agency_id             Int?
+  agency                User?     @relation(fields: [agency_id], references: [id])
+  discount_percent      Float?    @default(0)
+  discount_amount_minor Int?      @default(0)
+  max_uses              Int?
+  current_uses          Int       @default(0)
+  is_active             Boolean   @default(true)
+  expires_at            DateTime?
+  created_at            DateTime  @default(now())
+
+  @@index([agency_id])
+  @@map("promo_codes")
+}
+
+model SubscriptionPlan {
+  id            Int            @id @default(autoincrement())
+  name          String
+  price_minor   Int            @default(0)
+  billing_cycle String         @default("MONTHLY")
+  tier          String         @default("PRO")
+  is_active     Boolean        @default(true)
+
+  subscriptions Subscription[]
+
+  @@map("subscription_plans")
+}
+
+model Subscription {
+  id         Int                @id @default(autoincrement())
+  user_id    Int
+  user       User               @relation(fields: [user_id], references: [id])
+  plan_id    Int
+  plan       SubscriptionPlan   @relation(fields: [plan_id], references: [id])
+  status     SubscriptionStatus @default(ACTIVE)
+  starts_at  DateTime           @default(now())
+  expires_at DateTime
+  created_at DateTime           @default(now())
+
+  @@index([user_id])
+  @@index([plan_id])
+  @@map("subscriptions")
+}
+
+model Notification {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  title      String
+  body       String
+  is_read    Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  @@index([user_id])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  actor_id    Int?
+  actor       User?    @relation(fields: [actor_id], references: [id])
+  action      String
+  entity_type String
+  entity_id   Int?
+  details     Json?
+  ip_address  String?
+  created_at  DateTime @default(now())
+
+  @@index([actor_id])
+  @@index([entity_type, entity_id])
+  @@index([created_at])
+  @@map("audit_logs")
+}
+
+model SystemConfig {
+  id         Int      @id @default(autoincrement())
+  key        String   @unique
+  value      Json
+  updated_at DateTime @updatedAt
+
+  @@map("system_configs")
+}
+
+model InventoryItem {
+  id              Int      @id @default(autoincrement())
+  inventory_ref   String   @unique
+  type            String
+  name            String
+  capacity        Int
+  held_quantity   Int      @default(0)
+  booked_quantity Int      @default(0)
+  price_minor     Int
+  currency        String   @default("INR")
+  version         Int      @default(0)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  @@map("inventory_items")
+}
+
+model GuideAvailability {
+  id         Int      @id @default(autoincrement())
+  guide_id   Int
+  booking_id Int?
+  start_date DateTime
+  end_date   DateTime
+  status     String   @default("HELD") // HELD, CONFIRMED, BLOCKED
+  created_at DateTime @default(now())
+
+  @@index([guide_id, start_date, end_date])
+  @@map("guide_availabilities")
+}
+
+model PaymentIntent {
+  id              Int      @id @default(autoincrement())
+  intent_id       String   @unique
+  gateway         String   @default("RAZORPAY")
+  booking_id      Int
+  traveler_id     Int
+  amount_minor    Int
+  currency        String   @default("INR")
+  status          String   @default("REQUIRES_PAYMENT")
+  client_secret   String?
+  idempotency_key String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  @@map("payment_intents")
+}
+
+model IdempotencyRecord {
+  id              Int      @id @default(autoincrement())
+  key             String   @unique
+  route           String
+  response_status Int
+  response_body   Json
+  created_at      DateTime @default(now())
+  expires_at      DateTime
+
+  @@map("idempotency_records")
+}

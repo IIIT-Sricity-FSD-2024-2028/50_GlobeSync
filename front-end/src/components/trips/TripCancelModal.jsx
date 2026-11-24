@@ -98,8 +98,10 @@ export default function TripCancelModal({
           borderRadius: '16px',
           width: '100%',
           maxWidth: '520px',
+          maxHeight: 'calc(100vh - 40px)',
+          overflowY: 'auto',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-          overflow: 'hidden',
+          overflowX: 'hidden',
           display: 'flex',
           flexDirection: 'column',
         }}

@@ -219,7 +219,7 @@ export default function AgencyPassengersPage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))',
           gap: '16px',
           marginBottom: '24px',
         }}
@@ -520,6 +520,8 @@ export default function AgencyPassengersPage() {
               borderRadius: '16px',
               width: '100%',
               maxWidth: '440px',
+              maxHeight: 'calc(100vh - 40px)',
+              overflowY: 'auto',
               padding: '24px',
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
             }}

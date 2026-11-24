@@ -119,55 +119,95 @@ cd ../back-end
 npm run build
 
 
-Sample Login Credentials
+Academic Demo Accounts
 
-Traveler (/login/traveler): Arjun@gmail.com / traveler123 (or Kavya@gmail.com / traveler123)
+For assessment, grading, and demonstration purposes, GlobeSync includes pre-configured academic demo accounts across all six platform roles. In development mode (`VITE_SHOW_DEMO_ACCOUNTS=true`), the login screen features an interactive Actor Picker that auto-fills credentials:
 
-Guide (/login/staff, role: guide): Devansh@gmail.com / guide123
+| Actor Name | Role | Email | Portal Route | Primary Capabilities |
+| :--- | :--- | :--- | :--- | :--- |
+| **Arjun Mehta** | Traveler | `Arjun@gmail.com` | `/traveler/dashboard` | Itinerary wizard, package bookings, live guide chat, reviews |
+| **Devansh Sharma** | Guide | `Devansh@gmail.com` | `/guide/dashboard` | Trip requests, atomic date availability, verified review hub |
+| **Horizon Travel** | Agency | `Horizon@gmail.com` | `/agency/dashboard` | Curated packages, commission tracking, group passenger manifest |
+| **Aisha Johnson** | Support | `Aisha.johnson@gmail.com` | `/support/dashboard` | Ticket queue, SLA timers, emergency overrides (<12h) |
+| **Manoj Gupta** | Admin | `Manoj@gmail.com` | `/admin/dashboard` | Agency approval, guide contractual rate lock, audit log trail |
+| **Super Admin** | Superuser | `superuser@globesync.com` | `/super/dashboard` | Platform policy config, staff provisioning, settled ledger revenue |
 
-Support (/login/staff, role: support): Aisha.johnson@gmail.com / support123
-
-Admin (/login/staff, role: admin): admin@ticp.com / admin123
-
-Superuser (/login/superuser): superadmin@ticp.com / super123
-
-Agency (/login/agency): ops@horizontravel.com / horizon123
+> **Security Notice**: In compliance with enterprise standards, zero plaintext passwords are stored or published. All demo credentials are cryptographically hashed using **Argon2 / Bcrypt (cost factor >= 12)** with account lockout protection.
 
 Testing Instructions
 
-1. Automated Backend Tests
+GlobeSync includes a comprehensive automated test pyramid spanning unit, integration, and end-to-end browser tests:
 
-Run the backend test suite from the back-end folder:
+1. Automated Backend Unit Test Suite (206 tests, 100% pass)
 
+Run all 12 unit test specification files from the `back-end` directory:
+
+```bash
 cd back-end
 npm test
+```
 
+This executes all 12 test specifications in sequence:
+- `src/trips/backend-fixes.spec.ts` (Trip status transitions, referential integrity, guide status lifecycle)
+- `src/support-users/support-users.service.spec.ts` (Support user profile immutability and ownership guards)
+- `src/agencies/agencies.service.spec.ts` (Agency registration, approval status, password stripping)
+- `src/admins/admins.service.spec.ts` (Admin profile governance, immutable roles, self-ownership)
+- `src/common/guards/roles-guard-ownership.spec.ts` (Role-based access control and ID boundary guards)
+- `src/common/guards/child-resource-ownership.spec.ts` (Ownership enforcement on itineraries, expenses, payments, refunds)
+- `src/revenue/revenue-subscriptions-promotions.rbac.spec.ts` (Settled ledger revenue, subscription tiers, promotions)
+- `src/auth/auth-security.spec.ts` (JWT tokens, role escalation prevention, Bcrypt cost >= 12, account lockout)
+- `src/policy/policy.spec.ts` (Centralized PolicyService, lead time >= 24h, table-driven 73h/72h/12h/0h tiers, snapshots, emergency overrides)
+- `src/bookings/booking-concurrency.spec.ts` (Concurrent last-seat reservation, 15m hold expiry, state machine, payment webhooks)
+- `src/realtime/realtime.spec.ts` (Socket.IO authenticated rooms, cross-room isolation, live event dispatching)
+- `src/common/production-readiness.spec.ts` (Fail-fast config validation, correlation IDs, virus scan hook, audit log trails)
 
-This runs all 7 specification files in sequence using ts-node:
+2. Supertest Integration Tests (12 tests, 100% pass)
 
-src/trips/backend-fixes.spec.ts (trip status transitions, safe package/trip deletion, guide status reset)
+Run the full end-to-end database lifecycle integration test:
 
-src/support-users/support-users.service.spec.ts (support user profile updates and ownership checks)
+```bash
+cd back-end
+npm run test:integration
+```
 
-src/agencies/agencies.service.spec.ts (agency registration, approval status, and password stripping)
+Verifies the complete traveler lifecycle against a real database flow:
+`register -> login -> book -> pay -> guide accepts -> chat -> cancel preview -> cancel -> refund & ledger -> review policy`
 
-src/admins/admins.service.spec.ts (admin profile updates and self-ownership)
+3. Business Logic Coverage Threshold Check (>= 80% Threshold)
 
-src/common/guards/roles-guard-ownership.spec.ts (role and user ID ownership guard checks)
+Evaluate code coverage on core business services (`PolicyService`, `BookingStateMachine`, `PricingService`, `HoldExpiryService`):
 
-src/common/guards/child-resource-ownership.spec.ts (ownership checks for itineraries, expenses, payments, and refunds)
+```bash
+cd back-end
+npm run test:cov
+```
 
-src/revenue/revenue-subscriptions-promotions.rbac.spec.ts (role-based access checks for revenue, subscriptions, and promotions)
+Current verified coverage metrics:
+- Overall Tested Services: **90.1%** lines
+- `PolicyService`: **86.0%** lines / **93.8%** functions
+- `BookingStateMachine`: **95.2%** lines / **100%** functions
+- `PricingService`: **92.9%** lines / **100%** functions
 
-2. Middleware and Log Verification
+4. Playwright End-to-End Browser Tests (9 tests, 100% pass)
 
-Access Logging (LoggerMiddleware): Registered in back-end/src/app.module.ts for all routes. Every request is logged to the console and buffered to back-end/logs/access.log every 10 seconds via LogFileService.
+Run cross-browser user journey and portal boundary tests:
 
-Error Handling (GlobalExceptionFilter): Catches HTTP and validation errors across controllers, returns a consistent JSON error response, and writes error entries to back-end/logs/error.log at 10-second intervals.
+```bash
+cd front-end
+npx playwright test
+```
 
-File Upload (UploadsController): POST /uploads/attachment accepts .jpg, .jpeg, .png, and .pdf files up to 5 MB and serves them under /uploads/<filename>.
+Covers:
+- **Actor Login Picker & Auto-Fill**: Verifies selecting all 6 actors auto-fills credentials, and confirms the picker is hidden when `VITE_SHOW_DEMO_ACCOUNTS=false`.
+- **Portal RBAC Boundaries**: Verifies each of the 6 actors lands on their designated dashboard (`/traveler/dashboard`, `/guide/dashboard`, `/agency/dashboard`, `/support/dashboard`, `/admin/dashboard`, `/super/dashboard`) and is strictly blocked (`/unauthorized`) when attempting unauthorized cross-portal access.
+- **Full User Journey**: Complete browser journey from traveler registration through booking, payment, guide acceptance, chat, cancellation, refund, and review.
 
-Security and RBAC: helmet() is enabled in back-end/src/main.ts along with CORS, global ValidationPipe, and RolesGuard checking x-user-role and x-user-id request headers.
+5. Continuous Integration (GitHub Actions)
+
+Configured under `.github/workflows/ci.yml`. Executes on every push and pull request to `main`:
+- Backend typecheck (`tsc --noEmit`), unit tests, integration tests, coverage checks, and production build.
+- Frontend build verification.
+- Headless Playwright browser automation tests.
 
 Individual Contribution
 

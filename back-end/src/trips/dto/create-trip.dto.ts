@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsArray, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, Min, IsObject } from 'class-validator';
 
 export class CreateTripDto {
   @ApiPropertyOptional({ example: 'Alps Family Holiday' })
@@ -70,4 +70,8 @@ export class CreateTripDto {
   @ApiPropertyOptional({ example: 2 })
   @IsOptional() @IsNumber()
   travelersCount?: number;
+
+  @ApiPropertyOptional({ description: 'Unfinished trip plan saved as a draft so the traveler can resume booking' })
+  @IsOptional() @IsObject()
+  draftPlan?: Record<string, any>;
 }

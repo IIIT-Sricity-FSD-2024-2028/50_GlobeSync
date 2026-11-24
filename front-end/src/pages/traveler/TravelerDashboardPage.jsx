@@ -197,7 +197,7 @@ export default function TravelerDashboardPage() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))',
               gap: '18px',
             }}
           >
@@ -350,7 +350,7 @@ export default function TravelerDashboardPage() {
               </div>
             ) : (
               /* Populated Upcoming Trips List */
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '16px' }}>
                 {dashboardData.upcomingTrips.map((trip) => (
                   <div
                     key={trip.tripId}
@@ -432,7 +432,7 @@ export default function TravelerDashboardPage() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))',
               gap: '20px',
             }}
           >

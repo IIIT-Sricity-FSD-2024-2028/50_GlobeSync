@@ -20,6 +20,7 @@ const STEPS = [
  * TripForm: Controlled step-by-step form for traveler trip creation
  */
 export default function TripForm({
+  guideAccepted = false,
   currentStep,
   formData,
   errors = {},
@@ -36,11 +37,14 @@ export default function TripForm({
   onHotelSelect,
   onGuideSelect,
   onSubmit,
+  onSaveDraft,
 }) {
   const tomorrowStr = (() => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
-    return d.toISOString().split('T')[0];
+    // Local date (not UTC), so "tomorrow" is correct in India early in the morning too.
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   })();
 
   const minEndDateStr = (() => {
@@ -143,7 +147,7 @@ export default function TripForm({
       </div>
 
       {/* Main Grid: Step Content & Cost Summary */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px', alignItems: 'start' }}>
+      <div className="responsive-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px', alignItems: 'start' }}>
         {/* Step Panels */}
         <div
           className="card"
@@ -583,6 +587,11 @@ export default function TripForm({
                 <div>
                   🛡 <strong>Verified Submission:</strong> This will create Trip record #{formData.destination} (Budget: ₹{Math.round(costData.totalBudget).toLocaleString('en-IN')}).
                 </div>
+                {formData.guideId && !guideAccepted && (
+                  <div style={{ color: '#92400e' }}>
+                    🧭 <strong>Guide approval needed:</strong> your request goes to {formData.guideName || 'the guide'}, who will reply within 3 hours. Until then your trip is saved as a draft. Bookings and payment open after the guide accepts. You can continue from <strong>My Trips</strong>.
+                  </div>
+                )}
                 <div>
                   💾 <strong>Persisted Bookings:</strong> Transport (₹{(costData.totalTransportBooking || 0).toLocaleString('en-IN')}) and Accommodation (₹{(costData.hotelCost || 0).toLocaleString('en-IN')}) will be created as linked bookings.
                 </div>
@@ -624,19 +633,40 @@ export default function TripForm({
                 Next Step →
               </button>
             ) : (
-              <button
-                type="submit"
-                className="btn btn-primary"
-                style={{
-                  padding: '10px 24px',
-                  fontSize: '14px',
-                  fontWeight: 800,
-                  background: isSubmitting ? 'var(--muted)' : 'var(--primary)',
-                }}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Creating Trip on Backend...' : 'Create & Save Trip 🚀'}
-              </button>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                {onSaveDraft && (
+                  <button
+                    type="button"
+                    onClick={onSaveDraft}
+                    className="btn btn-secondary"
+                    style={{
+                      padding: '10px 20px',
+                      fontSize: '14px',
+                      fontWeight: 700,
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    💾 Save as Draft
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{
+                    padding: '10px 24px',
+                    fontSize: '14px',
+                    fontWeight: 800,
+                    background: isSubmitting ? 'var(--muted)' : 'var(--primary)',
+                  }}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting
+                    ? 'Saving...'
+                    : formData.guideId && !guideAccepted
+                      ? 'Send Request to Guide 🧭'
+                      : 'Create & Save Trip 🚀'}
+                </button>
+              </div>
             )}
           </div>
         </div>

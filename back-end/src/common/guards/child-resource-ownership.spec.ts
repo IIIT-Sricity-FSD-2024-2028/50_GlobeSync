@@ -1,3 +1,4 @@
+process.env.NODE_ENV = 'test'; // header-based role simulation is only honoured in unit tests
 /**
  * child-resource-ownership.spec.ts
  *

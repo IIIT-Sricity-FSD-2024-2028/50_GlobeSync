@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreatePackageDto {
   @ApiProperty({ example: 'Maldives Paradise', description: 'Package name' })
@@ -38,4 +38,19 @@ export class CreatePackageDto {
   @IsOptional()
   @IsString()
   image?: string;
+
+  @ApiPropertyOptional({ example: 1, description: 'Agency ID if created by an agency' })
+  @IsOptional()
+  @IsInt()
+  agencyId?: number;
+
+  @ApiPropertyOptional({ example: false, description: 'Whether package is a featured listing' })
+  @IsOptional()
+  @IsBoolean()
+  isFeatured?: boolean;
+
+  @ApiPropertyOptional({ example: 'published', enum: ['draft', 'published'] })
+  @IsOptional()
+  @IsString()
+  status?: string;
 }

@@ -1,0 +1,1418 @@
+[
+  {
+    "role": "public",
+    "route": "/",
+    "finalUrl": "/",
+    "buttons": 1,
+    "links": 33,
+    "inputs": 3,
+    "console": [],
+    "pageErrors": [],
+    "failed": [],
+    "errorish": [
+      "nance: manage all accounts, revenue margins, and system configurations"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/public_.png"
+  },
+  {
+    "role": "public",
+    "route": "/about",
+    "finalUrl": "/about",
+    "buttons": 0,
+    "links": 18,
+    "inputs": 0,
+    "console": [],
+    "pageErrors": [],
+    "failed": [],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/public_about.png"
+  },
+  {
+    "role": "public",
+    "route": "/contact",
+    "finalUrl": "/contact",
+    "buttons": 1,
+    "links": 17,
+    "inputs": 3,
+    "console": [],
+    "pageErrors": [],
+    "failed": [],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/public_contact.png"
+  },
+  {
+    "role": "public",
+    "route": "/portal-select",
+    "finalUrl": "/portal-select",
+    "buttons": 0,
+    "links": 25,
+    "inputs": 0,
+    "console": [],
+    "pageErrors": [],
+    "failed": [],
+    "errorish": [
+      "nance 🔱 Super User Portal → Don't have an account? Sign up as Traveler • Register "
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/public_portal-select.png"
+  },
+  {
+    "role": "public",
+    "route": "/login",
+    "finalUrl": "/login",
+    "buttons": 11,
+    "links": 19,
+    "inputs": 2,
+    "console": [],
+    "pageErrors": [],
+    "failed": [],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/public_login.png"
+  },
+  {
+    "role": "public",
+    "route": "/signup/traveler",
+    "finalUrl": "/signup/traveler",
+    "buttons": 3,
+    "links": 18,
+    "inputs": 7,
+    "console": [],
+    "pageErrors": [],
+    "failed": [],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/public_signup_traveler.png"
+  },
+  {
+    "role": "public",
+    "route": "/signup/agency",
+    "finalUrl": "/signup/agency",
+    "buttons": 3,
+    "links": 18,
+    "inputs": 5,
+    "console": [],
+    "pageErrors": [],
+    "failed": [],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/public_signup_agency.png"
+  },
+  {
+    "role": "public",
+    "route": "/unauthorized",
+    "finalUrl": "/unauthorized",
+    "buttons": 0,
+    "links": 18,
+    "inputs": 0,
+    "console": [],
+    "pageErrors": [],
+    "failed": [],
+    "errorish": [
+      "Denied You must sign in with an authorized account to access this page"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/public_unauthorized.png"
+  },
+  {
+    "role": "public",
+    "route": "/does-not-exist",
+    "finalUrl": "/does-not-exist",
+    "buttons": 0,
+    "links": 1,
+    "inputs": 0,
+    "console": [],
+    "pageErrors": [],
+    "failed": [],
+    "errorish": [
+      "Not Found The requested route does not exist"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/public_does-not-exist.png"
+  },
+  {
+    "role": "traveler",
+    "route": "/traveler/dashboard",
+    "finalUrl": "/traveler/dashboard",
+    "buttons": 4,
+    "links": 26,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A28%3A59.488Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/traveler_traveler_dashboard.png"
+  },
+  {
+    "role": "traveler",
+    "route": "/traveler/packages",
+    "finalUrl": "/traveler/packages",
+    "buttons": 24,
+    "links": 9,
+    "inputs": 4,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A00.882Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/traveler_traveler_packages.png"
+  },
+  {
+    "role": "traveler",
+    "route": "/traveler/plan",
+    "finalUrl": "/traveler/plan",
+    "buttons": 4,
+    "links": 9,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A02.274Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/traveler_traveler_plan.png"
+  },
+  {
+    "role": "traveler",
+    "route": "/traveler/create-itinerary",
+    "finalUrl": "/traveler/create-itinerary",
+    "buttons": 4,
+    "links": 9,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A03.626Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/traveler_traveler_create-itinerary.png"
+  },
+  {
+    "role": "traveler",
+    "route": "/traveler/trips",
+    "finalUrl": "/traveler/trips",
+    "buttons": 10,
+    "links": 11,
+    "inputs": 1,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A05.001Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/traveler_traveler_trips.png"
+  },
+  {
+    "role": "traveler",
+    "route": "/traveler/bookings",
+    "finalUrl": "/traveler/bookings",
+    "buttons": 4,
+    "links": 9,
+    "inputs": 3,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A06.308Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/traveler_traveler_bookings.png"
+  },
+  {
+    "role": "traveler",
+    "route": "/traveler/expenses",
+    "finalUrl": "/traveler/expenses",
+    "buttons": 5,
+    "links": 9,
+    "inputs": 1,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A07.650Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/traveler_traveler_expenses.png"
+  },
+  {
+    "role": "traveler",
+    "route": "/traveler/profile",
+    "finalUrl": "/traveler/profile",
+    "buttons": 4,
+    "links": 9,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "[TravelerProfilePage] Failed to load traveler profile: ApiError: Traveler with ID 3 not found\n    at request (http://127.0.0.1:5173/src/services/api.js:228:11)\n    at async Promise.allSettled (index 0)\n    at async loadData (http://127.0.0.1:5173/src/pages/traveler/TravelerProfilePage.jsx:54:44)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /travelers/3",
+      "403 GET /passengers/traveler/3",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A09.030Z"
+    ],
+    "errorish": [
+      "Failed to load profile Traveler with ID 3 not found Retry Connection ↺"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/traveler_traveler_profile.png"
+  },
+  {
+    "role": "traveler",
+    "route": "/traveler/support",
+    "finalUrl": "/traveler/support",
+    "buttons": 5,
+    "links": 9,
+    "inputs": 7,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A10.334Z"
+    ],
+    "errorish": [
+      "nance desk"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/traveler_traveler_support.png"
+  },
+  {
+    "role": "traveler",
+    "route": "/traveler/messages",
+    "finalUrl": "/traveler/messages",
+    "buttons": 5,
+    "links": 9,
+    "inputs": 2,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A11.661Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/traveler_traveler_messages.png"
+  },
+  {
+    "role": "guide",
+    "route": "/guide/dashboard",
+    "finalUrl": "/guide/dashboard",
+    "buttons": 4,
+    "links": 19,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /guides/4",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A14.140Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/guide_guide_dashboard.png"
+  },
+  {
+    "role": "guide",
+    "route": "/guide/requests",
+    "finalUrl": "/guide/requests",
+    "buttons": 7,
+    "links": 7,
+    "inputs": 2,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "403 GET /agencies/lookup",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A15.492Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/guide_guide_requests.png"
+  },
+  {
+    "role": "guide",
+    "route": "/guide/travelers",
+    "finalUrl": "/guide/travelers",
+    "buttons": 4,
+    "links": 7,
+    "inputs": 1,
+    "console": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "403 GET /agencies/lookup",
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A16.791Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/guide_guide_travelers.png"
+  },
+  {
+    "role": "guide",
+    "route": "/guide/completed-trips",
+    "finalUrl": "/guide/completed-trips",
+    "buttons": 7,
+    "links": 7,
+    "inputs": 2,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "403 GET /agencies/lookup",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A18.094Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/guide_guide_completed-trips.png"
+  },
+  {
+    "role": "guide",
+    "route": "/guide/reviews",
+    "finalUrl": "/guide/reviews",
+    "buttons": 10,
+    "links": 7,
+    "inputs": 2,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /guides/4",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A19.382Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/guide_guide_reviews.png"
+  },
+  {
+    "role": "guide",
+    "route": "/guide/messages",
+    "finalUrl": "/guide/messages",
+    "buttons": 6,
+    "links": 7,
+    "inputs": 2,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A20.729Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/guide_guide_messages.png"
+  },
+  {
+    "role": "guide",
+    "route": "/guide/profile",
+    "finalUrl": "/guide/profile",
+    "buttons": 5,
+    "links": 7,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /guides/4",
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A22.025Z"
+    ],
+    "errorish": [
+      "not found Retry"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/guide_guide_profile.png"
+  },
+  {
+    "role": "admin",
+    "route": "/admin/dashboard",
+    "finalUrl": "/admin/dashboard",
+    "buttons": 4,
+    "links": 18,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A24.687Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/admin_admin_dashboard.png"
+  },
+  {
+    "role": "admin",
+    "route": "/admin/bookings",
+    "finalUrl": "/admin/bookings",
+    "buttons": 5,
+    "links": 9,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "403 GET /agencies",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A26.015Z"
+    ],
+    "errorish": [
+      "denied"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/admin_admin_bookings.png"
+  },
+  {
+    "role": "admin",
+    "route": "/admin/trips",
+    "finalUrl": "/admin/trips",
+    "buttons": 5,
+    "links": 9,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "403 GET /agencies",
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A27.283Z"
+    ],
+    "errorish": [
+      "denied"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/admin_admin_trips.png"
+  },
+  {
+    "role": "admin",
+    "route": "/admin/packages",
+    "finalUrl": "/admin/packages",
+    "buttons": 27,
+    "links": 9,
+    "inputs": 1,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A28.563Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/admin_admin_packages.png"
+  },
+  {
+    "role": "admin",
+    "route": "/admin/agencies",
+    "finalUrl": "/admin/agencies",
+    "buttons": 6,
+    "links": 9,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "403 GET /agencies",
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A29.978Z"
+    ],
+    "errorish": [
+      "denied"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/admin_admin_agencies.png"
+  },
+  {
+    "role": "admin",
+    "route": "/admin/guides",
+    "finalUrl": "/admin/guides",
+    "buttons": 10,
+    "links": 9,
+    "inputs": 1,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A31.263Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/admin_admin_guides.png"
+  },
+  {
+    "role": "admin",
+    "route": "/admin/reviews",
+    "finalUrl": "/admin/reviews",
+    "buttons": 4,
+    "links": 9,
+    "inputs": 2,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A32.574Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/admin_admin_reviews.png"
+  },
+  {
+    "role": "admin",
+    "route": "/admin/reports",
+    "finalUrl": "/admin/reports",
+    "buttons": 8,
+    "links": 9,
+    "inputs": 2,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "403 GET /api/admin/revenue/breakdown",
+      "403 GET /api/admin/revenue/overview",
+      "403 GET /api/admin/revenue/transactions",
+      "403 GET /api/admin/revenue/config",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A33.905Z"
+    ],
+    "errorish": [
+      "nancial & Operational Reports Export Transactions CSV Export Trips CSV Print Report",
+      "nancial Volume & Platform Commission Distinction Notice: Gross Booking Value repres",
+      "nancial Transactions Ledger Export CSV (0 rows) Search Status All statuses No match"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/admin_admin_reports.png"
+  },
+  {
+    "role": "admin",
+    "route": "/admin/profile",
+    "finalUrl": "/admin/profile",
+    "buttons": 5,
+    "links": 9,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "403 GET /admins/2",
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A35.186Z"
+    ],
+    "errorish": [
+      "denied"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/admin_admin_profile.png"
+  },
+  {
+    "role": "support",
+    "route": "/support/dashboard",
+    "finalUrl": "/support/dashboard",
+    "buttons": 5,
+    "links": 9,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A37.626Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/support_support_dashboard.png"
+  },
+  {
+    "role": "support",
+    "route": "/support/tickets",
+    "finalUrl": "/support/tickets",
+    "buttons": 4,
+    "links": 5,
+    "inputs": 3,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A38.977Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/support_support_tickets.png"
+  },
+  {
+    "role": "support",
+    "route": "/support/refunds",
+    "finalUrl": "/support/refunds",
+    "buttons": 4,
+    "links": 5,
+    "inputs": 2,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A40.306Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/support_support_refunds.png"
+  },
+  {
+    "role": "support",
+    "route": "/support/messages",
+    "finalUrl": "/support/messages",
+    "buttons": 6,
+    "links": 5,
+    "inputs": 2,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A41.623Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/support_support_messages.png"
+  },
+  {
+    "role": "support",
+    "route": "/support/profile",
+    "finalUrl": "/support/profile",
+    "buttons": 4,
+    "links": 5,
+    "inputs": 3,
+    "console": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "403 GET /support-users/6",
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A42.923Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/support_support_profile.png"
+  },
+  {
+    "role": "agency",
+    "route": "/agency/dashboard",
+    "finalUrl": "/agency/dashboard",
+    "buttons": 13,
+    "links": 17,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "403 GET /passengers/agency/5",
+      "403 GET /agencies/5",
+      "403 GET /api/agency/commissions",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A45.574Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/agency_agency_dashboard.png"
+  },
+  {
+    "role": "agency",
+    "route": "/agency/packages",
+    "finalUrl": "/agency/packages",
+    "buttons": 13,
+    "links": 12,
+    "inputs": 7,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "403 GET /agencies/5",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A46.962Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/agency_agency_packages.png"
+  },
+  {
+    "role": "agency",
+    "route": "/agency/book-package",
+    "finalUrl": "/agency/book-package",
+    "buttons": 7,
+    "links": 15,
+    "inputs": 4,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "403 GET /passengers/agency/5",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A48.309Z"
+    ],
+    "errorish": [
+      "nancial & Commission Breakdown Base Package Price: ₹1,45,000 Travel Insurance (7% m"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/agency_agency_book-package.png"
+  },
+  {
+    "role": "agency",
+    "route": "/agency/trips",
+    "finalUrl": "/agency/trips",
+    "buttons": 11,
+    "links": 12,
+    "inputs": 3,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "403 GET /passengers/agency/5",
+      "403 GET /api/agency/profile",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A49.660Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/agency_agency_trips.png"
+  },
+  {
+    "role": "agency",
+    "route": "/agency/create-trip",
+    "finalUrl": "/agency/create-trip",
+    "buttons": 7,
+    "links": 12,
+    "inputs": 6,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "403 GET /api/agency/passengers",
+      "403 GET /passengers/agency/5",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A51.032Z"
+    ],
+    "errorish": [
+      "denied"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/agency_agency_create-trip.png"
+  },
+  {
+    "role": "agency",
+    "route": "/agency/create-itinerary",
+    "finalUrl": "/agency/create-itinerary",
+    "buttons": 11,
+    "links": 12,
+    "inputs": 3,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "403 GET /passengers/agency/5",
+      "403 GET /api/agency/profile",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A52.373Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/agency_agency_create-itinerary.png"
+  },
+  {
+    "role": "agency",
+    "route": "/agency/itinerary",
+    "finalUrl": "/agency/itinerary",
+    "buttons": 11,
+    "links": 12,
+    "inputs": 3,
+    "console": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "403 GET /passengers/agency/5",
+      "404 GET /api/notifications",
+      "403 GET /api/agency/profile",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A53.763Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/agency_agency_itinerary.png"
+  },
+  {
+    "role": "agency",
+    "route": "/agency/bookings",
+    "finalUrl": "/agency/bookings",
+    "buttons": 4,
+    "links": 12,
+    "inputs": 2,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A55.103Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/agency_agency_bookings.png"
+  },
+  {
+    "role": "agency",
+    "route": "/agency/passengers",
+    "finalUrl": "/agency/passengers",
+    "buttons": 5,
+    "links": 12,
+    "inputs": 1,
+    "console": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load agency passengers: ApiError: Access denied. No role found.\n    at request (http://127.0.0.1:5173/src/services/api.js:228:11)\n    at async Promise.all (index 0)\n    at async loadData (http://127.0.0.1:5173/src/pages/agency/AgencyPassengersPage.jsx:46:37)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "403 GET /passengers/agency/5",
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A56.412Z"
+    ],
+    "errorish": [
+      "denied"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/agency_agency_passengers.png"
+  },
+  {
+    "role": "agency",
+    "route": "/agency/expenses",
+    "finalUrl": "/agency/expenses",
+    "buttons": 4,
+    "links": 12,
+    "inputs": 1,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A57.764Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/agency_agency_expenses.png"
+  },
+  {
+    "role": "agency",
+    "route": "/agency/commission",
+    "finalUrl": "/agency/commission",
+    "buttons": 9,
+    "links": 12,
+    "inputs": 1,
+    "console": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "403 GET /agencies/5",
+      "404 GET /api/notifications",
+      "403 GET /api/agency/commissions",
+      "404 GET /api/notifications?since=2026-11-23T16%3A29%3A59.135Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/agency_agency_commission.png"
+  },
+  {
+    "role": "agency",
+    "route": "/agency/revenue",
+    "finalUrl": "/agency/revenue",
+    "buttons": 9,
+    "links": 12,
+    "inputs": 1,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "403 GET /agencies/5",
+      "403 GET /api/agency/commissions",
+      "404 GET /api/notifications?since=2026-11-23T16%3A30%3A00.491Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/agency_agency_revenue.png"
+  },
+  {
+    "role": "agency",
+    "route": "/agency/payments",
+    "finalUrl": "/agency/payments",
+    "buttons": 7,
+    "links": 12,
+    "inputs": 1,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A30%3A01.812Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/agency_agency_payments.png"
+  },
+  {
+    "role": "agency",
+    "route": "/agency/subscription",
+    "finalUrl": "/agency/dashboard",
+    "buttons": 13,
+    "links": 17,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "403 GET /passengers/agency/5",
+      "403 GET /agencies/5",
+      "403 GET /api/agency/commissions",
+      "404 GET /api/notifications?since=2026-11-23T16%3A30%3A03.167Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/agency_agency_subscription.png"
+  },
+  {
+    "role": "agency",
+    "route": "/agency/messages",
+    "finalUrl": "/agency/messages",
+    "buttons": 4,
+    "links": 12,
+    "inputs": 1,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A30%3A04.533Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/agency_agency_messages.png"
+  },
+  {
+    "role": "agency",
+    "route": "/agency/profile",
+    "finalUrl": "/agency/profile",
+    "buttons": 4,
+    "links": 12,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load agency profile: ApiError: Access denied. No role found.\n    at request (http://127.0.0.1:5173/src/services/api.js:228:11)\n    at async loadProfile (http://127.0.0.1:5173/src/pages/agency/AgencyProfilePage.jsx:45:20)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "403 GET /api/agency/profile",
+      "404 GET /api/notifications?since=2026-11-23T16%3A30%3A05.929Z"
+    ],
+    "errorish": [
+      "denied"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/agency_agency_profile.png"
+  },
+  {
+    "role": "agency",
+    "route": "/agency/support",
+    "finalUrl": "/agency/support",
+    "buttons": 5,
+    "links": 12,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A30%3A07.240Z"
+    ],
+    "errorish": [],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/agency_agency_support.png"
+  },
+  {
+    "role": "superuser",
+    "route": "/super/dashboard",
+    "finalUrl": "/super/dashboard",
+    "buttons": 5,
+    "links": 9,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "403 GET /api/admin/revenue/overview",
+      "404 GET /api/notifications?since=2026-11-23T16%3A30%3A09.822Z"
+    ],
+    "errorish": [
+      "nance Console Refresh Access denied"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/superuser_super_dashboard.png"
+  },
+  {
+    "role": "superuser",
+    "route": "/super/revenue",
+    "finalUrl": "/super/revenue",
+    "buttons": 5,
+    "links": 9,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "403 GET /api/admin/revenue/overview",
+      "403 GET /api/admin/revenue/breakdown",
+      "403 GET /api/admin/revenue/transactions",
+      "403 GET /api/admin/revenue/config",
+      "404 GET /api/notifications?since=2026-11-23T16%3A30%3A11.194Z"
+    ],
+    "errorish": [
+      "nancial Intelligence & Revenue Governance Refresh Access denied"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/superuser_super_revenue.png"
+  },
+  {
+    "role": "superuser",
+    "route": "/super/users",
+    "finalUrl": "/super/users",
+    "buttons": 9,
+    "links": 9,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "403 GET /super/support-users",
+      "403 GET /super/admins",
+      "404 GET /api/notifications?since=2026-11-23T16%3A30%3A12.522Z"
+    ],
+    "errorish": [
+      "denied"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/superuser_super_users.png"
+  },
+  {
+    "role": "superuser",
+    "route": "/super/agencies",
+    "finalUrl": "/super/agencies",
+    "buttons": 6,
+    "links": 9,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "403 GET /agencies",
+      "404 GET /api/notifications?since=2026-11-23T16%3A30%3A13.814Z"
+    ],
+    "errorish": [
+      "denied"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/superuser_super_agencies.png"
+  },
+  {
+    "role": "superuser",
+    "route": "/super/payment-methods",
+    "finalUrl": "/super/payment-methods",
+    "buttons": 3,
+    "links": 9,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "403 GET /system-config/payment-methods",
+      "403 GET /system-config/audit-logs",
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A30%3A15.102Z"
+    ],
+    "errorish": [
+      "Failed to load payment configuration from backend Access denied"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/superuser_super_payment-methods.png"
+  },
+  {
+    "role": "superuser",
+    "route": "/super/rules-config",
+    "finalUrl": "/super/rules-config",
+    "buttons": 4,
+    "links": 9,
+    "inputs": 10,
+    "console": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "403 GET /system-config/audit-logs",
+      "404 GET /api/notifications",
+      "403 GET /system-config/rules",
+      "404 GET /api/notifications?since=2026-11-23T16%3A30%3A16.499Z"
+    ],
+    "errorish": [
+      "Failed to load platform configuration from backend Access denied"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/superuser_super_rules-config.png"
+  },
+  {
+    "role": "superuser",
+    "route": "/super/api-management",
+    "finalUrl": "/super/api-management",
+    "buttons": 10,
+    "links": 9,
+    "inputs": 1,
+    "console": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "403 GET /system-config/audit-logs",
+      "404 GET /api/notifications",
+      "403 GET /system-config/integrations",
+      "404 GET /api/notifications?since=2026-11-23T16%3A30%3A17.817Z"
+    ],
+    "errorish": [
+      "Failed to load integration states from backend Access denied"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/superuser_super_api-management.png"
+  },
+  {
+    "role": "superuser",
+    "route": "/super/reports",
+    "finalUrl": "/super/reports",
+    "buttons": 5,
+    "links": 9,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "404 GET /api/notifications",
+      "403 GET /api/admin/revenue/overview",
+      "404 GET /api/notifications?since=2026-11-23T16%3A30%3A19.206Z"
+    ],
+    "errorish": [
+      "denied"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/superuser_super_reports.png"
+  },
+  {
+    "role": "superuser",
+    "route": "/super/profile",
+    "finalUrl": "/super/profile",
+    "buttons": 5,
+    "links": 9,
+    "inputs": 0,
+    "console": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "pageErrors": [],
+    "failed": [
+      "403 GET /admins/1",
+      "404 GET /api/notifications",
+      "404 GET /api/notifications?since=2026-11-23T16%3A30%3A20.513Z"
+    ],
+    "errorish": [
+      "denied"
+    ],
+    "brokenImgs": [],
+    "hOverflow": false,
+    "shot": "/tmp/claude-0/sp/baseline/superuser_super_profile.png"
+  }
+]

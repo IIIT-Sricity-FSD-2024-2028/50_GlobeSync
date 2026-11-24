@@ -10,8 +10,8 @@ export class UpdateBookingDto {
   @ApiPropertyOptional({ example: 'Flight', enum: ['Flight', 'Hotel', 'Transport', 'Activity', 'Package'] })
   @IsOptional() @IsString() @IsIn(['Flight', 'Hotel', 'Transport', 'Activity', 'Package']) type?: string;
   @ApiPropertyOptional({ example: 52000 }) @IsOptional() @IsNumber() @Min(0) amount?: number;
-  @ApiPropertyOptional({ example: 'Confirmed', enum: ['Pending', 'Confirmed', 'Cancelled'] })
-  @IsOptional() @IsString() @IsIn(['Pending', 'Confirmed', 'Cancelled']) status?: string;
+  @ApiPropertyOptional({ example: 'Confirmed', enum: ['DRAFT', 'HELD', 'PAID', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'EXPIRED', 'REFUNDED', 'Pending', 'Confirmed', 'Cancelled'] })
+  @IsOptional() @IsString() @IsIn(['DRAFT', 'HELD', 'PAID', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'EXPIRED', 'REFUNDED', 'Pending', 'Confirmed', 'Cancelled']) status?: string;
   @ApiPropertyOptional({ example: false }) @IsOptional() @IsBoolean() cancellationProtectionSelected?: boolean;
   @ApiPropertyOptional({ example: 100 }) @IsOptional() @IsNumber() cancellationFee?: number;
 

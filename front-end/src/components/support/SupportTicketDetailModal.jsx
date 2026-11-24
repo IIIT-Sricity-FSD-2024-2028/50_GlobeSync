@@ -30,13 +30,30 @@ export default function SupportTicketDetailModal({
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [statusError, setStatusError] = useState(null);
 
-  // Sync replies and fetch latest thread from backend when modal opens
+  // Active thread tab ('customer' | 'internal')
+  const [activeTab, setActiveTab] = useState('customer');
+  const [internalNotes, setInternalNotes] = useState([]);
+  const [noteText, setNoteText] = useState('');
+  const [addingNote, setAddingNote] = useState(false);
+  const [noteError, setNoteError] = useState(null);
+
+  // Specialist Assignment state
+  const [assignedCareId, setAssignedCareId] = useState(ticket?.careId ? String(ticket.careId) : '');
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [assignMessage, setAssignMessage] = useState(null);
+
+  // Sync replies, internal notes, and fetch latest thread from backend when modal opens
   useEffect(() => {
     if (isOpen && ticket?.ticketId) {
       setReplies(Array.isArray(ticket.replies) ? ticket.replies : []);
       setReplyText('');
       setReplyError(null);
       setStatusError(null);
+      setAssignedCareId(ticket?.careId ? String(ticket.careId) : '');
+      setInternalNotes([]);
+      setNoteText('');
+      setNoteError(null);
+      setActiveTab('customer');
 
       // Fetch freshest copy of ticket to ensure replies are up to date
       supportTicketsApi
@@ -45,6 +62,17 @@ export default function SupportTicketDetailModal({
           if (fresh && Array.isArray(fresh.replies)) {
             setReplies(fresh.replies);
           }
+          if (fresh?.careId) {
+            setAssignedCareId(String(fresh.careId));
+          }
+        })
+        .catch(() => {});
+
+      // Fetch internal notes (staff only)
+      supportTicketsApi
+        .getInternalNotes(ticket.ticketId)
+        .then((notes) => {
+          if (Array.isArray(notes)) setInternalNotes(notes);
         })
         .catch(() => {});
     }
@@ -100,8 +128,49 @@ export default function SupportTicketDetailModal({
     }
   };
 
+  const handleAddInternalNote = async (e) => {
+    e.preventDefault();
+    if (!noteText.trim() || addingNote) return;
+    setAddingNote(true);
+    setNoteError(null);
+    try {
+      const authorName = user?.name || 'Aisha Rao (Care Lead)';
+      const created = await supportTicketsApi.addInternalNote(ticket.ticketId, {
+        note: noteText.trim(),
+        authorName,
+      });
+      setInternalNotes((prev) => [...prev, created]);
+      setNoteText('');
+    } catch (err) {
+      setNoteError(err.message || 'Failed to save internal note');
+    } finally {
+      setAddingNote(false);
+    }
+  };
+
+  const handleAssign = async (e) => {
+    const newCareId = e.target.value;
+    setAssignedCareId(newCareId);
+    setIsAssigning(true);
+    setAssignMessage(null);
+    try {
+      await supportTicketsApi.assign(ticket.ticketId, {
+        careId: newCareId ? Number(newCareId) : null,
+      });
+      setAssignMessage('✓ Specialist assigned');
+      setTimeout(() => setAssignMessage(null), 3000);
+      if (onReplySent) onReplySent();
+    } catch (err) {
+      setAssignMessage(`Error: ${err.message}`);
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
   const getPriorityStyle = (priority) => {
     switch (priority?.toLowerCase()) {
+      case 'urgent':
+        return { background: '#7f1d1d', color: '#fff', border: '1px solid #991b1b' };
       case 'high':
         return { background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' };
       case 'medium':
@@ -185,6 +254,21 @@ export default function SupportTicketDetailModal({
               >
                 {ticket.priority || 'Medium'} Priority
               </span>
+              {ticket.slaStatus && (
+                <span
+                  style={{
+                    padding: '3px 10px',
+                    borderRadius: '12px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    background: ticket.slaStatus === 'BREACHED' ? '#fef2f2' : ticket.slaStatus === 'CRITICAL' ? '#fffbeb' : '#ecfdf5',
+                    color: ticket.slaStatus === 'BREACHED' ? '#dc2626' : ticket.slaStatus === 'CRITICAL' ? '#d97706' : '#059669',
+                    border: `1px solid ${ticket.slaStatus === 'BREACHED' ? '#fecaca' : ticket.slaStatus === 'CRITICAL' ? '#fde68a' : '#a7f3d0'}`,
+                  }}
+                >
+                  ⏱️ SLA {ticket.slaStatus} ({ticket.slaMinutesRemaining !== undefined ? `${ticket.slaMinutesRemaining}m` : 'Active'})
+                </span>
+              )}
             </div>
             <p style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '2px' }}>
               Logged on {ticket.created ? new Date(ticket.created).toLocaleString() : 'N/A'} {ticket.caseId ? `• Case #${ticket.caseId}` : ''}
@@ -282,121 +366,259 @@ export default function SupportTicketDetailModal({
                 </div>
               </div>
 
-              {/* Synchronized Conversation Thread with Traveler */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                    💬 Customer Conversation Thread ({replies.length})
-                  </label>
-                  <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>
-                    ● Synchronized with Traveler Portal
-                  </span>
-                </div>
-
-                {replyError && (
-                  <div style={{ padding: '8px 12px', background: '#fee2e2', color: '#b91c1c', borderRadius: '6px', fontSize: '12px', marginBottom: '10px' }}>
-                    {replyError}
-                  </div>
-                )}
-
-                {/* Messages Container */}
-                <div
+              {/* Thread Tabs: Customer Conversation vs Internal Notes */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('customer')}
                   style={{
-                    maxHeight: '260px',
-                    overflowY: 'auto',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '10px',
-                    background: '#f8fafc',
-                    padding: '12px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                    marginBottom: '12px',
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: activeTab === 'customer' ? '#e0f2fe' : 'transparent',
+                    color: activeTab === 'customer' ? '#0369a1' : '#64748b',
+                    fontWeight: activeTab === 'customer' ? 700 : 500,
+                    fontSize: '13px',
+                    cursor: 'pointer',
                   }}
                 >
-                  {replies.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '16px', color: 'var(--muted)', fontSize: '13px' }}>
-                      No messages in thread yet. Reply below to communicate with the customer.
+                  💬 Customer Thread ({replies.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('internal')}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: activeTab === 'internal' ? '#fef3c7' : 'transparent',
+                    color: activeTab === 'internal' ? '#92400e' : '#64748b',
+                    fontWeight: activeTab === 'internal' ? 700 : 500,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  🔒 Internal Notes ({internalNotes.length})
+                </button>
+              </div>
+
+              {/* Tab 1: Customer Conversation */}
+              {activeTab === 'customer' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                      Customer Conversation Thread
+                    </label>
+                    <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>
+                      ● Synchronized with Traveler Portal
+                    </span>
+                  </div>
+
+                  {replyError && (
+                    <div style={{ padding: '8px 12px', background: '#fee2e2', color: '#b91c1c', borderRadius: '6px', fontSize: '12px', marginBottom: '10px' }}>
+                      {replyError}
                     </div>
-                  ) : (
-                    replies.map((r, idx) => {
-                      const isSupport = r.senderRole === 'support';
-                      return (
+                  )}
+
+                  {/* Messages Container */}
+                  <div
+                    style={{
+                      maxHeight: '260px',
+                      overflowY: 'auto',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '10px',
+                      background: '#f8fafc',
+                      padding: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px',
+                      marginBottom: '12px',
+                    }}
+                  >
+                    {replies.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '16px', color: 'var(--muted)', fontSize: '13px' }}>
+                        No messages in thread yet. Reply below to communicate with the customer.
+                      </div>
+                    ) : (
+                      replies.map((r, idx) => {
+                        const isSupport = r.senderRole === 'support';
+                        return (
+                          <div
+                            key={r.replyId || idx}
+                            style={{
+                              background: isSupport ? '#eff6ff' : '#ffffff',
+                              border: isSupport ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
+                              borderRadius: '10px',
+                              padding: '10px 14px',
+                              alignSelf: isSupport ? 'flex-end' : 'flex-start',
+                              maxWidth: '92%',
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  background: isSupport ? '#dbeafe' : '#e0f2fe',
+                                  color: isSupport ? '#1e40af' : '#0369a1',
+                                }}
+                              >
+                                {isSupport ? '🎧 Support Desk' : '👤 Customer'} &bull; {r.senderName}
+                              </span>
+                              <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
+                                {formatTimestamp(r.createdAt)}
+                              </span>
+                            </div>
+                            <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                              {r.message}
+                            </p>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {/* Reply Form */}
+                  <form onSubmit={handleSendReply} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <textarea
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      placeholder="Type reply to customer (updates ticket thread in traveler portal)..."
+                      rows={2}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '13px',
+                        resize: 'vertical',
+                      }}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
+                        Pressing send delivers this message directly to the customer's portal.
+                      </span>
+                      <button
+                        type="submit"
+                        disabled={sendingReply || !replyText.trim()}
+                        className="btn btn-primary btn-sm"
+                        style={{
+                          padding: '7px 16px',
+                          fontSize: '13px',
+                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                          border: 'none',
+                          fontWeight: 700,
+                          opacity: sendingReply || !replyText.trim() ? 0.6 : 1,
+                        }}
+                      >
+                        {sendingReply ? 'Sending...' : '📨 Send Reply to Customer'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* Tab 2: Internal Notes (Staff Only) */}
+              {activeTab === 'internal' && (
+                <div>
+                  <div style={{ padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '12px', color: '#92400e', marginBottom: '12px' }}>
+                    🔒 <strong>Internal Staff Only:</strong> These notes are private to care agents and admins. They are strictly hidden from travelers and partner agencies.
+                  </div>
+
+                  {noteError && (
+                    <div style={{ padding: '8px 12px', background: '#fee2e2', color: '#b91c1c', borderRadius: '6px', fontSize: '12px', marginBottom: '10px' }}>
+                      {noteError}
+                    </div>
+                  )}
+
+                  {/* Internal Notes Container */}
+                  <div
+                    style={{
+                      maxHeight: '260px',
+                      overflowY: 'auto',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '10px',
+                      background: '#fffdf5',
+                      padding: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px',
+                      marginBottom: '12px',
+                    }}
+                  >
+                    {internalNotes.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '16px', color: 'var(--muted)', fontSize: '13px' }}>
+                        No internal notes recorded yet. Add private notes on investigation or policy reviews below.
+                      </div>
+                    ) : (
+                      internalNotes.map((n, idx) => (
                         <div
-                          key={r.replyId || idx}
+                          key={n.noteId || idx}
                           style={{
-                            background: isSupport ? '#eff6ff' : '#ffffff',
-                            border: isSupport ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
-                            borderRadius: '10px',
+                            background: '#ffffff',
+                            border: '1px solid #fde68a',
+                            borderRadius: '8px',
                             padding: '10px 14px',
-                            alignSelf: isSupport ? 'flex-end' : 'flex-start',
-                            maxWidth: '92%',
                           }}
                         >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
-                            <span
-                              style={{
-                                fontSize: '11px',
-                                fontWeight: 700,
-                                padding: '1px 6px',
-                                borderRadius: '4px',
-                                background: isSupport ? '#dbeafe' : '#e0f2fe',
-                                color: isSupport ? '#1e40af' : '#0369a1',
-                              }}
-                            >
-                              {isSupport ? '🎧 Support Desk' : '👤 Customer'} &bull; {r.senderName}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '11px', fontWeight: 700, color: '#92400e' }}>
+                              👤 {n.authorName || 'Support Agent'}
                             </span>
                             <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
-                              {formatTimestamp(r.createdAt)}
+                              {formatTimestamp(n.createdAt)}
                             </span>
                           </div>
-                          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
-                            {r.message}
+                          <p style={{ margin: 0, fontSize: '13px', color: '#334155', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                            {n.note}
                           </p>
                         </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {/* Reply Form */}
-                <form onSubmit={handleSendReply} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <textarea
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    placeholder="Type reply to customer (updates ticket thread in traveler portal)..."
-                    rows={2}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '13px',
-                      resize: 'vertical',
-                    }}
-                  />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
-                      Pressing send delivers this message directly to the customer's portal.
-                    </span>
-                    <button
-                      type="submit"
-                      disabled={sendingReply || !replyText.trim()}
-                      className="btn btn-primary btn-sm"
-                      style={{
-                        padding: '7px 16px',
-                        fontSize: '13px',
-                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                        border: 'none',
-                        fontWeight: 700,
-                        opacity: sendingReply || !replyText.trim() ? 0.6 : 1,
-                      }}
-                    >
-                      {sendingReply ? 'Sending...' : '📨 Send Reply to Customer'}
-                    </button>
+                      ))
+                    )}
                   </div>
-                </form>
-              </div>
+
+                  {/* Add Note Form */}
+                  <form onSubmit={handleAddInternalNote} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <textarea
+                      value={noteText}
+                      onChange={(e) => setNoteText(e.target.value)}
+                      placeholder="Add private investigation note, adjudication finding, or ticket log..."
+                      rows={2}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '13px',
+                        resize: 'vertical',
+                      }}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
+                        Visible only to support desk and superusers.
+                      </span>
+                      <button
+                        type="submit"
+                        disabled={addingNote || !noteText.trim()}
+                        className="btn btn-sm"
+                        style={{
+                          padding: '7px 16px',
+                          fontSize: '13px',
+                          background: '#d97706',
+                          color: '#fff',
+                          border: 'none',
+                          fontWeight: 700,
+                          opacity: addingNote || !noteText.trim() ? 0.6 : 1,
+                        }}
+                      >
+                        {addingNote ? 'Saving Note...' : '📌 Add Internal Note'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
             </div>
 
             {/* Right Column: Traveler Profile Card & Quick Actions */}
@@ -533,6 +755,36 @@ export default function SupportTicketDetailModal({
                     </button>
                   )}
                 </div>
+              </div>
+
+              {/* Specialist Assignment */}
+              <div style={{ background: '#fff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0', marginTop: '16px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
+                  🎧 Assign Care Specialist
+                </div>
+                <select
+                  value={assignedCareId}
+                  onChange={handleAssign}
+                  disabled={isAssigning}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    background: '#fff',
+                  }}
+                >
+                  <option value="">-- Unassigned --</option>
+                  <option value="1">Aisha Rao (Care Lead #1)</option>
+                  <option value="2">Vikram Malhotra (Desk #2)</option>
+                  <option value="3">Pooja Sharma (Desk #3)</option>
+                </select>
+                {assignMessage && (
+                  <div style={{ fontSize: '11px', color: '#059669', marginTop: '6px', fontWeight: 600 }}>
+                    {assignMessage}
+                  </div>
+                )}
               </div>
             </div>
           </div>

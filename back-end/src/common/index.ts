@@ -6,3 +6,5 @@ export * from './guards/roles.guard';
 export * from './filters/http-exception.filter';
 export * from './dto/error-response.dto';
 export * from './dto/pagination-query.dto';
+export * from './utils/pagination.util';
+

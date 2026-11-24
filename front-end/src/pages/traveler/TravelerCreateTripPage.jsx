@@ -5,7 +5,7 @@ import { packagesApi, guidesApi, tripsApi, bookingsApi, apiPost } from '../../se
 import TripForm from '../../components/trips/TripForm';
 import TripCreationSuccessView from '../../components/trips/TripCreationSuccessView';
 import TripSubmissionRecoveryBanner from '../../components/trips/TripSubmissionRecoveryBanner';
-import { calculateTripCosts, getDefaultCarrier } from '../../components/trips/tripCalculations';
+import { calculateTripCosts } from '../../components/trips/tripCalculations';
 
 /**
  * TravelerCreateTripPage: Multi-step itinerary builder with selection consistency and reliable submission.
@@ -36,8 +36,9 @@ export default function TravelerCreateTripPage() {
     numPersons: 1,
     transportType: 'Flight',
     tripType: 'round',
-    transportName: 'SkyHigh Airlines',
-    transportPrice: 7800,
+    // Nothing is pre-selected: the live summary fills in as the traveler picks each item.
+    transportName: '',
+    transportPrice: 0,
     hotelName: '',
     hotelPrice: 0,
     guideId: null,
@@ -79,6 +80,10 @@ export default function TravelerCreateTripPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [createdTrip, setCreatedTrip] = useState(null);
+
+  // 6. Resume a saved draft trip (My Trips -> "Continue booking"): /traveler/plan?resumeTripId=ID
+  const resumeTripId = searchParams.get('resumeTripId');
+  const [resumeTrip, setResumeTrip] = useState(null);
 
   // Helper: Persists submission progress to sessionStorage
   const updateSubmissionProgress = (patch) => {
@@ -197,6 +202,49 @@ export default function TravelerCreateTripPage() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!resumeTripId) return undefined;
+    let cancelled = false;
+    tripsApi
+      .getById(Number(resumeTripId))
+      .then((t) => {
+        if (cancelled || !t) return;
+        setResumeTrip(t);
+        // A fresh resume must not reuse an older half-finished submission.
+        clearSubmissionProgress();
+        const plan = t.draftPlan || {};
+        setFormData((prev) => ({
+          ...prev,
+          ...plan,
+          origin: t.origin || plan.origin || prev.origin,
+          destination: t.destination || plan.destination || '',
+          startDate: String(t.startDate || plan.startDate || '').slice(0, 10),
+          endDate: String(t.endDate || plan.endDate || '').slice(0, 10),
+          guideId: t.guideId ?? plan.guideId ?? null,
+        }));
+        setCurrentStep(6);
+      })
+      .catch((err) => {
+        if (!cancelled) setSubmitError(err.message || 'Could not load the saved trip.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [resumeTripId]);
+
+  const guideResponseExpired = Boolean(
+    resumeTrip?.guideStatus === 'Pending' &&
+      resumeTrip?.guideResponseDueAt &&
+      Date.now() > Date.parse(resumeTrip.guideResponseDueAt)
+  );
+  // The guide already said yes for this trip (and the traveler kept the same guide).
+  const guideAccepted = Boolean(
+    resumeTrip &&
+      resumeTrip.guideStatus === 'Accepted' &&
+      formData.guideId != null &&
+      Number(formData.guideId) === Number(resumeTrip.guideId)
+  );
+
   // Pure function calculation: Derived line items and total during render
   const costData = calculateTripCosts(formData);
 
@@ -212,24 +260,16 @@ export default function TravelerCreateTripPage() {
 
       // 2. Consistency: Changing transport mode, origin, or destination updates carrier and route price
       if (field === 'transportType' || field === 'origin' || field === 'currentLocation' || field === 'destination') {
-        const curOrigin = (field === 'origin' || field === 'currentLocation') ? value : (updated.origin || updated.currentLocation);
-        const curDest = field === 'destination' ? value : updated.destination;
-        const curMode = field === 'transportType' ? value : updated.transportType;
-        const defaultCarrier = getDefaultCarrier(curMode, curOrigin, curDest);
-        updated.transportName = defaultCarrier.name;
-        updated.transportPrice = defaultCarrier.price;
+        // Route or mode changed: clear the chosen carrier so its old price is not counted.
+        // The traveler picks a carrier again in the Transport step.
+        updated.transportName = '';
+        updated.transportPrice = 0;
       }
 
-      // 3. Consistency: Changing destination adapts or resets hotel
-      if (field === 'destination' && prev.hotelName) {
-        const oldCity = prev.destination ? prev.destination.split(',')[0].trim() : '';
-        const newCity = value ? value.split(',')[0].trim() : '';
-        if (oldCity && newCity && prev.hotelName.includes(oldCity)) {
-          updated.hotelName = prev.hotelName.replace(oldCity, newCity);
-        } else {
-          updated.hotelName = '';
-          updated.hotelPrice = 0;
-        }
+      // 3. Consistency: Changing destination clears the chosen hotel (it belonged to the old city).
+      if (field === 'destination' && prev.hotelName && value !== prev.destination) {
+        updated.hotelName = '';
+        updated.hotelPrice = 0;
       }
 
       return updated;
@@ -258,8 +298,9 @@ export default function TravelerCreateTripPage() {
       destination: pkg.destinations ? pkg.destinations.split(',')[0].trim() : pkg.name,
       startDate: start.toISOString().split('T')[0],
       endDate: end.toISOString().split('T')[0],
-      hotelName: `Grand ${pkg.destinations || 'Resort'} Hotel`,
-      hotelPrice: Math.round((pkg.budget * 0.4) / durationDays),
+      // No hotel is pre-selected: it appears in the summary only after the traveler picks one in the Stay step.
+      hotelName: '',
+      hotelPrice: 0,
     }));
 
     setCurrentStep(1); // Advance to dates step
@@ -282,13 +323,13 @@ export default function TravelerCreateTripPage() {
     const newErrors = {};
 
     if (step === 1) {
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = (() => { const d = new Date(); const p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; })();
       if (!formData.startDate) {
         newErrors.startDate = 'Start date is required.';
       } else if (isNaN(new Date(formData.startDate).getTime())) {
         newErrors.startDate = 'Please enter a valid start date.';
       } else if (formData.startDate <= todayStr) {
-        newErrors.startDate = 'Trip start date must be a future date (cannot be today or a past date). Advance booking is required.';
+        newErrors.startDate = 'Trip can start from tomorrow onwards. Today or past dates are not allowed.';
       }
 
       if (!formData.endDate) {
@@ -336,11 +377,11 @@ export default function TravelerCreateTripPage() {
     if (!formData.destination || !formData.destination.trim()) {
       newErrors.destination = 'Destination is required.';
     }
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = (() => { const d = new Date(); const p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; })();
     if (!formData.startDate || isNaN(new Date(formData.startDate).getTime())) {
       newErrors.startDate = 'Please enter a valid start date.';
     } else if (formData.startDate <= todayStr) {
-      newErrors.startDate = 'Trip start date must be a future date (cannot be today or a past date). Advance booking is required.';
+      newErrors.startDate = 'Trip can start from tomorrow onwards. Today or past dates are not allowed.';
     }
     if (!formData.endDate || isNaN(new Date(formData.endDate).getTime())) {
       newErrors.endDate = 'Please enter a valid end date.';
@@ -382,13 +423,57 @@ export default function TravelerCreateTripPage() {
     setSubmitError(null);
 
     try {
+      // 0. A chosen guide must accept first: save the plan as a draft and send the request (no bookings yet).
+      if (formData.guideId && !guideAccepted) {
+        await sendGuideRequest(travelerId);
+        return;
+      }
+
+      // Local copy of the saved progress for this run (state updates are not visible until the next render).
+      const progress = { ...submissionProgress };
+
+      // 0b. Resuming a saved draft: reuse its trip record instead of creating a new one.
+      if (resumeTrip && !progress.tripId) {
+        if (!validateForm()) return;
+        const resumed = await tripsApi.update(resumeTrip.tripId, {
+          origin: (formData.origin || formData.currentLocation || 'New Delhi, India').trim(),
+          destination: formData.destination.trim(),
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          budget: Math.round(costData.totalBudget),
+          ...(formData.guideId ? {} : resumeTrip.guideId != null ? { guideId: null } : {}),
+          status: 'Pending',
+        });
+        updateSubmissionProgress({
+          tripId: resumed.tripId,
+          origin: resumed.origin,
+          destination: resumed.destination,
+          budget: resumed.budget,
+          tripStatus: resumed.status || 'Pending',
+          startDate: resumed.startDate,
+          endDate: resumed.endDate,
+          savedFormData: formData,
+          // The guide already knows about this trip (they accepted it).
+          guideNotification: { completed: true, error: null },
+        });
+        Object.assign(progress, {
+          tripId: resumed.tripId,
+          destination: resumed.destination,
+          budget: resumed.budget,
+          tripStatus: resumed.status || 'Pending',
+          startDate: resumed.startDate,
+          endDate: resumed.endDate,
+          guideNotification: { completed: true, error: null },
+        });
+      }
+
       // 1. Create or retain the primary Trip record immediately
-      let activeTripId = submissionProgress.tripId;
-      let activeTripDestination = submissionProgress.destination || formData.destination;
-      let activeTripBudget = submissionProgress.budget || Math.round(costData.totalBudget);
-      let activeTripStatus = submissionProgress.tripStatus || 'Pending';
-      let activeStartDate = submissionProgress.startDate || formData.startDate;
-      let activeEndDate = submissionProgress.endDate || formData.endDate;
+      let activeTripId = progress.tripId;
+      let activeTripDestination = progress.destination || formData.destination;
+      let activeTripBudget = progress.budget || Math.round(costData.totalBudget);
+      let activeTripStatus = progress.tripStatus || 'Pending';
+      let activeStartDate = progress.startDate || formData.startDate;
+      let activeEndDate = progress.endDate || formData.endDate;
 
       if (!activeTripId) {
         if (!validateForm()) {
@@ -440,7 +525,7 @@ export default function TravelerCreateTripPage() {
 
       // 2. Track & Create Transport Booking (skipped if already completed)
       const requiresTransport = Boolean(formData.transportName && costData.transportCost > 0);
-      if (requiresTransport && !submissionProgress.transportBooking?.completed) {
+      if (requiresTransport && !progress.transportBooking?.completed) {
         try {
           const tb = await bookingsApi.create({
             bookingDate: new Date().toISOString().split('T')[0],
@@ -469,7 +554,7 @@ export default function TravelerCreateTripPage() {
 
       // 3. Track & Create Hotel Booking (skipped if already completed)
       const requiresHotel = Boolean(formData.hotelName && costData.hotelCost > 0);
-      if (requiresHotel && !submissionProgress.hotelBooking?.completed) {
+      if (requiresHotel && !progress.hotelBooking?.completed) {
         try {
           const hb = await bookingsApi.create({
             bookingDate: new Date().toISOString().split('T')[0],
@@ -494,7 +579,7 @@ export default function TravelerCreateTripPage() {
       }
 
       // 4. Track Guide Notification (handled independently from booking failure)
-      if (formData.guideId && !submissionProgress.guideNotification?.completed) {
+      if (formData.guideId && !guideAccepted && !progress.guideNotification?.completed) {
         try {
           await apiPost('/messages', {
             sender: 'traveler',
@@ -532,6 +617,139 @@ export default function TravelerCreateTripPage() {
     }
   };
 
+  // Saves the trip as a draft (status Planning) with the full plan, and sends the request to the guide.
+  // Bookings and payment open only after the guide accepts (within 3 hours).
+  const sendGuideRequest = async (travelerId) => {
+    if (!validateForm()) return;
+    const sameGuide = resumeTrip && Number(formData.guideId) === Number(resumeTrip.guideId);
+    if (sameGuide && (resumeTrip.guideStatus === 'Declined' || guideResponseExpired)) {
+      throw new Error(
+        resumeTrip.guideStatus === 'Declined'
+          ? 'This guide declined your request. Please choose another guide, or remove the guide to continue without one.'
+          : 'This guide did not reply within 3 hours. Please choose another guide, or remove the guide to continue without one.'
+      );
+    }
+    const plan = { ...formData };
+    const base = {
+      origin: (formData.origin || formData.currentLocation || 'New Delhi, India').trim(),
+      destination: formData.destination.trim(),
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      budget: Math.round(costData.totalBudget),
+      draftPlan: plan,
+    };
+    let trip;
+    if (resumeTrip) {
+      trip = await tripsApi.update(resumeTrip.tripId, sameGuide ? base : { ...base, guideId: Number(formData.guideId) });
+    } else {
+      trip = await tripsApi.create({
+        ...base,
+        travelerId,
+        status: 'Planning',
+        guideId: Number(formData.guideId),
+        ...(formData.mode === 'package' && formData.packageId ? { packageId: Number(formData.packageId) } : {}),
+      });
+    }
+    if (!sameGuide) {
+      try {
+        await apiPost('/messages', {
+          sender: 'traveler',
+          senderId: travelerId,
+          receiver: 'guide',
+          receiverId: Number(formData.guideId),
+          content: `Hi! Please accept or decline my trip request #${trip.tripId} to ${trip.destination} (${trip.startDate} to ${trip.endDate}) within 3 hours. Thank you!`,
+        });
+      } catch (msgErr) {
+        // The request itself is on the trip (guide sees it in Requests); the chat message is only a courtesy.
+        console.warn('[CreateTripPage] Guide message failed:', msgErr);
+      }
+    }
+    clearSubmissionProgress();
+    setCreatedTrip({
+      tripId: trip.tripId,
+      destination: trip.destination,
+      budget: trip.budget,
+      status: trip.status || 'Planning',
+      startDate: trip.startDate,
+      endDate: trip.endDate,
+      awaitingGuide: true,
+      guideName: formData.guideName,
+      guideResponseDueAt: trip.guideResponseDueAt,
+    });
+  };
+
+  // Save itinerary wizard as draft (status: 'Planning') without generating bookings
+  const handleSaveDraft = async () => {
+    if (isSubmitting) return;
+
+    const travelerId = Number(user?.travelerId || user?.id);
+    if (!travelerId) {
+      setSubmitError('Unable to identify traveler ID from session. Please log in again.');
+      return;
+    }
+
+    if (!formData.destination?.trim()) {
+      setSubmitError('Please specify a destination before saving as draft.');
+      setCurrentStep(2);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const tripPayload = {
+        origin: (formData.origin || formData.currentLocation || 'New Delhi, India').trim(),
+        destination: formData.destination.trim(),
+        startDate: formData.startDate || new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0],
+        endDate: formData.endDate || new Date(Date.now() + 86400000 * 14).toISOString().split('T')[0],
+        budget: Math.round(costData.totalBudget) || 10000,
+        travelerId: travelerId,
+        status: 'Planning',
+        draftPlan: { ...formData },
+      };
+
+      if (formData.guideId) {
+        tripPayload.guideId = Number(formData.guideId);
+      }
+
+      if (formData.mode === 'package' && formData.packageId) {
+        tripPayload.packageId = Number(formData.packageId);
+      }
+
+      let created;
+      if (resumeTrip) {
+        // Update the existing draft instead of creating a second trip.
+        const { travelerId: _t, status: _s, ...changes } = tripPayload;
+        if (Number(changes.guideId) === Number(resumeTrip.guideId)) delete changes.guideId;
+        created = await tripsApi.update(resumeTrip.tripId, changes);
+      } else {
+        created = await tripsApi.create(tripPayload);
+      }
+      if (!created || (!created.tripId && !created.id)) {
+        throw new Error('Draft trip was created but backend did not return an identifier.');
+      }
+
+      const activeTripId = created.tripId || created.id;
+
+      setCreatedTrip({
+        tripId: activeTripId,
+        destination: created.destination,
+        budget: created.budget,
+        status: 'Planning',
+        startDate: created.startDate,
+        endDate: created.endDate,
+        isDraft: true,
+      });
+      clearSubmissionProgress();
+    } catch (err) {
+      console.error('[CreateTripPage] Save draft error:', err);
+      setSubmitError(err.message || 'Failed to save draft trip to backend.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleRetryGuideNotification = async () => {
     const guideId = Number(formData.guideId || submissionProgress.savedFormData?.guideId);
     const travelerId = Number(user?.travelerId || user?.id);
@@ -557,7 +775,6 @@ export default function TravelerCreateTripPage() {
     clearSubmissionProgress();
     setCreatedTrip(null);
     setCurrentStep(0);
-    const defaultCarrier = getDefaultCarrier('Flight');
     setFormData({
       mode: 'custom',
       packageId: null,
@@ -568,8 +785,8 @@ export default function TravelerCreateTripPage() {
       numPersons: 1,
       transportType: 'Flight',
       tripType: 'round',
-      transportName: defaultCarrier.name,
-      transportPrice: defaultCarrier.price,
+      transportName: '',
+      transportPrice: 0,
       hotelName: '',
       hotelPrice: 0,
       guideId: null,
@@ -669,6 +886,29 @@ export default function TravelerCreateTripPage() {
         </p>
       </div>
 
+      {resumeTrip && (
+        <div
+          className="feedback-banner"
+          style={{
+            background: guideAccepted ? '#ecfdf5' : '#fffbeb',
+            border: `1px solid ${guideAccepted ? '#a7f3d0' : '#fde68a'}`,
+            color: guideAccepted ? '#065f46' : '#92400e',
+          }}
+        >
+          <span>
+            {guideAccepted
+              ? `✅ Your guide accepted trip #${resumeTrip.tripId}. Review the plan and press "Create & Save Trip" to book and pay.`
+              : resumeTrip.guideStatus === 'Declined'
+                ? `❌ The guide declined trip #${resumeTrip.tripId}. Choose another guide in the Guide step, or remove the guide to continue without one.`
+                : guideResponseExpired
+                  ? `⌛ The guide did not reply within 3 hours for trip #${resumeTrip.tripId}. Choose another guide, or continue without one.`
+                  : resumeTrip.guideId != null && resumeTrip.guideStatus === 'Pending'
+                    ? `⏳ Waiting for the guide to reply on trip #${resumeTrip.tripId} (within 3 hours). You can still change your plan and save it.`
+                    : `📝 Continuing your saved draft trip #${resumeTrip.tripId}.`}
+          </span>
+        </div>
+      )}
+
       {/* Recovery Banner for Retained Submissions */}
       <TripSubmissionRecoveryBanner
         submissionProgress={submissionProgress}
@@ -709,6 +949,8 @@ export default function TravelerCreateTripPage() {
         onHotelSelect={handleHotelSelect}
         onGuideSelect={handleGuideSelect}
         onSubmit={handleSubmit}
+        onSaveDraft={handleSaveDraft}
+        guideAccepted={guideAccepted}
       />
     </div>
   );

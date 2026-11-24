@@ -1,3 +1,4 @@
+import { hashLegacyPassword } from '../auth/identity.util';
 import {
   Injectable,
   NotFoundException,
@@ -24,6 +25,9 @@ import {
   CreateSystemAdminDto,
   CreateSystemSupportDto,
 } from './dto';
+import { PaginationQueryDto, PaginatedResult } from '../common/dto/pagination-query.dto';
+import { paginateCollection } from '../common/utils/pagination.util';
+import { AuditLogFilterDto } from '../admins/dto/audit-log-filter.dto';
 
 @Injectable()
 export class SystemConfigService {
@@ -53,6 +57,14 @@ export class SystemConfigService {
     this.addAuditLog(logText, authorName, '#10b981', 'rules');
 
     return { ...platformRules };
+  }
+
+  /**
+   * Return settings change history (audit trail for category 'rules').
+   */
+  getSettingsChangeHistory(query?: PaginationQueryDto): SystemAuditLog[] | PaginatedResult<SystemAuditLog> {
+    const rulesLogs = systemAuditLogs.filter((l) => l.category === 'rules');
+    return paginateCollection(rulesLogs, query, ['text', 'author']);
   }
 
   /**
@@ -154,16 +166,40 @@ export class SystemConfigService {
   }
 
   /**
-   * Return all system audit trail records.
+   * Return system audit trail records with filters, search, and pagination.
    */
-  getAuditLogs(): SystemAuditLog[] {
-    return [...systemAuditLogs].sort((a, b) => b.id - a.id);
+  getAuditLogs(): SystemAuditLog[];
+  getAuditLogs(query: AuditLogFilterDto): SystemAuditLog[] | PaginatedResult<SystemAuditLog>;
+  getAuditLogs(query?: AuditLogFilterDto): any {
+    let logs = [...systemAuditLogs].sort((a, b) => b.id - a.id);
+
+    if (query?.category && query.category.trim()) {
+      const cat = query.category.trim().toLowerCase();
+      logs = logs.filter((l) => l.category?.toLowerCase() === cat);
+    }
+
+    if (query?.author && query.author.trim()) {
+      const auth = query.author.trim().toLowerCase();
+      logs = logs.filter((l) => l.author?.toLowerCase().includes(auth));
+    }
+
+    if (query?.startDate) {
+      const start = new Date(query.startDate).getTime();
+      logs = logs.filter((l) => new Date(l.timestamp || 0).getTime() >= start);
+    }
+
+    if (query?.endDate) {
+      const end = new Date(query.endDate).getTime();
+      logs = logs.filter((l) => new Date(l.timestamp || 0).getTime() <= end);
+    }
+
+    return paginateCollection(logs, query, ['text', 'author', 'category']);
   }
 
   /**
    * Internal helper to record an in-memory audit log entry.
    */
-  private addAuditLog(
+  addAuditLog(
     text: string,
     author: string,
     color = '#6366f1',
@@ -184,14 +220,17 @@ export class SystemConfigService {
   }
 
   // =========================================================================
-  // Superuser Administration & Role Management
+  // Superuser Administration & Role Management (Create / Deactivate Staff)
   // =========================================================================
 
   /**
    * Return all administrators without exposing password hashes.
    */
-  getAdmins(): Omit<Admin, 'password'>[] {
-    return admins.map(({ password: _, ...a }) => a);
+  getAdmins(): Omit<Admin, 'password'>[];
+  getAdmins(query: PaginationQueryDto): Omit<Admin, 'password'>[] | PaginatedResult<Omit<Admin, 'password'>>;
+  getAdmins(query?: PaginationQueryDto): any {
+    const safe = admins.map(({ password: _, ...a }) => a);
+    return paginateCollection(safe, query, ['name', 'email', 'role']);
   }
 
   /**
@@ -214,8 +253,9 @@ export class SystemConfigService {
       adminId: maxId + 1,
       name: dto.name.trim(),
       email: emailNorm,
-      password: dto.password,
+      password: hashLegacyPassword(dto.password),
       role: dto.role,
+      status: 'active',
     };
     admins.push(newAdmin);
 
@@ -227,6 +267,48 @@ export class SystemConfigService {
     );
 
     const { password: _, ...safeAdmin } = newAdmin;
+    return safeAdmin;
+  }
+
+  /**
+   * Activate or deactivate an administrator staff account.
+   */
+  updateAdminStatus(
+    id: number,
+    status: 'active' | 'deactivated',
+    requesterId: number,
+    authorName = 'Super User',
+  ): Omit<Admin, 'password'> {
+    const idx = admins.findIndex((a) => a.adminId === id);
+    if (idx === -1) {
+      throw new NotFoundException(`Administrator with ID ${id} not found`);
+    }
+
+    const target = admins[idx];
+
+    if (target.adminId === requesterId && status === 'deactivated') {
+      throw new BadRequestException('Action blocked: Cannot deactivate your own active administrator account.');
+    }
+
+    if (target.role === 'superuser' && status === 'deactivated') {
+      const activeSuperusers = admins.filter(
+        (a) => a.role === 'superuser' && a.adminId !== id && a.status !== 'deactivated',
+      );
+      if (activeSuperusers.length === 0) {
+        throw new BadRequestException('Action blocked: Cannot deactivate the only active superuser account.');
+      }
+    }
+
+    target.status = status;
+
+    this.addAuditLog(
+      `Administrator '${target.name}' status set to ${status}`,
+      authorName,
+      status === 'active' ? '#10b981' : '#ef4444',
+      'users',
+    );
+
+    const { password: _, ...safeAdmin } = target;
     return safeAdmin;
   }
 
@@ -279,8 +361,11 @@ export class SystemConfigService {
   /**
    * Return all support staff accounts without exposing passwords.
    */
-  getSupportUsers(): Omit<SupportUser, 'password'>[] {
-    return supportUsers.map(({ password: _, ...s }) => s);
+  getSupportUsers(): Omit<SupportUser, 'password'>[];
+  getSupportUsers(query: PaginationQueryDto): Omit<SupportUser, 'password'>[] | PaginatedResult<Omit<SupportUser, 'password'>>;
+  getSupportUsers(query?: PaginationQueryDto): any {
+    const safe = supportUsers.map(({ password: _, ...s }) => s);
+    return paginateCollection(safe, query, ['name', 'email', 'contact']);
   }
 
   /**
@@ -304,8 +389,9 @@ export class SystemConfigService {
       name: dto.name.trim(),
       contact: dto.contact.trim(),
       email: emailNorm,
-      password: dto.password,
+      password: hashLegacyPassword(dto.password),
       role: 'support',
+      status: 'active',
     };
     supportUsers.push(newSupport);
 
@@ -317,6 +403,33 @@ export class SystemConfigService {
     );
 
     const { password: _, ...safeSupport } = newSupport;
+    return safeSupport;
+  }
+
+  /**
+   * Activate or deactivate a customer support user account.
+   */
+  updateSupportUserStatus(
+    id: number,
+    status: 'active' | 'deactivated',
+    authorName = 'Super User',
+  ): Omit<SupportUser, 'password'> {
+    const idx = supportUsers.findIndex((s) => s.careId === id);
+    if (idx === -1) {
+      throw new NotFoundException(`Support user with ID ${id} not found`);
+    }
+
+    const target = supportUsers[idx];
+    target.status = status;
+
+    this.addAuditLog(
+      `Support staff member '${target.name}' status set to ${status}`,
+      authorName,
+      status === 'active' ? '#10b981' : '#ef4444',
+      'users',
+    );
+
+    const { password: _, ...safeSupport } = target;
     return safeSupport;
   }
 

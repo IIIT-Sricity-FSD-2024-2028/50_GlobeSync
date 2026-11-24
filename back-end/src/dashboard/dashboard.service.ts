@@ -34,7 +34,7 @@ export class DashboardService {
       totalPackages: packages.length,
       totalGuides: guides.length,
       totalTravelers: travelers.length,
-      pendingBookings: bookings.filter((b) => b.status === 'Pending').length,
+      pendingBookings: bookings.filter((b) => ['PENDING', 'HELD', 'DRAFT'].includes(String(b.status).toUpperCase())).length,
       completedTrips: trips.filter((t) => t.status === 'Completed').length,
       revenueEstimate: totalRevenue,
     };

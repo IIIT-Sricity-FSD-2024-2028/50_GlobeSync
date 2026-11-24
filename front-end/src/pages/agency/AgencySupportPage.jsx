@@ -289,7 +289,7 @@ export default function AgencySupportPage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))',
           gap: '16px',
           marginBottom: '28px',
         }}
@@ -536,6 +536,8 @@ export default function AgencySupportPage() {
               padding: '28px',
               width: '100%',
               maxWidth: '520px',
+              maxHeight: 'calc(100vh - 40px)',
+              overflowY: 'auto',
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
             }}
           >

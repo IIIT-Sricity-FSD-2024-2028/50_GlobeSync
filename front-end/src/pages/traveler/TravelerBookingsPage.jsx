@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { bookingsApi, tripsApi } from '../../services/api';
+import { useRealtimeEvent } from '../../context/RealtimeContext';
+import { bookingsApi, tripsApi, reviewsApi } from '../../services/api';
 import BookingList from '../../components/bookings/BookingList';
 import BookingStats from '../../components/bookings/BookingStats';
 import PaymentModal from '../../components/bookings/PaymentModal';
@@ -43,6 +44,13 @@ export default function TravelerBookingsPage() {
   const [actionMessage, setActionMessage] = useState(null);
   const [partialTripRecovery, setPartialTripRecovery] = useState(null);
 
+  // 5. Review Dialog State
+  const [reviewedBookingIds, setReviewedBookingIds] = useState([]);
+  const [reviewingBooking, setReviewingBooking] = useState(null);
+  const [reviewForm, setReviewForm] = useState({ tripRating: 5, guideRating: 5, comment: '' });
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState(null);
+
   // Toast Notification State
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success');
@@ -65,9 +73,10 @@ export default function TravelerBookingsPage() {
     setError(null);
 
     try {
-      const [bookingsRes, tripsRes] = await Promise.allSettled([
+      const [bookingsRes, tripsRes, reviewsRes] = await Promise.allSettled([
         bookingsApi.getByTraveler(travelerId, { signal }),
         tripsApi.getByTraveler(travelerId, { signal }),
+        reviewsApi.getAll({ signal }),
       ]);
 
       if (signal?.aborted) return;
@@ -85,6 +94,12 @@ export default function TravelerBookingsPage() {
         setTrips(Array.isArray(tripsRes.value) ? tripsRes.value : []);
       } else {
         setTrips([]);
+      }
+
+      // 3. Existing Reviews: track reviewed bookings to prevent double-reviewing
+      if (reviewsRes.status === 'fulfilled' && Array.isArray(reviewsRes.value)) {
+        const myReviews = reviewsRes.value.filter((r) => Number(r.travelerId) === travelerId);
+        setReviewedBookingIds(myReviews.map((r) => r.bookingId).filter(Boolean));
       }
     } catch (err) {
       if (!err.isCancelled && !signal?.aborted) {
@@ -106,6 +121,27 @@ export default function TravelerBookingsPage() {
       controller.abort();
     };
   }, [travelerId]);
+
+  // Realtime updates without full page reload
+  useRealtimeEvent('booking.status_changed', (event) => {
+    if (event?.bookingId) {
+      setBookings((prev) =>
+        prev.map((b) =>
+          (b.bookingId === event.bookingId || b.id === event.bookingId)
+            ? { ...b, status: event.status }
+            : b,
+        ),
+      );
+      showToast(`⚡ Live Update: Booking #${event.bookingId} is now ${event.status}`, 'success');
+    }
+  });
+
+  useRealtimeEvent('refund.processed', (event) => {
+    if (event?.bookingId) {
+      const amount = event.refundAmountMinor ? `₹${(event.refundAmountMinor / 100).toFixed(2)}` : '';
+      showToast(`💰 Live: Refund ${amount} processed for Booking #${event.bookingId}`, 'success');
+    }
+  });
 
   // Derived filtered bookings list during render (no duplicate state)
   const filteredBookings = bookings.filter((b) => {
@@ -206,19 +242,9 @@ export default function TravelerBookingsPage() {
     setCancelBookingError(null);
 
     try {
-      const payload = {
-        bookingDate: booking.bookingDate,
-        tripId: booking.tripId,
-        travelerId: booking.travelerId,
-        service: booking.service,
-        type: booking.type,
-        amount: booking.amount,
-        status: 'Cancelled',
-        cancellationReason,
-        cancelledAt: new Date().toISOString(),
-      };
-
-      await bookingsApi.update(bookingId, payload);
+      // Cancellation always goes through the server policy (12-hour rule, refund tiers).
+      // A failure is shown to the traveler instead of being bypassed with a status edit.
+      await bookingsApi.cancel(bookingId, cancellationReason);
 
       setBookings((prev) =>
         prev.map((b) =>
@@ -238,10 +264,54 @@ export default function TravelerBookingsPage() {
     }
   };
 
+  // Review Handlers (only allowed for COMPLETED bookings, once per booking)
+  const handleWriteReview = (booking) => {
+    setReviewingBooking(booking);
+    setReviewForm({ tripRating: 5, guideRating: 5, comment: '' });
+    setReviewError(null);
+  };
+
+  const handleSubmitReview = async (e) => {
+    if (e) e.preventDefault();
+    if (!reviewingBooking) return;
+    if (!reviewForm.comment.trim()) {
+      setReviewError('Please share a few words about your experience.');
+      return;
+    }
+
+    setIsSubmittingReview(true);
+    setReviewError(null);
+
+    const bookingId = Number(reviewingBooking.bookingId || reviewingBooking.id);
+    const trip = trips.find((t) => (t.tripId || t.id) === reviewingBooking.tripId);
+    const guideId = Number(reviewingBooking.guideId || trip?.guideId) || undefined;
+
+    try {
+      await reviewsApi.create({
+        bookingId,
+        tripId: reviewingBooking.tripId,
+        travelerId,
+        guideId,
+        tripRating: Number(reviewForm.tripRating),
+        guideRating: Number(reviewForm.guideRating),
+        comment: reviewForm.comment.trim(),
+      });
+
+      setReviewedBookingIds((prev) => [...prev, bookingId]);
+      setReviewingBooking(null);
+      showToast('Thank you! Your verified review has been submitted. ⭐', 'success');
+    } catch (err) {
+      console.error('[TravelerBookingsPage] Submit review failed:', err);
+      setReviewError(err.message || 'Failed to submit review.');
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
   // Derived financial metrics
   const totalAmount = bookings.reduce((sum, b) => sum + Number(b.amount || 0), 0);
   const confirmedCount = bookings.filter((b) => b.status === 'Confirmed').length;
-  const pendingCount = bookings.filter((b) => b.status === 'Pending').length;
+  const pendingCount = bookings.filter((b) => b.status === 'Pending' || b.status === 'HELD').length;
 
   return (
     <div className="traveler-bookings-page">
@@ -436,6 +506,8 @@ export default function TravelerBookingsPage() {
           onPayNow={(booking) => setPayingBooking(booking)}
           onView={(booking) => setViewingBooking(booking)}
           onCancel={handleCancelBooking}
+          onWriteReview={handleWriteReview}
+          reviewedBookingIds={reviewedBookingIds}
           hasActiveFilters={hasActiveFilters}
           onClearFilters={handleClearFilters}
         />
@@ -479,6 +551,140 @@ export default function TravelerBookingsPage() {
           isCancelling={isCancellingBooking}
           error={cancelBookingError}
         />
+      )}
+
+      {/* Controlled Write Review Modal */}
+      {reviewingBooking && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.55)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: '16px',
+            padding: '28px',
+            width: '90%',
+            maxWidth: '500px',
+            maxHeight: 'calc(100vh - 40px)',
+            overflowY: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
+          }}>
+            <h3 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: 800 }}>
+              ⭐ Review Your Completed Booking
+            </h3>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '18px' }}>
+              BK00{reviewingBooking.bookingId || reviewingBooking.id} • {reviewingBooking.service} ({reviewingBooking.type})
+            </p>
+
+            {reviewError && (
+              <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#b91c1c', fontSize: '12px', marginBottom: '14px' }}>
+                ⚠️ {reviewError}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmitReview}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
+                    Trip Experience (1-5)
+                  </label>
+                  <select
+                    value={reviewForm.tripRating}
+                    onChange={(e) => setReviewForm({ ...reviewForm, tripRating: Number(e.target.value) })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#fff' }}
+                  >
+                    <option value={5}>⭐⭐⭐⭐⭐ (5 - Exceptional)</option>
+                    <option value={4}>⭐⭐⭐⭐ (4 - Very Good)</option>
+                    <option value={3}>⭐⭐⭐ (3 - Average)</option>
+                    <option value={2}>⭐⭐ (2 - Poor)</option>
+                    <option value={1}>⭐ (1 - Terrible)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
+                    Guide Rating (1-5)
+                  </label>
+                  <select
+                    value={reviewForm.guideRating}
+                    onChange={(e) => setReviewForm({ ...reviewForm, guideRating: Number(e.target.value) })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#fff' }}
+                  >
+                    <option value={5}>⭐⭐⭐⭐⭐ (5 - Exceptional)</option>
+                    <option value={4}>⭐⭐⭐⭐ (4 - Very Good)</option>
+                    <option value={3}>⭐⭐⭐ (3 - Average)</option>
+                    <option value={2}>⭐⭐ (2 - Poor)</option>
+                    <option value={1}>⭐ (1 - Terrible)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '18px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
+                  Your Review / Testimonial *
+                </label>
+                <textarea
+                  rows={4}
+                  required
+                  placeholder="Tell other travelers about your experience, the tour guide, and key highlights..."
+                  value={reviewForm.comment}
+                  onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    boxSizing: 'border-box',
+                    resize: 'vertical',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  disabled={isSubmittingReview}
+                  onClick={() => setReviewingBooking(null)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    background: '#fff',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingReview}
+                  style={{
+                    padding: '8px 20px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'var(--primary, #0284c7)',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: '13px',
+                    cursor: isSubmittingReview ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {isSubmittingReview ? 'Submitting...' : 'Submit Verified Review ⭐'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Toast Notification */}

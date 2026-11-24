@@ -200,16 +200,16 @@ export default function TravelerPackagesPage() {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <div>
-                <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Destination</span>
+                <span style={{ fontSize: '13px', color: '#4b5563', fontWeight: 600 }}>Destination</span>
                 <div style={{ fontSize: '16px', fontWeight: 700 }}>📍 {selectedPackage.destinations}</div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '13px', color: 'var(--muted)' }}>Duration</span>
+                <span style={{ fontSize: '13px', color: '#4b5563', fontWeight: 600 }}>Duration</span>
                 <div style={{ fontSize: '16px', fontWeight: 700 }}>⏱ {selectedPackage.duration} Days</div>
               </div>
             </div>
 
-            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '16px' }}>
+            <p style={{ fontSize: '14px', color: '#374151', lineHeight: '1.6', marginBottom: '16px' }}>
               {selectedPackage.description}
             </p>
 
@@ -223,8 +223,16 @@ export default function TravelerPackagesPage() {
                 fontSize: '13px',
               }}
             >
-              ✨ <strong>Featured Highlights:</strong>
-              <div style={{ marginTop: '4px', color: '#831843' }}>{selectedPackage.highlights}</div>
+              <strong style={{ fontSize: '14px', color: '#831843' }}>✨ What's included</strong>
+              <ul style={{ margin: '8px 0 0', paddingLeft: '20px', color: '#500724', lineHeight: '1.7', fontSize: '14px' }}>
+                {String(selectedPackage.highlights || '')
+                  .split(/[,;\n]/)
+                  .map((h) => h.trim())
+                  .filter(Boolean)
+                  .map((h) => (
+                    <li key={h}>{h}</li>
+                  ))}
+              </ul>
             </div>
 
             <div
@@ -232,12 +240,14 @@ export default function TravelerPackagesPage() {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px',
                 paddingTop: '16px',
                 borderTop: '1px solid var(--border-light)',
               }}
             >
               <div>
-                <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Estimated Price</div>
+                <div style={{ fontSize: '12px', color: '#4b5563', fontWeight: 600 }}>Estimated Price</div>
                 <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--primary)' }}>
                   ₹{Number(selectedPackage.budget || 0).toLocaleString('en-IN')}
                 </div>

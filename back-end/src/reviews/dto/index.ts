@@ -1,1 +1,1 @@
-export { CreateReviewDto } from './create-review.dto';
+export { CreateReviewDto, GuideResponseDto } from './create-review.dto';

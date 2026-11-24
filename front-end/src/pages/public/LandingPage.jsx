@@ -177,20 +177,20 @@ export default function LandingPage() {
       {/* STATS STRIP */}
       <section className="stats-strip">
         <div className="stat-box">
-          <div className="stat-value">2,500+</div>
-          <div className="stat-label">Trips Planned</div>
+          <div className="stat-value">24h</div>
+          <div className="stat-label">Minimum Advance Lead Time</div>
         </div>
         <div className="stat-box">
-          <div className="stat-value">150+</div>
-          <div className="stat-label">Verified Guides</div>
+          <div className="stat-value">15m</div>
+          <div className="stat-label">Hold Expiry Protection</div>
         </div>
         <div className="stat-box">
-          <div className="stat-value">98.5%</div>
-          <div className="stat-label">Satisfaction Rate</div>
+          <div className="stat-value">3 Tiers</div>
+          <div className="stat-label">Cancellation Policy</div>
         </div>
         <div className="stat-box">
-          <div className="stat-value">45+</div>
-          <div className="stat-label">Destinations Worldwide</div>
+          <div className="stat-value">6 Roles</div>
+          <div className="stat-label">Dedicated Workspaces</div>
         </div>
       </section>
 

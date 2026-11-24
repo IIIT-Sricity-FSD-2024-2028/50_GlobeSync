@@ -1,5 +1,6 @@
 import React from 'react';
 import StatusBadge from '../common/StatusBadge';
+import { formatLocalDate } from '../../utils/dateUtils';
 
 const TYPE_ICONS = {
   Flight: '✈️',
@@ -18,9 +19,14 @@ export default function BookingList({
   onPayNow,
   onView,
   onCancel,
+  onWriteReview,
+  reviewedBookingIds = [],
   hasActiveFilters = false,
   onClearFilters,
 }) {
+  const findTrip = (tripId) => trips.find((t) => (t.tripId || t.id) === tripId);
+  const isTripCancelled = (tripId) => String(findTrip(tripId)?.status || '').toLowerCase() === 'cancelled';
+
   const getTripDestination = (tripId) => {
     const trip = trips.find((t) => (t.tripId || t.id) === tripId);
     return trip ? `📍 ${trip.destination}` : `Trip #${tripId}`;
@@ -94,8 +100,11 @@ export default function BookingList({
           <tbody>
             {bookings.map((b) => {
               const icon = TYPE_ICONS[b.type] || '📋';
-              const canCancel = b.status !== 'Cancelled';
-              const isPending = b.status === 'Pending';
+              const tripCancelled = isTripCancelled(b.tripId);
+              const bookingCancelled = String(b.status || '').toLowerCase() === 'cancelled';
+              // When the whole trip is cancelled, the booking is shown as cancelled and cannot be paid.
+              const canCancel = !bookingCancelled && !tripCancelled;
+              const isPending = !tripCancelled && (b.status === 'Pending' || b.status === 'HELD');
 
               return (
                 <tr
@@ -126,14 +135,31 @@ export default function BookingList({
 
                   <td style={{ padding: '16px 18px', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>
                     {getTripDestination(b.tripId)}
+                    {tripCancelled && (
+                      <div
+                        style={{
+                          display: 'inline-block',
+                          marginTop: '4px',
+                          padding: '2px 8px',
+                          borderRadius: '999px',
+                          background: '#fef2f2',
+                          border: '1px solid #fecaca',
+                          color: '#b91c1c',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                        }}
+                      >
+                        Trip cancelled
+                      </div>
+                    )}
                   </td>
 
                   <td style={{ padding: '16px 18px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                    📅 {b.bookingDate || 'TBD'}
+                    📅 {formatLocalDate(b.bookingDate)}
                   </td>
 
                   <td style={{ padding: '16px 18px' }}>
-                    <StatusBadge status={b.status || 'Pending'} />
+                    <StatusBadge status={tripCancelled ? 'Cancelled' : b.status || 'Pending'} />
                   </td>
 
                   <td style={{ padding: '16px 18px', textAlign: 'right', fontWeight: 800, color: 'var(--primary)', fontSize: '15px' }}>
@@ -142,6 +168,40 @@ export default function BookingList({
 
                   <td style={{ padding: '16px 18px', textAlign: 'right' }}>
                     <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                      {b.status?.toUpperCase() === 'COMPLETED' && onWriteReview && (
+                        reviewedBookingIds.includes(b.bookingId || b.id) ? (
+                          <span
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: '8px',
+                              background: '#f1f5f9',
+                              color: '#64748b',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                            }}
+                          >
+                            ✓ Reviewed
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => onWriteReview(b)}
+                            style={{
+                              padding: '6px 12px',
+                              borderRadius: '8px',
+                              background: '#eff6ff',
+                              border: '1px solid #bfdbfe',
+                              color: '#1d4ed8',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            ⭐ Review
+                          </button>
+                        )
+                      )}
+
                       {isPending && onPayNow && (
                         <button
                           type="button"
