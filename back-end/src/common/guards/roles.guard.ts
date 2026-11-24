@@ -275,9 +275,7 @@ export class RolesGuard implements CanActivate {
     }
     if (handlerName === 'create') {
       if (request.body?.sender !== roleType) throw new ForbiddenException(OWN_RESOURCE_ERROR);
-      if (roleType !== 'support') {
-        if (this.parseNumericValue(request.body?.senderId) !== userId) throw new ForbiddenException(OWN_RESOURCE_ERROR);
-      }
+      if (this.parseNumericValue(request.body?.senderId) !== userId) throw new ForbiddenException(OWN_RESOURCE_ERROR);
     }
   }
 
