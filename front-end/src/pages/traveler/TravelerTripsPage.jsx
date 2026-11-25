@@ -32,6 +32,10 @@ export default function TravelerTripsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Pending Guide Reassignments Consent Requests
+  const [pendingReassignments, setPendingReassignments] = useState([]);
+  const [consentBusy, setConsentBusy] = useState(false);
+
   // 2. Filter State
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -81,11 +85,21 @@ export default function TravelerTripsPage() {
     setError(null);
 
     try {
-      const data = await tripsApi.getByTraveler(travelerId, { signal });
+      const [data, reassignmentsData] = await Promise.all([
+        tripsApi.getByTraveler(travelerId, { signal }),
+        tripsApi.getMyReassignments({ signal }).catch(() => []),
+      ]);
       if (signal?.aborted) return;
 
       const loadedTrips = Array.isArray(data) ? data : [];
       setTrips(loadedTrips);
+
+      const pending = Array.isArray(reassignmentsData)
+        ? reassignmentsData.filter(
+            (r) => r.status === 'PENDING_CONSENT' && (r.travelerConsent === 'PENDING' || !r.travelerConsent),
+          )
+        : [];
+      setPendingReassignments(pending);
 
       // Restore selected trip if URL query (?tripId=...) is present
       const urlTripId = searchParams.get('tripId');
@@ -239,6 +253,23 @@ export default function TravelerTripsPage() {
     setTimeout(() => setActionMessage(null), 4000);
   };
 
+  const handleTravelerConsent = async (requestId, consent, reason) => {
+    setConsentBusy(true);
+    try {
+      await tripsApi.respondTravelerConsent(requestId, {
+        decision: consent ? 'ACCEPT' : 'REJECT',
+        reason,
+      });
+      showToast(consent ? 'Guide reassignment accepted. Waiting for replacement guide confirmation.' : 'Guide reassignment declined. Original guide preserved.');
+      setPendingReassignments((prev) => prev.filter((r) => r.id !== requestId));
+      loadTrips();
+    } catch (err) {
+      showToast(err.message || 'Failed to submit consent.', 'error');
+    } finally {
+      setConsentBusy(false);
+    }
+  };
+
   const handleCancelTrip = (trip) => {
     setCancellingTrip(trip);
     setCancelTripError(null);
@@ -266,6 +297,8 @@ export default function TravelerTripsPage() {
         setSelectedTrip((prev) =>
           prev ? { ...prev, status: 'Cancelled', cancellationReason } : null
         );
+        setShowItineraryForm(false);
+        setEditingItinerary(null);
       }
 
       setCancellingTrip(null);
@@ -376,6 +409,89 @@ export default function TravelerTripsPage() {
           >
             ✕
           </button>
+        </div>
+      )}
+
+      {/* Pending Guide Reassignment Consent Banners (Category D Governance) */}
+      {pendingReassignments.length > 0 && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          {pendingReassignments.map((req) => {
+            const isHighlighted = String(searchParams.get('reassignmentId') || '') === String(req.id);
+            const priceDiff = Number(req.priceDifference || 0);
+            return (
+              <div
+                key={req.id}
+                style={{
+                  padding: '16px 20px',
+                  borderRadius: '12px',
+                  background: isHighlighted ? '#fef3c7' : '#fffbeb',
+                  border: `1.5px solid ${isHighlighted ? '#d97706' : '#fef3c7'}`,
+                  borderLeft: '5px solid #f59e0b',
+                  marginBottom: '12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <span style={{ fontWeight: 700, color: '#92400e', fontSize: '15px' }}>
+                    ⚠️ Guide Replacement Consent Requested for Trip #{req.tripId}
+                    {req.tripDestination ? ` (${req.tripDestination})` : ''}
+                  </span>
+                  <span style={{ fontSize: '12px', color: '#b45309', fontWeight: 600 }}>
+                    Requested {new Date(req.createdAt).toLocaleDateString()}
+                    {req.expiresAt ? ` • Respond by ${new Date(req.expiresAt).toLocaleString()}` : ''}
+                  </span>
+                </div>
+                <div style={{ fontSize: '14px', color: '#78350f', lineHeight: 1.5 }}>
+                  <div>
+                    Administration proposed replacing{' '}
+                    <strong>{req.currentGuideName || `Guide #${req.currentGuideId || 'None'}`}</strong>{' '}
+                    with{' '}
+                    <strong>{req.proposedGuideName || `Guide #${req.proposedGuideId}`}</strong>
+                    {req.proposedGuideExperienceYears != null ? ` (${req.proposedGuideExperienceYears} yrs exp` : ''}
+                    {req.proposedGuideRating != null ? `, ★ ${req.proposedGuideRating})` : req.proposedGuideExperienceYears != null ? ')' : ''}.
+                  </div>
+                  {req.tripStartDate && req.tripEndDate && (
+                    <div style={{ fontSize: '13px', marginTop: '2px' }}>
+                      <strong>Trip Dates:</strong> {req.tripStartDate} → {req.tripEndDate}
+                    </div>
+                  )}
+                  <div style={{ fontSize: '13px', marginTop: '2px' }}>
+                    <strong>Reason:</strong> "{req.reason}"
+                  </div>
+                  <div style={{ fontSize: '13px', marginTop: '2px' }}>
+                    <strong>Rate Impact:</strong>{' '}
+                    {priceDiff === 0
+                      ? 'No additional guide fee (same daily rate).'
+                      : priceDiff > 0
+                        ? `Proposed guide daily rate is ₹${priceDiff.toLocaleString('en-IN')}/day higher (₹${Number(req.proposedGuideDailyRate || 0).toLocaleString('en-IN')}/day). Explicit traveler consent required.`
+                        : `Proposed guide daily rate is ₹${Math.abs(priceDiff).toLocaleString('en-IN')}/day lower (₹${Number(req.proposedGuideDailyRate || 0).toLocaleString('en-IN')}/day).`}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '4px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    disabled={consentBusy}
+                    onClick={() => handleTravelerConsent(req.id, true, 'Traveler consented via portal')}
+                    style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
+                  >
+                    ✓ Accept New Guide
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={consentBusy}
+                    onClick={() => handleTravelerConsent(req.id, false, 'Traveler declined replacement guide')}
+                    style={{ color: '#dc2626' }}
+                  >
+                    ✕ Decline Replacement
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 

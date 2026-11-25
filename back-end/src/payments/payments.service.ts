@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { payments, Payment, bookings, agencies } from '../data';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { payments, Payment, bookings, agencies, commissionLedger, trips } from '../data';
 import { CreatePaymentDto } from './dto';
 import { RevenueService } from '../revenue/revenue.service';
 import { SystemConfigService } from '../system-config/system-config.service';
@@ -98,6 +98,15 @@ export class PaymentsService {
         throw new BadRequestException('Only completed (Paid) payments can be recorded.');
       }
     }
+    if (actor?.role === 'agency' || dto.agencyId) {
+      const checkAgencyId = dto.agencyId || actor?.userId;
+      const checkAgency = agencies.find((a) => a.agencyId === checkAgencyId);
+      if (checkAgency && checkAgency.status !== 'approved') {
+        throw new ForbiddenException(
+          `Agency account is '${checkAgency.status}'. Only approved partner agencies can process client settlements.`,
+        );
+      }
+    }
     if (dto.bookingId && dto.status === 'Paid' && actor?.role !== 'admin' && actor?.role !== 'superuser') {
       const booking = bookings.find((b) => b.bookingId === dto.bookingId);
       if (!booking) throw new NotFoundException(`Booking with ID ${dto.bookingId} not found`);
@@ -111,13 +120,27 @@ export class PaymentsService {
       const dueMinor = booking.total_minor ?? Math.round(Number(booking.amount) * 100);
       const grossAmount = dueMinor / 100;
 
-      if (actor?.role === 'agency') {
-        const agencyId = dto.agencyId || actor.userId;
+      if (actor?.role === 'agency' || (!actor && dto.agencyId)) {
+        const agencyId = dto.agencyId || actor?.userId;
         const agency = agencies.find((a) => a.agencyId === agencyId);
-        const commissionRate = agency?.commissionRate ?? 10.0;
+        if (agency && agency.status !== 'approved') {
+          throw new ForbiddenException(
+            `Agency account is '${agency.status}'. Only approved partner agencies can process client settlements.`,
+          );
+        }
+        const commissionRate = agency?.commissionRate ?? 1.5;
         const commissionMinor = Math.round((dueMinor * commissionRate) / 100);
         const netRemittanceMinor = dueMinor - commissionMinor;
         const paidMinor = Math.round(dto.amount * 100);
+
+        // Sandbox corporate escrow balance check when paying via Cash / Escrow
+        if (dto.method === 'Cash' && (agency as any)?.escrowBalanceMinor !== undefined) {
+          if (paidMinor > Number((agency as any).escrowBalanceMinor)) {
+            throw new BadRequestException(
+              `Insufficient agency corporate escrow balance (Available: ₹${(Number((agency as any).escrowBalanceMinor) / 100).toLocaleString('en-IN')}, Required: ₹${(paidMinor / 100).toLocaleString('en-IN')}).`,
+            );
+          }
+        }
 
         // Accept either the gross booking amount or server-calculated net remittance (allow 100 minor unit tolerance)
         const matchesGross = Math.abs(paidMinor - dueMinor) <= 100;
@@ -190,7 +213,43 @@ export class PaymentsService {
     // Revenue integration
     if (item.status === 'Paid') {
       if (item.agencyId) {
-        this.revenueService.calculateAgencyCommission(item.bookingId || item.tripId || 0, item.amount, item.agencyId);
+        const agency = agencies.find((a) => a.agencyId === item.agencyId);
+        const booking = dto.bookingId ? bookings.find((b) => b.bookingId === dto.bookingId) : undefined;
+        const grossAmount = booking ? Number(booking.amount) : item.amount;
+        const rate = agency?.commissionRate ?? 1.5;
+
+        // Deduct sandbox escrow if tracked on agency
+        if (item.method === 'Cash' && agency && (agency as any).escrowBalanceMinor !== undefined) {
+          (agency as any).escrowBalanceMinor = Math.max(
+            0,
+            Number((agency as any).escrowBalanceMinor) - Math.round(item.amount * 100),
+          );
+        }
+
+        this.revenueService.calculateAgencyCommission(item.bookingId || item.tripId || 0, grossAmount, item.agencyId, rate);
+
+        // Ensure commissionLedger reflects earned status and bookingId link
+        const targetTripId = booking?.tripId ?? dto.tripId;
+        const existingLedger = targetTripId
+          ? commissionLedger.find((c) => c.tripId === targetTripId && c.agencyId === item.agencyId)
+          : undefined;
+        if (existingLedger) {
+          existingLedger.status = 'earned';
+          if (booking && !existingLedger.bookingId) existingLedger.bookingId = booking.bookingId;
+        } else if (targetTripId) {
+          const commId = commissionLedger.length > 0 ? Math.max(...commissionLedger.map((c) => c.commissionId)) : 0;
+          commissionLedger.push({
+            commissionId: commId + 1,
+            agencyId: item.agencyId,
+            tripId: targetTripId,
+            bookingId: booking?.bookingId,
+            grossAmount,
+            commissionAmount: Math.round((grossAmount * rate) / 100),
+            rate,
+            status: 'earned',
+            createdAt: new Date().toISOString(),
+          });
+        }
       } else {
         this.revenueService.calculateBookingCommission(item.bookingId || item.tripId || 0, item.amount);
       }
@@ -201,8 +260,10 @@ export class PaymentsService {
         if (booking && (booking.status === 'Pending' || booking.status === 'HELD')) {
           BookingStateMachine.assertValidTransition(booking.status, BookingStatus.PAID);
           booking.status = BookingStatus.PAID;
+          booking.paidAt = new Date().toISOString();
           BookingStateMachine.assertValidTransition(booking.status, BookingStatus.CONFIRMED);
           booking.status = BookingStatus.CONFIRMED;
+          booking.confirmedAt = new Date().toISOString();
         }
         confirmTripIfFullyPaid(booking?.tripId);
       }

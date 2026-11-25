@@ -1,4 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import { travelers } from '../data';
 import { admins } from '../data';
 import { guides } from '../data';
@@ -55,11 +56,14 @@ export class AuthServiceLegacy {
   }
 
   agencyLogin(email: string, password: string) {
-    const agency = agencies.find(
-      (a) =>
-        a.contactEmail.toLowerCase() === email.toLowerCase() &&
-        a.password === password,
-    );
+    const agency = agencies.find((a) => {
+      if (a.contactEmail.toLowerCase() !== email.toLowerCase()) return false;
+      if (!a.password) return false;
+      if (a.password.startsWith('$2a$') || a.password.startsWith('$2b$') || a.password.startsWith('$2y$')) {
+        return bcrypt.compareSync(password, a.password);
+      }
+      return a.password === password;
+    });
     if (!agency) {
       throw new UnauthorizedException('Invalid email or password');
     }

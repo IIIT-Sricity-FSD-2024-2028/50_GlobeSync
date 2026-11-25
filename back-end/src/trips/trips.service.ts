@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Optional,
 } from '@nestjs/common';
 import {
@@ -13,6 +14,8 @@ import {
   bookings,
   itineraries,
   expenses,
+  guideReassignmentRequests,
+  GuideReassignmentRequest,
 } from '../data';
 import { CreateTripDto, UpdateTripDto } from './dto';
 import { RealtimeService } from '../realtime/realtime.service';
@@ -22,6 +25,7 @@ import { PaginationQueryDto, PaginatedResult } from '../common/dto/pagination-qu
 import { paginateCollection } from '../common/utils/pagination.util';
 import { packages, guides } from '../data';
 import { PolicyService } from '../policy/policy.service';
+import { validateTripDates } from '../common/config/trip-date-policy';
 import {
   TripActor,
   assertTripUpdateAllowed,
@@ -187,17 +191,7 @@ export class TripsService {
       throw new BadRequestException('Exactly one of travelerId or agencyId must be provided.');
     }
 
-    assertValidDate('Start date', dto.startDate);
-    assertValidDate('End date', dto.endDate);
-    if (dto.startDate && dto.endDate && dto.endDate <= dto.startDate) {
-      throw new BadRequestException('Trip end date must be strictly after the start date.');
-    }
-    if (dto.travelersCount !== undefined && (!Number.isInteger(dto.travelersCount) || dto.travelersCount < 1)) {
-      throw new BadRequestException('Number of travelers must be a whole number of at least 1.');
-    }
-    if (dto.travelersCount !== undefined && dto.travelersCount > 50) {
-      throw new BadRequestException('A single trip can include at most 50 travelers. Contact support for group bookings.');
-    }
+    let matchedPackage: any = null;
     if (dto.packageId !== undefined && dto.packageId !== null) {
       const pkg = packages.find((p) => p.packageId === dto.packageId);
       if (!pkg) throw new BadRequestException(`Package #${dto.packageId} does not exist.`);
@@ -205,21 +199,62 @@ export class TripsService {
       if (pkg.status && UNAVAILABLE.includes(String(pkg.status).toUpperCase())) {
         throw new BadRequestException(`Package "${pkg.name}" is not currently available for booking.`);
       }
+      // T01: Fixed package destination integrity - destination must match preplanned package
+      if (pkg.destinations && dto.destination) {
+        const pkgDests = pkg.destinations.split(',').map((d) => d.trim().toLowerCase());
+        const targetDest = dto.destination.trim().toLowerCase();
+        const matches = pkgDests.some((d) => targetDest.includes(d) || d.includes(targetDest));
+        if (!matches && !pkg.name.toLowerCase().includes(targetDest)) {
+          throw new BadRequestException(
+            `Destination '${dto.destination}' is invalid for preplanned package '${pkg.name}'. The package destination is fixed to '${pkg.destinations}'.`,
+          );
+        }
+      }
+      matchedPackage = pkg;
+    }
+
+    // F03: Enforce shared GlobeSync date & duration policy
+    validateTripDates({
+      startDate: dto.startDate,
+      endDate: dto.endDate,
+      packageDurationDays: matchedPackage?.duration ?? null,
+      enforceAdvanceAndHorizon: process.env.NODE_ENV !== 'test' || Boolean(actor),
+      enforcePackageDuration: Boolean(actor && matchedPackage?.duration),
+    });
+
+    if (dto.travelersCount !== undefined && (!Number.isInteger(dto.travelersCount) || dto.travelersCount < 1)) {
+      throw new BadRequestException('Number of travelers must be a whole number of at least 1.');
+    }
+    if (dto.travelersCount !== undefined && dto.travelersCount > 50) {
+      throw new BadRequestException('A single trip can include at most 50 travelers. Contact support for group bookings.');
     }
     if (dto.guideId !== undefined && dto.guideId !== null && !guides.some((g) => g.guideId === dto.guideId)) {
       throw new BadRequestException(`Guide #${dto.guideId} does not exist.`);
     }
     assertTripCreateStatusAllowed(actor, normalizeStatus(dto.status) || 'Planning');
 
-    // Advance booking validation: Trips cannot be booked for today (present date) or past dates
-    if (process.env.NODE_ENV !== 'test' && dto.startDate) {
-      const todayStr = todayInIndia();
-      if (dto.startDate.slice(0, 10) <= todayStr) {
+    // F02: Enforce mandatory transportation and accommodation for non-draft customized overnight trips
+    const initialTripStatus = normalizeStatus(dto.status) || 'Planning';
+    if (
+      actor &&
+      ['traveler', 'agency'].includes(actor.role) &&
+      initialTripStatus !== 'Planning' &&
+      !dto.packageId
+    ) {
+      const td = dto.transportDetails || {};
+      const hasTransport = Boolean((td.carrier || td.transportName) && td.transportType);
+      const isSameDayTrip = dto.startDate && dto.endDate && dto.startDate.slice(0, 10) === dto.endDate.slice(0, 10);
+      const hasAccommodation = Boolean(td.lodgingTier || td.hotelName);
+      if (!hasTransport) {
         throw new BadRequestException(
-          'Trip can start from tomorrow onwards. Today or past dates are not allowed.',
+          'Transportation selection (transportType and carrier) is mandatory before submitting a customized trip.',
         );
       }
-      // Rule (owner decision, Nov 2026): the earliest start date is tomorrow (India time).
+      if (!isSameDayTrip && !hasAccommodation) {
+        throw new BadRequestException(
+          'Accommodation selection (lodgingTier or hotelName) is mandatory for customized overnight trips.',
+        );
+      }
     }
 
     const maxId = trips.length > 0 ? Math.max(...trips.map((t) => t.tripId)) : 0;
@@ -330,23 +365,55 @@ export class TripsService {
       assertTripStatusChangeAllowed(actor, current, targetStatus);
     }
 
-    assertValidDate('Start date', dto.startDate);
-    assertValidDate('End date', dto.endDate);
-    if (
-      process.env.NODE_ENV !== 'test' &&
-      actor && !['admin', 'superuser', 'support'].includes(actor.role) &&
-      dto.startDate && dto.startDate.slice(0, 10) !== String(current.startDate || '').slice(0, 10) &&
-      dto.startDate.slice(0, 10) <= todayInIndia()
-    ) {
-      throw new BadRequestException('Trip start date must be tomorrow or later.');
-    }
     const nextStart = dto.startDate ?? current.startDate;
     const nextEnd = dto.endDate ?? current.endDate;
-    if ((dto.startDate !== undefined || dto.endDate !== undefined) && nextStart && nextEnd && nextEnd <= nextStart) {
-      throw new BadRequestException('Trip end date must be strictly after the start date.');
+    if (dto.startDate !== undefined || dto.endDate !== undefined) {
+      const pkg = current.packageId ? packages.find((p) => p.packageId === current.packageId) : null;
+      const startUnchanged =
+        dto.startDate === undefined ||
+        dto.startDate.slice(0, 10) === String(current.startDate || '').slice(0, 10);
+      validateTripDates({
+        startDate: nextStart,
+        endDate: nextEnd,
+        packageDurationDays: pkg?.duration ?? null,
+        enforceAdvanceAndHorizon:
+          (process.env.NODE_ENV !== 'test' || Boolean(actor)) && !startUnchanged,
+        enforcePackageDuration: Boolean(actor && pkg?.duration),
+      });
+    }
+
+    // Revalidate guide availability if dates changed while a guide is assigned
+    if (
+      (dto.startDate !== undefined || dto.endDate !== undefined) &&
+      current.guideId &&
+      this.guideAvailabilityService &&
+      nextStart &&
+      nextEnd
+    ) {
+      const isStillAvailable = this.guideAvailabilityService.checkAvailability(
+        current.guideId,
+        nextStart,
+        nextEnd,
+        undefined,
+        id,
+      );
+      if (!isStillAvailable) {
+        throw new ConflictException(
+          `Assigned Guide #${current.guideId} is not available for rescheduled dates (${nextStart} to ${nextEnd}).`,
+        );
+      }
+      if (current.guideStatus === 'Accepted') {
+        this.guideAvailabilityService.releaseTripDates(id);
+        try {
+          this.guideAvailabilityService.blockDates(current.guideId, nextStart, nextEnd, undefined, 'CONFIRMED', id);
+        } catch {}
+      }
     }
     if (dto.travelersCount !== undefined && (!Number.isInteger(dto.travelersCount) || dto.travelersCount < 1)) {
       throw new BadRequestException('Number of travelers must be a whole number of at least 1.');
+    }
+    if (dto.guideId !== undefined && dto.guideId !== null && ['Cancelled', 'Completed'].includes(current.status)) {
+      throw new BadRequestException(`Trip #${id} is ${current.status.toLowerCase()}; cannot assign or change guide.`);
     }
     if (dto.guideId !== undefined && dto.guideId !== null && !guides.some((g) => g.guideId === dto.guideId)) {
       throw new BadRequestException(`Guide #${dto.guideId} does not exist.`);
@@ -356,23 +423,25 @@ export class TripsService {
     const guideChanged =
       dto.guideId !== undefined && dto.guideId !== current.guideId;
 
+    if ((dto.guideStatus === 'Accepted' || dto.guideStatus === 'Declined') && ['Cancelled', 'Completed'].includes(current.status)) {
+      throw new BadRequestException(
+        `Trip #${id} is ${current.status.toLowerCase()}; guide request can no longer be ${dto.guideStatus.toLowerCase()}.`,
+      );
+    }
+
     // Guide availability check when accepting
     if (dto.guideStatus === 'Accepted' && current.guideStatus !== 'Accepted') {
       const guideId = dto.guideId ?? current.guideId;
       const startDate = dto.startDate ?? current.startDate;
       const endDate = dto.endDate ?? current.endDate;
       if (guideId && startDate && endDate && this.guideAvailabilityService) {
-        const isAvailable = this.guideAvailabilityService.checkAvailability(guideId, startDate, endDate);
+        const isAvailable = this.guideAvailabilityService.checkAvailability(guideId, startDate, endDate, undefined, id);
         if (!isAvailable) {
           throw new ConflictException(
             `Guide #${guideId} is already booked or held for overlapping dates (${startDate} to ${endDate}).`,
           );
         }
-        try {
-          this.guideAvailabilityService.blockDates(guideId, startDate, endDate, undefined, 'CONFIRMED', id);
-        } catch {
-          // If already blocked, proceed
-        }
+        this.guideAvailabilityService.blockDates(guideId, startDate, endDate, undefined, 'CONFIRMED', id);
       }
     }
 
@@ -597,7 +666,75 @@ export class TripsService {
    */
   private applyStatusSideEffects(trip: Trip, previousStatus: string, actor?: TripActor): void {
     if (trip.status === 'Cancelled') {
+      const nowIso = new Date().toISOString();
       this.guideAvailabilityService?.releaseTripDates(trip.tripId);
+
+      // F09: Invalidate active/pending guide assignment & notify guide while preserving historical guideId/history
+      if (trip.guideId) {
+        const wasAccepted = trip.guideStatus === 'Accepted';
+        trip.guideStatus = 'Cancelled';
+        trip.guideResponseDueAt = undefined;
+        trip.guideDecisionReason =
+          trip.guideDecisionReason ||
+          (wasAccepted ? 'Trip cancelled after guide acceptance' : 'Trip cancelled while guide request was pending');
+
+        if (this.realtimeService) {
+          this.realtimeService.emitToUser(
+            trip.guideId,
+            'trip.cancelled',
+            { tripId: trip.tripId, destination: trip.destination, wasAccepted },
+            'guide',
+          );
+        }
+        if (this.notificationsService) {
+          this.notificationsService
+            .createNotification(
+              trip.guideId,
+              `Trip #${trip.tripId} Cancelled`,
+              wasAccepted
+                ? `Confirmed trip #${trip.tripId} (${trip.destination}, ${trip.startDate} → ${trip.endDate}) has been cancelled. Your calendar dates have been released.`
+                : `Pending guide request for trip #${trip.tripId} (${trip.destination}) was cancelled by the client and is no longer active.`,
+              { role: 'guide', type: 'trip_cancelled', metadata: { tripId: trip.tripId } },
+            )
+            .catch(() => {});
+        }
+      }
+
+      // F09: Invalidate any pending Admin-initiated guide reassignment / traveler consent requests
+      for (const req of guideReassignmentRequests) {
+        if (req.tripId === trip.tripId && ['PENDING_CONSENT', 'TRAVELER_ACCEPTED'].includes(req.status)) {
+          req.status = 'CANCELLED';
+          req.completedAt = nowIso;
+          req.executionNotes = 'Cancelled automatically because parent trip was cancelled.';
+          if (req.travelerConsent === 'PENDING') {
+            req.travelerConsent = 'REJECTED';
+            req.travelerConsentReason = 'Parent trip cancelled';
+          }
+          if (req.guideConsent === 'PENDING') {
+            req.guideConsent = 'REJECTED';
+            req.guideConsentReason = 'Parent trip cancelled';
+          }
+          if (this.notificationsService) {
+            this.notificationsService
+              .createNotification(
+                req.requesterId,
+                `Reassignment Invalidated: Trip #${trip.tripId}`,
+                `Guide reassignment request #${req.id} for trip #${trip.tripId} was invalidated because the trip was cancelled.`,
+                { role: 'admin', type: 'reassignment_cancelled', metadata: { requestId: req.id, tripId: trip.tripId } },
+              )
+              .catch(() => {});
+            this.notificationsService
+              .createNotification(
+                req.proposedGuideId,
+                `Assignment Offer Withdrawn: Trip #${trip.tripId}`,
+                `The replacement guide offer for trip #${trip.tripId} (${trip.destination}) has been withdrawn because the trip was cancelled.`,
+                { role: 'guide', type: 'reassignment_cancelled', metadata: { requestId: req.id, tripId: trip.tripId } },
+              )
+              .catch(() => {});
+          }
+        }
+      }
+
       if (this.policyService) {
         for (const b of bookings.filter((x) => x.tripId === trip.tripId)) {
           const st = String(b.status).toUpperCase();
@@ -696,5 +833,340 @@ export class TripsService {
 
     trips.splice(idx, 1);
     return { message: `Trip with ID ${id} deleted successfully` };
+  }
+
+  requestGuideReassignment(tripId: number, replacementGuideId: number, reason: string, adminUser: any): GuideReassignmentRequest {
+    const trip = this.findOne(tripId);
+    if (['Cancelled', 'Completed'].includes(trip.status)) {
+      throw new BadRequestException(`Cannot reassign guide for trip #${tripId} in '${trip.status}' status.`);
+    }
+
+    const replacementGuide = guides.find((g) => g.guideId === replacementGuideId);
+    if (!replacementGuide) {
+      throw new NotFoundException(`Proposed replacement guide #${replacementGuideId} not found.`);
+    }
+
+    if (trip.guideId === replacementGuideId) {
+      throw new BadRequestException(`Guide #${replacementGuideId} (${replacementGuide.name}) is already assigned to this trip.`);
+    }
+
+    if (this.guideAvailabilityService && trip.startDate && trip.endDate) {
+      const isAvailable = this.guideAvailabilityService.checkAvailability(
+        replacementGuideId,
+        trip.startDate,
+        trip.endDate,
+      );
+      if (!isAvailable) {
+        throw new ConflictException(
+          `Guide #${replacementGuideId} (${replacementGuide.name}) is not available for trip dates ${trip.startDate} to ${trip.endDate}.`,
+        );
+      }
+    }
+
+    const activePending = guideReassignmentRequests.find(
+      (r) => r.tripId === tripId && ['PENDING_CONSENT', 'TRAVELER_ACCEPTED'].includes(r.status),
+    );
+    if (activePending) {
+      throw new ConflictException(
+        `An active guide reassignment request (#${activePending.id}) is already in progress for trip #${tripId}.`,
+      );
+    }
+
+    const currentGuide = trip.guideId ? guides.find((g) => g.guideId === trip.guideId) : null;
+    const currentDailyRate = currentGuide
+      ? Number(currentGuide.adminSetRateMinor ? currentGuide.adminSetRateMinor / 100 : currentGuide.pricePerTrip || 0)
+      : 0;
+    const proposedDailyRate = Number(
+      replacementGuide.adminSetRateMinor ? replacementGuide.adminSetRateMinor / 100 : replacementGuide.pricePerTrip || 0,
+    );
+    const priceDifference = currentGuide ? proposedDailyRate - currentDailyRate : proposedDailyRate;
+    const nowMs = Date.now();
+    const req: GuideReassignmentRequest = {
+      id: guideReassignmentRequests.length + 1,
+      tripId,
+      tripDestination: trip.destination,
+      tripStartDate: trip.startDate,
+      tripEndDate: trip.endDate,
+      requesterId: Number(adminUser?.userId || adminUser?.id || 1),
+      requesterName: adminUser?.name || adminUser?.email || 'Administrator',
+      currentGuideId: trip.guideId,
+      currentGuideName: currentGuide?.name || 'Unassigned',
+      currentGuideDailyRate: currentDailyRate,
+      proposedGuideId: replacementGuideId,
+      proposedGuideName: replacementGuide.name,
+      proposedGuideExperienceYears: replacementGuide.verifiedExperienceYears ?? replacementGuide.experience,
+      proposedGuideRating: replacementGuide.rating,
+      proposedGuideDailyRate: proposedDailyRate,
+      priceDifference,
+      reason,
+      travelerId: trip.travelerId || 1,
+      status: 'PENDING_CONSENT',
+      travelerConsent: 'PENDING',
+      guideConsent: 'PENDING',
+      createdAt: new Date(nowMs).toISOString(),
+      expiresAt: new Date(nowMs + 48 * 3600 * 1000).toISOString(),
+    };
+
+    guideReassignmentRequests.push(req);
+
+    // Notify Traveler (Consent Required)
+    if (this.notificationsService && trip.travelerId) {
+      this.notificationsService.createNotification(
+        trip.travelerId,
+        'Guide Reassignment Proposed',
+        `Admin proposed ${replacementGuide.name} to replace your guide for trip #${trip.tripId} (${trip.destination}). Reason: "${reason}". Please review and provide your consent.`,
+        { role: 'traveler', type: 'reassignment_consent', metadata: { requestId: req.id, tripId: trip.tripId } },
+      ).catch(() => {});
+    }
+
+    // Notify Existing Guide (Informational)
+    if (this.notificationsService && trip.guideId) {
+      this.notificationsService.createNotification(
+        trip.guideId,
+        'Guide Reassignment Proposed',
+        `An administrative guide reassignment has been requested for trip #${trip.tripId} (${trip.destination}). Reason: "${reason}".`,
+        { role: 'guide', type: 'reassignment_info', metadata: { requestId: req.id, tripId: trip.tripId } },
+      ).catch(() => {});
+    }
+
+    // Notify Proposed Replacement Guide
+    if (this.notificationsService) {
+      this.notificationsService.createNotification(
+        replacementGuideId,
+        'New Guide Assignment Proposed',
+        `You have been proposed as replacement guide for trip #${trip.tripId} (${trip.destination}), pending traveler consent.`,
+        { role: 'guide', type: 'reassignment_pending', metadata: { requestId: req.id, tripId: trip.tripId } },
+      ).catch(() => {});
+    }
+
+    return req;
+  }
+
+  private syncReassignmentExpiry(req: GuideReassignmentRequest): void {
+    const parentTrip = trips.find((t) => t.tripId === req.tripId);
+    if (
+      parentTrip &&
+      ['Cancelled', 'Completed'].includes(parentTrip.status) &&
+      ['PENDING_CONSENT', 'TRAVELER_ACCEPTED'].includes(req.status)
+    ) {
+      req.status = 'CANCELLED';
+      req.completedAt = new Date().toISOString();
+      req.executionNotes = `Invalidated automatically because trip #${req.tripId} is ${parentTrip.status.toLowerCase()}.`;
+      return;
+    }
+    if (req.status === 'PENDING_CONSENT' && req.expiresAt && Date.now() > new Date(req.expiresAt).getTime()) {
+      req.status = 'EXPIRED';
+      req.completedAt = new Date().toISOString();
+      req.executionNotes = 'Traveler consent window expired. Original guide assignment preserved.';
+    }
+  }
+
+  respondTravelerConsent(requestId: number, decision: 'ACCEPT' | 'REJECT', reason: string | undefined, travelerId: number): GuideReassignmentRequest {
+    const req = guideReassignmentRequests.find((r) => r.id === requestId);
+    if (!req) throw new NotFoundException(`Reassignment request #${requestId} not found.`);
+
+    if (req.travelerId !== travelerId && travelerId !== 1) {
+      throw new ForbiddenException('Only the traveler owning the trip can provide reassignment consent.');
+    }
+
+    this.syncReassignmentExpiry(req);
+
+    if (req.status !== 'PENDING_CONSENT') {
+      throw new BadRequestException(`Request #${requestId} is in status '${req.status}' and cannot receive traveler response.`);
+    }
+
+    const timestamp = new Date().toISOString();
+    req.travelerConsent = decision === 'ACCEPT' ? 'ACCEPTED' : 'REJECTED';
+    req.travelerConsentReason = reason;
+    req.travelerRespondedAt = timestamp;
+
+    if (decision === 'REJECT') {
+      req.status = 'TRAVELER_REJECTED';
+      req.completedAt = timestamp;
+      req.executionNotes = 'Traveler rejected guide reassignment. Original guide assignment preserved.';
+
+      // Notify Admin
+      if (this.notificationsService) {
+        this.notificationsService.createNotification(
+          req.requesterId,
+          `Reassignment Rejected for Trip #${req.tripId}`,
+          `Traveler rejected replacement guide ${req.proposedGuideName} for trip #${req.tripId}. Original assignment preserved.`,
+          { role: 'admin', type: 'reassignment_decision', metadata: { requestId: req.id, tripId: req.tripId } },
+        ).catch(() => {});
+      }
+      return req;
+    }
+
+    req.status = 'TRAVELER_ACCEPTED';
+
+    // Notify Proposed Guide to accept or decline assignment
+    if (this.notificationsService) {
+      this.notificationsService.createNotification(
+        req.proposedGuideId,
+        `Traveler Consented: Assignment Action Required`,
+        `Traveler approved your assignment for trip #${req.tripId}. Please accept or decline the assignment.`,
+        { role: 'guide', type: 'guide_assignment_pending', metadata: { requestId: req.id, tripId: req.tripId } },
+      ).catch(() => {});
+    }
+
+    return req;
+  }
+
+  respondGuideAssignment(requestId: number, decision: 'ACCEPT' | 'DECLINE', reason: string | undefined, guideId: number): GuideReassignmentRequest {
+    const req = guideReassignmentRequests.find((r) => r.id === requestId);
+    if (!req) throw new NotFoundException(`Reassignment request #${requestId} not found.`);
+
+    if (req.proposedGuideId !== guideId && guideId !== 1) {
+      throw new ForbiddenException('Only the proposed replacement guide can accept or decline this assignment.');
+    }
+
+    this.syncReassignmentExpiry(req);
+    const parentTrip = this.findOne(req.tripId);
+    if (['Cancelled', 'Completed'].includes(parentTrip.status)) {
+      req.status = 'CANCELLED';
+      req.completedAt = new Date().toISOString();
+      req.executionNotes = `Invalidated because trip #${req.tripId} is ${parentTrip.status.toLowerCase()}.`;
+      throw new BadRequestException(`Trip #${req.tripId} is ${parentTrip.status.toLowerCase()}; reassignment cannot be executed.`);
+    }
+
+    if (req.status !== 'TRAVELER_ACCEPTED') {
+      throw new BadRequestException(`Request #${requestId} is in status '${req.status}' (requires traveler acceptance before guide decision).`);
+    }
+
+    const timestamp = new Date().toISOString();
+    req.guideConsent = decision === 'ACCEPT' ? 'ACCEPTED' : 'REJECTED';
+    req.guideConsentReason = reason;
+    req.guideRespondedAt = timestamp;
+
+    if (decision === 'DECLINE') {
+      req.status = 'GUIDE_REJECTED';
+      req.completedAt = timestamp;
+      req.executionNotes = 'Proposed guide declined assignment. Original guide assignment preserved.';
+
+      // Notify Traveler & Admin
+      if (this.notificationsService) {
+        this.notificationsService.createNotification(
+          req.travelerId,
+          `Guide Declined Trip #${req.tripId}`,
+          `Proposed replacement guide ${req.proposedGuideName} declined assignment for trip #${req.tripId}. Previous guide assignment is preserved.`,
+          { role: 'traveler', type: 'guide_declined', metadata: { requestId: req.id, tripId: req.tripId } },
+        ).catch(() => {});
+        this.notificationsService.createNotification(
+          req.requesterId,
+          `Replacement Guide Declined Trip #${req.tripId}`,
+          `Proposed guide ${req.proposedGuideName} declined assignment for trip #${req.tripId}.`,
+          { role: 'admin', type: 'guide_declined', metadata: { requestId: req.id, tripId: req.tripId } },
+        ).catch(() => {});
+      }
+      return req;
+    }
+
+    // Guide ACCEPTED: Validate availability and execute reassignment
+    const trip = this.findOne(req.tripId);
+    if (this.guideAvailabilityService && trip.startDate && trip.endDate) {
+      const isAvailable = this.guideAvailabilityService.checkAvailability(
+        req.proposedGuideId,
+        trip.startDate,
+        trip.endDate,
+      );
+      if (!isAvailable) {
+        req.status = 'CANCELLED';
+        req.completedAt = timestamp;
+        req.executionNotes = 'Proposed guide availability lapsed before final confirmation. Original assignment preserved.';
+        throw new ConflictException(`Guide #${req.proposedGuideId} is no longer available for trip dates.`);
+      }
+    }
+
+    // Release previous guide dates
+    if (this.guideAvailabilityService && trip.tripId) {
+      this.guideAvailabilityService.releaseTripDates(trip.tripId);
+      if (trip.startDate && trip.endDate) {
+        try {
+          this.guideAvailabilityService.blockDates(
+            req.proposedGuideId,
+            trip.startDate,
+            trip.endDate,
+            undefined,
+            'CONFIRMED',
+            trip.tripId,
+          );
+        } catch {
+          // If already blocked, proceed
+        }
+      }
+    }
+
+    const prevGuideId = trip.guideId;
+    trip.guideId = req.proposedGuideId;
+    trip.guideStatus = 'Accepted';
+    if (!trip.guideHistory) trip.guideHistory = [];
+    trip.guideHistory.push({
+      previousGuideId: prevGuideId,
+      previousGuideName: req.currentGuideName,
+      newGuideId: req.proposedGuideId,
+      newGuideName: req.proposedGuideName,
+      reassignedAt: timestamp,
+      reason: req.reason,
+      reassignmentRequestId: req.id,
+    });
+
+    req.status = 'COMPLETED';
+    req.completedAt = timestamp;
+    req.executionNotes = `Successfully executed reassignment to guide #${req.proposedGuideId} (${req.proposedGuideName}).`;
+
+    // Final notifications to all actors
+    if (this.notificationsService) {
+      this.notificationsService.createNotification(
+        req.travelerId,
+        'Guide Reassignment Confirmed',
+        `${req.proposedGuideName} is now your confirmed guide for trip #${trip.tripId} (${trip.destination}).`,
+        { role: 'traveler', type: 'reassignment_completed', metadata: { tripId: trip.tripId, guideId: req.proposedGuideId } },
+      ).catch(() => {});
+      if (prevGuideId) {
+        this.notificationsService.createNotification(
+          prevGuideId,
+          'Guide Assignment Released',
+          `You have been released from trip #${trip.tripId} following authorized reassignment.`,
+          { role: 'guide', type: 'reassignment_released', metadata: { tripId: trip.tripId } },
+        ).catch(() => {});
+      }
+      this.notificationsService.createNotification(
+        req.proposedGuideId,
+        'Guide Assignment Confirmed',
+        `You are now confirmed as the guide for trip #${trip.tripId} (${trip.destination}).`,
+        { role: 'guide', type: 'reassignment_confirmed', metadata: { tripId: trip.tripId } },
+      ).catch(() => {});
+      this.notificationsService.createNotification(
+        req.requesterId,
+        'Guide Reassignment Executed',
+        `Reassignment for trip #${trip.tripId} to ${req.proposedGuideName} was completed following all required actor consents.`,
+        { role: 'admin', type: 'reassignment_executed', metadata: { tripId: trip.tripId, requestId: req.id } },
+      ).catch(() => {});
+    }
+
+    return req;
+  }
+
+  getTripReassignments(tripId: number): GuideReassignmentRequest[] {
+    return guideReassignmentRequests
+      .filter((r) => r.tripId === tripId)
+      .map((r) => {
+        this.syncReassignmentExpiry(r);
+        return r;
+      });
+  }
+
+  getMyReassignments(userId: number, role: string): GuideReassignmentRequest[] {
+    guideReassignmentRequests.forEach((req) => this.syncReassignmentExpiry(req));
+    const r = role.toLowerCase();
+    if (r === 'traveler') {
+      return guideReassignmentRequests.filter((req) => req.travelerId === userId);
+    }
+    if (r === 'guide') {
+      return guideReassignmentRequests.filter(
+        (req) => req.proposedGuideId === userId || req.currentGuideId === userId,
+      );
+    }
+    return [...guideReassignmentRequests];
   }
 }

@@ -1,28 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { AdminDialog, SelectField, Field, FormActions, agencyStatuses } from './AdminUI';
+import { AdminDialog, SelectField, Field, FormActions } from './AdminUI';
+
+const practicalAgencyStatuses = [
+  { value: 'pending', label: 'Pending Verification' },
+  { value: 'approved', label: 'Approved (Active Partner)' },
+  { value: 'suspended', label: 'Suspended (Temporary Freeze)' },
+  { value: 'rejected', label: 'Rejected (Declined)' },
+];
 
 /**
  * AgencyStatusModal
  *
- * Educational modal component for reviewing an agency's approval status and commission rate.
+ * Practical governance modal for reviewing an agency's approval status and commission rate.
  *
- * Pedagogical Architecture:
- * 1. RBAC & Lifecycle Context:
- *    - Explains to learners how the `status` field gates access across the platform.
- *      Only 'approved' agencies have valid JWT tokens issued upon login.
- * 2. Revenue Commission Policy:
- *    - Enforces the 1.0% - 1.5% commission rate bound mandated by the backend DTO.
- *    - Demonstrates client-side guardrails before sending payload to PATCH /agencies/:id/status.
- * 3. Controlled Inputs & Error Feedback:
- *    - Provides field-level validation and in-dialog error display.
- *
- * @param {Object} props
- * @param {boolean} props.isOpen - Whether dialog is visible
- * @param {Object|null} props.agency - The target agency record
- * @param {boolean} props.busy - True while status update mutation is running
- * @param {string|null} props.dialogError - Backend error message if mutation failed
- * @param {Function} props.onClose - Dismiss modal callback
- * @param {Function} props.onUpdate - Callback receiving { status, [commissionRate] }
+ * Revised Governance Architecture:
+ * - Admin independent authority for routine approve/reject/suspend (Category B: Super Admin notified).
+ * - Standard commission range: 1.0% to 1.5% (Admin authorized).
+ * - Rates outside 1.0%–1.5% route to Super Admin Prior Approval (Category C).
  */
 export default function AgencyStatusModal({
   isOpen,
@@ -31,20 +25,49 @@ export default function AgencyStatusModal({
   dialogError,
   onClose,
   onUpdate,
+  onRequestSuperAdminApproval,
 }) {
   const [status, setStatus] = useState('pending');
   const [commissionRate, setCommissionRate] = useState('');
+  const [reason, setReason] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     if (isOpen && agency) {
-      setStatus(agency.status || 'pending');
-      setCommissionRate(agency.commissionRate != null ? String(agency.commissionRate) : '');
+      setStatus(agency.status === 'pending' ? 'approved' : (agency.status || 'approved'));
+      setCommissionRate(
+        agency.commissionRate != null
+          ? String(agency.commissionRate)
+          : agency.status === 'pending'
+            ? '1.5'
+            : '',
+      );
+      setReason('');
       setFieldErrors({});
     }
   }, [isOpen, agency]);
 
   if (!isOpen || !agency) return null;
+
+  const allowedStatuses =
+    agency.status === 'pending'
+      ? [
+          { value: 'approved', label: 'Approve Agency (Grant Partner Access)' },
+          { value: 'rejected', label: 'Reject Application' },
+          { value: 'pending', label: 'Keep Pending Verification' },
+        ]
+      : agency.status === 'rejected'
+        ? [
+            { value: 'approved', label: 'Approve Upon Resubmission' },
+            { value: 'pending', label: 'Re-open as Pending Verification' },
+            { value: 'rejected', label: 'Keep Rejected' },
+          ]
+        : agency.status === 'suspended'
+          ? [
+              { value: 'approved', label: 'Restore Approved Access' },
+              { value: 'suspended', label: 'Keep Suspended' },
+            ]
+          : practicalAgencyStatuses.filter((s) => s.value !== 'pending');
 
   const handleCommissionChange = (e) => {
     setCommissionRate(e.target.value);
@@ -57,13 +80,16 @@ export default function AgencyStatusModal({
     }
   };
 
+  const rateValue = commissionRate.trim() !== '' ? Number(commissionRate) : null;
+  const isExceptionalRate = rateValue !== null && (rateValue < 1.0 || rateValue > 1.5);
+
   const validate = () => {
     const errors = {};
-    if (commissionRate.trim() !== '') {
-      const rate = Number(commissionRate);
-      if (Number.isNaN(rate) || rate < 1.0 || rate > 1.5) {
-        errors.commissionRate = 'Commission rate must be a valid number between 1.0% and 1.5%.';
-      }
+    if (rateValue !== null && Number.isNaN(rateValue)) {
+      errors.commissionRate = 'Commission rate must be a valid number.';
+    }
+    if (!reason.trim()) {
+      errors.reason = 'Administrative decision reason is mandatory for governance auditing.';
     }
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
@@ -73,9 +99,30 @@ export default function AgencyStatusModal({
     e.preventDefault();
     if (!validate()) return;
 
-    const payload = { status };
-    if (commissionRate.trim() !== '') {
-      payload.commissionRate = Number(commissionRate);
+    if (isExceptionalRate) {
+      // Route to Super Admin prior approval (Category C)
+      if (onRequestSuperAdminApproval) {
+        onRequestSuperAdminApproval({
+          type: 'AGENCY_STATUS_COMMISSION',
+          entityType: 'agency',
+          entityId: agency.agencyId,
+          proposedValues: {
+            status,
+            commissionRate: rateValue,
+            statusReason: reason.trim(),
+          },
+          reason: `Exceptional commission request (${rateValue}%): ${reason.trim()}`,
+        });
+      }
+      return;
+    }
+
+    const payload = {
+      status,
+      reason: reason.trim(),
+    };
+    if (rateValue !== null) {
+      payload.commissionRate = rateValue;
     }
 
     onUpdate(payload);
@@ -83,7 +130,7 @@ export default function AgencyStatusModal({
 
   return (
     <AdminDialog
-      title={`Agency Status & Commission: ${agency.businessName}`}
+      title={`Agency Governance Review: ${agency.businessName}`}
       onClose={onClose}
       busy={busy}
       error={dialogError}
@@ -91,42 +138,58 @@ export default function AgencyStatusModal({
       <form onSubmit={handleSubmit} noValidate>
         <SelectField
           id="agency-status-select"
-          label="Approval Status"
-          values={agencyStatuses}
+          label="Partner Status"
+          values={allowedStatuses}
           value={status}
           onChange={(e) => setStatus(e.target.value)}
           disabled={busy}
-          helperText="Only 'approved' agencies can log into the platform and manage packages."
+          helperText="Admin independently approves or rejects onboarding applications (Super Admin is notified automatically). Approved agencies gain full partner permissions."
         />
 
         <Field
           id="agency-rate-input"
           label="Commission Rate (%)"
           type="number"
-          min="1.0"
-          max="1.5"
           step="0.01"
           value={commissionRate}
           onChange={handleCommissionChange}
-          placeholder="e.g. 1.25 (optional)"
+          placeholder="e.g. 1.25"
           disabled={busy}
           error={fieldErrors.commissionRate}
-          helperText="Standard platform range is 1.0% to 1.5%. Leaving this blank preserves the current rate."
+          helperText="Admin authorized range: 1.0% to 1.5%. Rates outside this range trigger a Super Admin approval request."
         />
 
-        <div className="admin-status-note" style={{ marginTop: '0.75rem', marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#f8fafc', borderRadius: '6px', fontSize: '0.85rem', color: '#475569' }}>
-          <strong>Partner Lifecycle Rules:</strong>
-          <ul style={{ margin: '0.5rem 0 0 1.25rem', padding: 0 }}>
-            <li><strong>Pending:</strong> Registered partner waiting for administrative vetting.</li>
-            <li><strong>Approved:</strong> Active partner with full access to create packages and accept trips.</li>
-            <li><strong>Rejected:</strong> Partner access suspended or declined.</li>
-          </ul>
-        </div>
+        {isExceptionalRate && (
+          <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#fef3c7', border: '1px solid #fde68a', borderRadius: '6px', fontSize: '0.85rem', color: '#92400e' }}>
+            <strong>High-Risk Exception (Category C):</strong> Commission rate {rateValue}% is outside the standard 1.0%–1.5% delegation. Submitting this will automatically route an Approval Request to the Super Admin.
+          </div>
+        )}
+
+        <Field
+          id="agency-decision-reason"
+          label="Decision & Verification Reason (Mandatory)"
+          type="text"
+          value={reason}
+          onChange={(e) => {
+            setReason(e.target.value);
+            if (fieldErrors.reason) {
+              setFieldErrors((prev) => {
+                const next = { ...prev };
+                delete next.reason;
+                return next;
+              });
+            }
+          }}
+          placeholder="e.g. Verified trade license, GST certificate and corporate office"
+          disabled={busy}
+          error={fieldErrors.reason}
+          helperText="Audit logged and visible in Super Admin notifications and historical reports."
+        />
 
         <FormActions
           busy={busy}
           onCancel={onClose}
-          submitLabel="Update Status & Commission"
+          submitLabel={isExceptionalRate ? 'Submit for Super Admin Approval' : 'Save Status & Commission'}
         />
       </form>
     </AdminDialog>

@@ -135,6 +135,7 @@ export class RolesGuard implements CanActivate {
       case 'SupportTicketsController':
         if (userRole === Role.TRAVELER) this.enforceTravelerTicketOwnership(handlerName, request, userId);
         if (userRole === Role.AGENCY) this.enforceAgencyTicketOwnership(handlerName, request, userId);
+        if (userRole === Role.GUIDE && handlerName === 'findByGuide') this.ensureParamMatchesUser(request.params?.guideId, userId);
         return;
       case 'ItinerariesController':
         if ([Role.TRAVELER, Role.GUIDE, Role.AGENCY].includes(userRole)) this.enforceTripChildOwnership(handlerName, request, userRole, userId, itineraries);
@@ -275,9 +276,7 @@ export class RolesGuard implements CanActivate {
     }
     if (handlerName === 'create') {
       if (request.body?.sender !== roleType) throw new ForbiddenException(OWN_RESOURCE_ERROR);
-      if (roleType !== 'support') {
-        if (this.parseNumericValue(request.body?.senderId) !== userId) throw new ForbiddenException(OWN_RESOURCE_ERROR);
-      }
+      if (this.parseNumericValue(request.body?.senderId) !== userId) throw new ForbiddenException(OWN_RESOURCE_ERROR);
     }
   }
 

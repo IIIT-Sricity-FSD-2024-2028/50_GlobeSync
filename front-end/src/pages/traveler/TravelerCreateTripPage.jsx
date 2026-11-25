@@ -6,6 +6,13 @@ import TripForm from '../../components/trips/TripForm';
 import TripCreationSuccessView from '../../components/trips/TripCreationSuccessView';
 import TripSubmissionRecoveryBanner from '../../components/trips/TripSubmissionRecoveryBanner';
 import { calculateTripCosts } from '../../components/trips/tripCalculations';
+import {
+  getBookingDateBounds,
+  calculatePackageEndDate,
+  validateTripDateRange,
+  getMaxCustomEndDate,
+  addDaysYmd,
+} from '../../config/tripDatePolicy';
 
 /**
  * TravelerCreateTripPage: Multi-step itinerary builder with selection consistency and reliable submission.
@@ -45,6 +52,7 @@ export default function TravelerCreateTripPage() {
     guideName: '',
     guidePrice: 0,
     includeCancellationProtection: false,
+    passengersList: [{ name: '', age: '', gender: 'Male' }],
   });
 
   // 3. Validation Errors State
@@ -195,6 +203,39 @@ export default function TravelerCreateTripPage() {
     };
   }, [searchParams]);
 
+  // F11: Refresh date-based guide availability whenever trip dates change
+  useEffect(() => {
+    if (!formData.startDate || !formData.endDate || formData.endDate < formData.startDate) {
+      return undefined;
+    }
+    const controller = new AbortController();
+    guidesApi
+      .getAvailable(formData.startDate, formData.endDate, {
+        signal: controller.signal,
+        excludeTripId: resumeTrip?.tripId,
+      })
+      .then((list) => {
+        if (!Array.isArray(list)) return;
+        setGuides(list);
+        if (formData.guideId) {
+          const chosen = list.find((g) => Number(g.guideId) === Number(formData.guideId));
+          if (chosen && chosen.isAvailableForDates === false) {
+            setFormData((prev) => ({ ...prev, guideId: null, guideName: '', guidePrice: 0 }));
+            setGuidesWarning(
+              chosen.conflictReason ||
+                `Previously selected guide is unavailable for ${formData.startDate} → ${formData.endDate}. Please choose another available guide or proceed self-guided.`,
+            );
+          }
+        }
+      })
+      .catch((err) => {
+        if (!err.isCancelled) {
+          console.warn('[CreateTripPage] Could not refresh date-based guide availability:', err);
+        }
+      });
+    return () => controller.abort();
+  }, [formData.startDate, formData.endDate, resumeTrip?.tripId]);
+
   // Restore form values if recovering a previously interrupted submission
   useEffect(() => {
     if (submissionProgress.savedFormData && !formData.destination) {
@@ -246,7 +287,7 @@ export default function TravelerCreateTripPage() {
   );
 
   // Pure function calculation: Derived line items and total during render
-  const costData = calculateTripCosts(formData);
+  const costData = calculateTripCosts({ ...formData, guideAccepted });
 
   // Field change handler enforcing selection consistency
   const handleInputChange = (field, value) => {
@@ -256,6 +297,36 @@ export default function TravelerCreateTripPage() {
       // 1. Consistency: Switching mode to 'custom' MUST clear packageId
       if (field === 'mode' && value === 'custom') {
         updated.packageId = null;
+      }
+
+      // T06 & F03: Automatic end date recalculation for pre-planned packages when start date changes
+      if (field === 'startDate') {
+        if (updated.mode === 'package' && updated.packageId && value) {
+          const pkg = packages.find((p) => String(p.packageId) === String(updated.packageId));
+          if (pkg) {
+            const recalculated = calculatePackageEndDate(value, pkg.duration || 5);
+            if (recalculated) updated.endDate = recalculated;
+          }
+        } else if (updated.mode !== 'package' && value && updated.endDate) {
+          const maxEnd = getMaxCustomEndDate(value);
+          if (updated.endDate < value || updated.endDate > maxEnd) {
+            updated.endDate = '';
+          }
+        }
+      }
+
+      // T03: Dynamically sync passengersList array when numPersons changes
+      if (field === 'numPersons') {
+        const count = Math.max(1, Math.min(20, parseInt(value) || 1));
+        const currentList = Array.isArray(prev.passengersList) ? [...prev.passengersList] : [];
+        if (currentList.length < count) {
+          while (currentList.length < count) {
+            currentList.push({ name: '', age: '', gender: 'Male' });
+          }
+        } else if (currentList.length > count) {
+          currentList.length = count;
+        }
+        updated.passengersList = currentList;
       }
 
       // 2. Consistency: Changing transport mode, origin, or destination updates carrier and route price
@@ -286,21 +357,24 @@ export default function TravelerCreateTripPage() {
 
   // Pre-fill fields when selecting a pre-planned package
   const handleSelectPackage = (pkg) => {
-    const today = new Date();
-    const start = new Date(today.getTime() + 7 * 86400000);
-    const durationDays = pkg.duration || 5;
-    const end = new Date(start.getTime() + durationDays * 86400000);
+    const { minStartDate } = getBookingDateBounds();
+    const startYmd = addDaysYmd(minStartDate, 6); // 1 week ahead
+    const durationDays = Number(pkg.duration) || 5;
+    const endYmd = calculatePackageEndDate(startYmd, durationDays);
 
     setFormData((prev) => ({
       ...prev,
       mode: 'package',
       packageId: pkg.packageId,
+      packagePrice: Number(pkg.budget) || 0,
       destination: pkg.destinations ? pkg.destinations.split(',')[0].trim() : pkg.name,
-      startDate: start.toISOString().split('T')[0],
-      endDate: end.toISOString().split('T')[0],
-      // No hotel is pre-selected: it appears in the summary only after the traveler picks one in the Stay step.
+      startDate: startYmd,
+      endDate: endYmd,
+      // No hotel upgrade pre-selected: package includes base accommodation
       hotelName: '',
       hotelPrice: 0,
+      transportName: '',
+      transportPrice: 0,
     }));
 
     setCurrentStep(1); // Advance to dates step
@@ -308,10 +382,24 @@ export default function TravelerCreateTripPage() {
 
   const handleCarrierSelect = (carrierName, carrierPrice) => {
     setFormData((prev) => ({ ...prev, transportName: carrierName, transportPrice: carrierPrice }));
+    if (errors.transportName) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.transportName;
+        return next;
+      });
+    }
   };
 
   const handleHotelSelect = (hotelName, hotelPrice) => {
     setFormData((prev) => ({ ...prev, hotelName, hotelPrice }));
+    if (errors.hotelName) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.hotelName;
+        return next;
+      });
+    }
   };
 
   const handleGuideSelect = (guideId, guideName, guidePrice) => {
@@ -323,22 +411,16 @@ export default function TravelerCreateTripPage() {
     const newErrors = {};
 
     if (step === 1) {
-      const todayStr = (() => { const d = new Date(); const p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; })();
-      if (!formData.startDate) {
-        newErrors.startDate = 'Start date is required.';
-      } else if (isNaN(new Date(formData.startDate).getTime())) {
-        newErrors.startDate = 'Please enter a valid start date.';
-      } else if (formData.startDate <= todayStr) {
-        newErrors.startDate = 'Trip can start from tomorrow onwards. Today or past dates are not allowed.';
-      }
-
-      if (!formData.endDate) {
-        newErrors.endDate = 'End date is required.';
-      } else if (isNaN(new Date(formData.endDate).getTime())) {
-        newErrors.endDate = 'Please enter a valid end date.';
-      } else if (formData.startDate && formData.endDate <= formData.startDate) {
-        newErrors.endDate = 'End date must be strictly after start date.';
-      }
+      const selectedPkg = formData.mode === 'package'
+        ? packages.find((p) => String(p.packageId) === String(formData.packageId))
+        : null;
+      const dateErrs = validateTripDateRange({
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        isPackage: formData.mode === 'package',
+        packageDurationDays: selectedPkg?.duration ?? null,
+      });
+      Object.assign(newErrors, dateErrs);
 
       const persons = Number(formData.numPersons);
       if (!formData.numPersons || isNaN(persons) || persons < 1 || !Number.isInteger(persons)) {
@@ -353,6 +435,19 @@ export default function TravelerCreateTripPage() {
       }
       if (!formData.destination || !formData.destination.trim()) {
         newErrors.destination = 'Primary destination is required.';
+      }
+    }
+
+    if (step === 3 && formData.mode !== 'package') {
+      if (!formData.transportName || Number(formData.transportPrice) <= 0) {
+        newErrors.transportName = 'Please select a transportation operator for your journey before continuing.';
+      }
+    }
+
+    if (step === 4 && formData.mode !== 'package') {
+      const isSameDay = Boolean(formData.startDate && formData.endDate && formData.startDate === formData.endDate);
+      if (!isSameDay && (!formData.hotelName || Number(formData.hotelPrice) <= 0)) {
+        newErrors.hotelName = 'Accommodation is mandatory for overnight trips. Please select a verified stay tier.';
       }
     }
 
@@ -377,21 +472,30 @@ export default function TravelerCreateTripPage() {
     if (!formData.destination || !formData.destination.trim()) {
       newErrors.destination = 'Destination is required.';
     }
-    const todayStr = (() => { const d = new Date(); const p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; })();
-    if (!formData.startDate || isNaN(new Date(formData.startDate).getTime())) {
-      newErrors.startDate = 'Please enter a valid start date.';
-    } else if (formData.startDate <= todayStr) {
-      newErrors.startDate = 'Trip can start from tomorrow onwards. Today or past dates are not allowed.';
-    }
-    if (!formData.endDate || isNaN(new Date(formData.endDate).getTime())) {
-      newErrors.endDate = 'Please enter a valid end date.';
-    } else if (formData.startDate && formData.endDate <= formData.startDate) {
-      newErrors.endDate = 'End date must be strictly after start date.';
-    }
+    const selectedPkg = formData.mode === 'package'
+      ? packages.find((p) => String(p.packageId) === String(formData.packageId))
+      : null;
+    const dateErrs = validateTripDateRange({
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      isPackage: formData.mode === 'package',
+      packageDurationDays: selectedPkg?.duration ?? null,
+    });
+    Object.assign(newErrors, dateErrs);
 
     const persons = Number(formData.numPersons);
     if (!formData.numPersons || isNaN(persons) || persons < 1 || !Number.isInteger(persons)) {
       newErrors.numPersons = 'At least 1 traveler is required.';
+    }
+
+    if (formData.mode !== 'package') {
+      const isSameDay = Boolean(formData.startDate && formData.endDate && formData.startDate === formData.endDate);
+      if (!formData.transportName || Number(formData.transportPrice) <= 0) {
+        newErrors.transportName = 'Transportation selection is mandatory for customized trips.';
+      }
+      if (!isSameDay && (!formData.hotelName || Number(formData.hotelPrice) <= 0)) {
+        newErrors.hotelName = 'Accommodation selection is mandatory for overnight trips.';
+      }
     }
 
     setErrors(newErrors);
@@ -402,6 +506,14 @@ export default function TravelerCreateTripPage() {
     }
     if (newErrors.origin || newErrors.destination) {
       setCurrentStep(2);
+      return false;
+    }
+    if (newErrors.transportName) {
+      setCurrentStep(3);
+      return false;
+    }
+    if (newErrors.hotelName) {
+      setCurrentStep(4);
       return false;
     }
 
@@ -488,7 +600,17 @@ export default function TravelerCreateTripPage() {
           endDate: formData.endDate,
           budget: Math.round(costData.totalBudget),
           travelerId: travelerId,
+          travelersCount: Number(formData.numPersons) || 1,
           status: 'Pending',
+          transportDetails: {
+            transportType: formData.transportType,
+            carrier: formData.transportName || (formData.mode === 'package' ? 'Package Included' : ''),
+            carrierPrice: Number(formData.transportPrice) || 0,
+            tripType: formData.tripType,
+            lodgingTier: formData.hotelName || (formData.mode === 'package' ? 'Package Included' : ''),
+            lodgingPrice: Number(formData.hotelPrice) || 0,
+            packageIncluded: formData.mode === 'package',
+          },
         };
 
         if (formData.guideId) {
@@ -497,6 +619,30 @@ export default function TravelerCreateTripPage() {
 
         if (formData.mode === 'package' && formData.packageId) {
           tripPayload.packageId = Number(formData.packageId);
+        }
+
+        // T03: Persist all individual passenger forms associated with this trip and traveler
+        if (Array.isArray(formData.passengersList) && formData.passengersList.length > 0) {
+          try {
+            const savedPassengerIds = [];
+            for (const p of formData.passengersList) {
+              if (p.name && p.name.trim()) {
+                const res = await apiPost('/passengers', {
+                  name: p.name.trim(),
+                  age: Number(p.age) || 25,
+                  gender: p.gender || 'Male',
+                  travelerId: travelerId,
+                  specialNotes: `Trip to ${formData.destination}`,
+                });
+                if (res && res.passId) savedPassengerIds.push(res.passId);
+              }
+            }
+            if (savedPassengerIds.length > 0) {
+              tripPayload.passengerIds = savedPassengerIds;
+            }
+          } catch (passErr) {
+            console.warn('[TravelerCreateTripPage] Could not register passengers:', passErr);
+          }
         }
 
         const created = await tripsApi.create(tripPayload);
@@ -533,7 +679,7 @@ export default function TravelerCreateTripPage() {
             travelerId: travelerId,
             service: formData.transportName,
             type: formData.transportType === 'Flight' ? 'Flight' : 'Transport',
-            amount: Math.round(costData.totalTransportBooking),
+            amount: Math.round(costData.transportCost),
             status: 'Pending',
             insuranceSelected: true,
             transportMode: formData.transportType,
@@ -564,6 +710,7 @@ export default function TravelerCreateTripPage() {
             type: 'Hotel',
             amount: Math.round(costData.hotelCost),
             status: 'Pending',
+            cancellationProtectionSelected: Boolean(formData.includeCancellationProtection),
           });
           updateSubmissionProgress({
             hotelBooking: { completed: true, bookingId: hb.bookingId || hb.id, error: null },
@@ -574,6 +721,33 @@ export default function TravelerCreateTripPage() {
           });
           throw new Error(
             `Trip #${activeTripId} is saved, but booking hotel (${formData.hotelName}) failed: ${hotelErr.message}. You can retry without recreating the trip.`
+          );
+        }
+      }
+
+      // 3b. For preplanned packages using included transit & stay, persist a Package booking record
+      if (formData.mode === 'package' && costData.packageCost > 0 && !requiresTransport && !requiresHotel && !progress.packageBooking?.completed) {
+        const pkgObj = packages.find((p) => String(p.packageId) === String(formData.packageId));
+        try {
+          const pb = await bookingsApi.create({
+            bookingDate: new Date().toISOString().split('T')[0],
+            tripId: activeTripId,
+            travelerId: travelerId,
+            service: `${pkgObj?.name || 'Tour Package'} (${activeTripDestination})`,
+            type: 'Package',
+            amount: Math.round(costData.packageCost),
+            status: 'Pending',
+            cancellationProtectionSelected: Boolean(formData.includeCancellationProtection),
+          });
+          updateSubmissionProgress({
+            packageBooking: { completed: true, bookingId: pb.bookingId || pb.id, error: null },
+          });
+        } catch (pkgErr) {
+          updateSubmissionProgress({
+            packageBooking: { completed: false, bookingId: null, error: pkgErr.message },
+          });
+          throw new Error(
+            `Trip #${activeTripId} is saved, but booking the tour package failed: ${pkgErr.message}. You can retry without recreating the trip.`
           );
         }
       }

@@ -65,4 +65,29 @@ export class UpdateGuideDto {
   @IsOptional()
   @IsString()
   availability?: 'available' | 'on_tour' | 'away';
+
+  @ApiPropertyOptional({ example: 250000, description: 'Admin verified daily rate in minor currency units (cents)' })
+  @IsOptional()
+  @IsNumber()
+  adminSetRateMinor?: number;
+
+  @ApiPropertyOptional({ example: 5, description: 'Admin verified experience years' })
+  @IsOptional()
+  @IsNumber()
+  verifiedExperienceYears?: number;
+
+  @ApiPropertyOptional({ example: 'VERIFIED', enum: ['VERIFIED', 'UNVERIFIED', 'PENDING'] })
+  @IsOptional()
+  @IsString()
+  verificationStatus?: 'VERIFIED' | 'UNVERIFIED' | 'PENDING';
+
+  @ApiPropertyOptional({ example: 'https://credentials.gov.in/verify/12345', description: 'Government or license proof URL' })
+  @IsOptional()
+  @IsString()
+  proofUrl?: string;
+
+  @ApiPropertyOptional({ example: 'ACTIVE', enum: ['ACTIVE', 'SUSPENDED', 'INACTIVE', 'DEACTIVATED'] })
+  @IsOptional()
+  @IsString()
+  status?: 'ACTIVE' | 'SUSPENDED' | 'INACTIVE' | 'DEACTIVATED';
 }

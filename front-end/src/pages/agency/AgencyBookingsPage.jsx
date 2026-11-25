@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import { bookingsApi, tripsApi, agencyApi } from '../../services/api';
+import { bookingsApi, tripsApi, agencyApi, paymentsApi } from '../../services/api';
 import SummaryCard from '../../components/common/SummaryCard';
 import StatusBadge from '../../components/common/StatusBadge';
 import BookingDetailModal from '../../components/agency/BookingDetailModal';
@@ -11,13 +11,16 @@ import AgencyDayActivitiesModal from '../../components/agency/AgencyDayActivitie
  * AgencyBookingsPage
  * 
  * Lists and inspects client bookings made by this agency.
- * Displays booking financial breakdowns, status badges, and inspection dialogs.
+ * Displays booking financial breakdowns, payment status/reference, net settlement,
+ * passenger counts, commission, and inspection/reconciliation dialogs.
  */
 export default function AgencyBookingsPage() {
   const { user } = useSession();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialTripId = searchParams.get('tripId');
   const agencyId = Number(user?.agencyId || user?.agency_id || user?.id || 1);
-  const [commissionRate, setCommissionRate] = useState(Number(user?.commissionRate ?? 10.0));
+  const [commissionRate, setCommissionRate] = useState(Number(user?.commissionRate ?? 1.5));
 
   useEffect(() => {
     let mounted = true;
@@ -36,12 +39,14 @@ export default function AgencyBookingsPage() {
   }, []);
 
   const [bookings, setBookings] = useState([]);
+  const [trips, setTrips] = useState([]);
+  const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('All');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(initialTripId ? String(initialTripId) : '');
 
   // Modals
   const [selectedBooking, setSelectedBooking] = useState(null);
@@ -71,9 +76,21 @@ export default function AgencyBookingsPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await bookingsApi.getByAgency(agencyId, { signal });
-      if (!signal?.aborted && Array.isArray(data)) {
-        setBookings(data);
+      const [data, tripsData, paymentsData] = await Promise.all([
+        bookingsApi.getByAgency(agencyId, { signal }),
+        tripsApi.getByAgency(agencyId, { signal }).catch(() => []),
+        paymentsApi.getByAgency(agencyId, { signal }).catch(() => []),
+      ]);
+      if (!signal?.aborted) {
+        const bList = Array.isArray(data) ? data : [];
+        setBookings(bList);
+        setTrips(Array.isArray(tripsData) ? tripsData : []);
+        setPayments(Array.isArray(paymentsData) ? paymentsData : []);
+
+        if (initialTripId) {
+          const match = bList.find((b) => String(b.tripId) === String(initialTripId));
+          if (match) setSelectedBooking(match);
+        }
       }
     } catch (err) {
       if (!signal?.aborted) {
@@ -269,15 +286,20 @@ export default function AgencyBookingsPage() {
                   <th style={{ padding: '10px 12px' }}>Service / Tour</th>
                   <th style={{ padding: '10px 12px' }}>Booking Date</th>
                   <th style={{ padding: '10px 12px' }}>Retail Amount</th>
-                  <th style={{ padding: '10px 12px' }}>Est. Commission</th>
-                  <th style={{ padding: '10px 12px' }}>Status</th>
+                  <th style={{ padding: '10px 12px' }}>Commission / Net</th>
+                  <th style={{ padding: '10px 12px' }}>Payment & Status</th>
                   <th style={{ padding: '10px 12px', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredBookings.map((b) => {
                   const amt = Number(b.amount) || 0;
-                  const comm = amt * (commissionRate / 100);
+                  const comm = Math.round(amt * (commissionRate / 100));
+                  const netSettlement = amt - comm;
+                  const linkedTrip = trips.find((t) => Number(t.tripId) === Number(b.tripId));
+                  const linkedPayment = payments.find((p) => Number(p.bookingId) === Number(b.bookingId));
+                  const passengerCount = linkedTrip?.travelersCount || linkedTrip?.passengerIds?.length || 1;
+                  const isPaid = ['CONFIRMED', 'PAID', 'COMPLETED'].includes(String(b.status || '').toUpperCase()) || linkedPayment?.status === 'Paid';
 
                   return (
                     <tr key={b.bookingId} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -287,23 +309,52 @@ export default function AgencyBookingsPage() {
                       <td style={{ padding: '12px' }}>
                         <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{b.service}</div>
                         <div style={{ fontSize: '11px', color: 'var(--muted)' }}>
-                          Trip Reference #{b.tripId} · {b.type || 'Package'}
+                          Trip #{b.tripId} · {b.type || 'Package'} · 👥 {passengerCount} {passengerCount === 1 ? 'Passenger' : 'Passengers'}
                         </div>
                       </td>
                       <td style={{ padding: '12px', color: 'var(--muted)', fontSize: '13px' }}>
                         {b.bookingDate || 'N/A'}
                       </td>
                       <td style={{ padding: '12px', fontWeight: 700 }}>
-                        ₹{amt.toLocaleString('en-IN')}
+                        <div>₹{amt.toLocaleString('en-IN')}</div>
+                        <div style={{ fontSize: '11px', color: isPaid ? '#059669' : '#d97706', fontWeight: 600 }}>
+                          {isPaid ? `Paid (Due: ₹0)` : `Outstanding: ₹${netSettlement.toLocaleString('en-IN')}`}
+                        </div>
                       </td>
                       <td style={{ padding: '12px', fontWeight: 700, color: '#059669' }}>
-                        +₹{comm.toLocaleString('en-IN')}
+                        <div>+₹{comm.toLocaleString('en-IN')}</div>
+                        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                          Net: ₹{netSettlement.toLocaleString('en-IN')}
+                        </div>
                       </td>
                       <td style={{ padding: '12px' }}>
                         <StatusBadge status={b.status || 'Confirmed'} />
+                        {linkedPayment && (
+                          <div style={{ fontSize: '11px', color: '#0f766e', marginTop: '3px', fontWeight: 600 }}>
+                            PAY-{linkedPayment.paymentId} ({linkedPayment.method})
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '12px', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
+                          {b.tripId && (
+                            <button
+                              type="button"
+                              onClick={() => navigate('/agency/trips')}
+                              style={{
+                                background: '#f8fafc',
+                                color: '#334155',
+                                border: '1px solid #cbd5e1',
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              🗺️ View Trip
+                            </button>
+                          )}
                           {b.tripId && (
                             <button
                               type="button"

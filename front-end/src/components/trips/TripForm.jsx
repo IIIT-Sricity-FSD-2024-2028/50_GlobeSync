@@ -5,6 +5,12 @@ import HotelSelectStep from './HotelSelectStep';
 import GuideSelectStep from './GuideSelectStep';
 import TripCostSummary from './TripCostSummary';
 import { analyzeRoute } from './tripCalculations';
+import {
+  TRIP_DATE_POLICY,
+  getBookingDateBounds,
+  getMaxCustomEndDate,
+  getInclusiveDurationDays,
+} from '../../config/tripDatePolicy';
 
 const STEPS = [
   { id: 0, title: 'Planning Mode', icon: '🎯' },
@@ -39,26 +45,12 @@ export default function TripForm({
   onSubmit,
   onSaveDraft,
 }) {
-  const tomorrowStr = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    // Local date (not UTC), so "tomorrow" is correct in India early in the morning too.
-    const pad = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  })();
-
-  const minEndDateStr = (() => {
-    if (formData.startDate) {
-      const d = new Date(formData.startDate);
-      d.setDate(d.getDate() + 1);
-      if (!isNaN(d.getTime())) {
-        return d.toISOString().split('T')[0];
-      }
-    }
-    const d = new Date();
-    d.setDate(d.getDate() + 2);
-    return d.toISOString().split('T')[0];
-  })();
+  const { minStartDate: tomorrowStr, maxHorizonDate } = getBookingDateBounds();
+  const isPackageMode = formData.mode === 'package';
+  const minEndDateStr = formData.startDate || tomorrowStr;
+  const maxEndDateStr = isPackageMode ? maxHorizonDate : getMaxCustomEndDate(formData.startDate);
+  const inclusiveDays = getInclusiveDurationDays(formData.startDate, formData.endDate);
+  const nights = Math.max(0, inclusiveDays - 1);
 
   // Named event handler for advancing to next step with validation
   const handleNextStep = () => {
@@ -223,17 +215,21 @@ export default function TripForm({
                 Trip Schedule & Passenger Count
               </h3>
               <p style={{ color: 'var(--muted)', fontSize: '13px', marginBottom: '20px' }}>
-                Specify travel dates and group size. Advance booking required: trip start date must be a future date (cannot be today/present date). End date must be strictly after start date.
+                Booking horizon: tomorrow up to {TRIP_DATE_POLICY.MAX_BOOKING_HORIZON_DAYS} days.
+                {isPackageMode
+                  ? ' Package duration is fixed — changing start date automatically recalculates your end date.'
+                  : ` Custom trips support 1 to ${TRIP_DATE_POLICY.MAX_CUSTOM_DURATION_DAYS} calendar days.`}
               </p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
-                    Start Date * (Advance Booking)
+                    Start Date * (Min: {tomorrowStr})
                   </label>
                   <input
                     type="date"
                     min={tomorrowStr}
+                    max={maxHorizonDate}
                     value={formData.startDate}
                     onChange={(e) => onInputChange('startDate', e.target.value)}
                     style={{
@@ -253,11 +249,13 @@ export default function TripForm({
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
-                    End Date *
+                    End Date * {isPackageMode ? '(Auto-calculated by package)' : `(Max: ${maxEndDateStr})`}
                   </label>
                   <input
                     type="date"
                     min={minEndDateStr}
+                    max={maxEndDateStr}
+                    readOnly={isPackageMode}
                     value={formData.endDate}
                     onChange={(e) => onInputChange('endDate', e.target.value)}
                     style={{
@@ -266,6 +264,7 @@ export default function TripForm({
                       borderRadius: '8px',
                       border: `1px solid ${errors.endDate ? 'var(--danger, #ef4444)' : 'var(--border)'}`,
                       fontSize: '14px',
+                      background: isPackageMode ? '#f1f5f9' : '#fff',
                     }}
                   />
                   {errors.endDate && (
@@ -275,6 +274,12 @@ export default function TripForm({
                   )}
                 </div>
               </div>
+
+              {inclusiveDays > 0 && (
+                <div style={{ marginBottom: '16px', fontSize: '12px', fontWeight: 700, color: '#0f766e', background: '#f0fdfa', padding: '8px 12px', borderRadius: '8px', border: '1px solid #99f6e4' }}>
+                  🗓 Calculated Duration: {inclusiveDays} Calendar Day{inclusiveDays !== 1 ? 's' : ''} ({nights} Night{nights !== 1 ? 's' : ''})
+                </div>
+              )}
 
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
@@ -300,6 +305,59 @@ export default function TripForm({
                   </div>
                 )}
               </div>
+
+              {/* T03: Multiple Passenger Details Input Form */}
+              {Array.isArray(formData.passengersList) && formData.passengersList.length > 0 && (
+                <div style={{ marginTop: '20px', padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px', color: 'var(--text-primary)' }}>
+                    👥 Passenger Details ({formData.passengersList.length} {formData.passengersList.length === 1 ? 'Traveler' : 'Travelers'})
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {formData.passengersList.map((passenger, pIdx) => (
+                      <div key={pIdx} style={{ display: 'flex', gap: '10px', alignItems: 'center', background: '#fff', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 700, width: '70px', color: 'var(--muted)' }}>#{pIdx + 1}:</span>
+                        <input
+                          type="text"
+                          placeholder="Full Name"
+                          value={passenger.name || ''}
+                          onChange={(e) => {
+                            const updated = [...formData.passengersList];
+                            updated[pIdx] = { ...updated[pIdx], name: e.target.value };
+                            onInputChange('passengersList', updated);
+                          }}
+                          style={{ flex: 2, padding: '6px 10px', fontSize: '13px', borderRadius: '6px', border: '1px solid var(--border)' }}
+                        />
+                        <input
+                          type="number"
+                          placeholder="Age"
+                          min="1"
+                          max="120"
+                          value={passenger.age || ''}
+                          onChange={(e) => {
+                            const updated = [...formData.passengersList];
+                            updated[pIdx] = { ...updated[pIdx], age: e.target.value };
+                            onInputChange('passengersList', updated);
+                          }}
+                          style={{ width: '70px', padding: '6px 8px', fontSize: '13px', borderRadius: '6px', border: '1px solid var(--border)' }}
+                        />
+                        <select
+                          value={passenger.gender || 'Male'}
+                          onChange={(e) => {
+                            const updated = [...formData.passengersList];
+                            updated[pIdx] = { ...updated[pIdx], gender: e.target.value };
+                            onInputChange('passengersList', updated);
+                          }}
+                          style={{ width: '90px', padding: '6px 8px', fontSize: '13px', borderRadius: '6px', border: '1px solid var(--border)' }}
+                        >
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -369,19 +427,22 @@ export default function TripForm({
               {/* 2. Destination City (To) */}
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
-                  🛬 To: Target Destination *
+                  🛬 To: Target Destination * {formData.mode === 'package' && <span style={{ color: '#059669', fontSize: '11px', fontWeight: 600 }}>(Fixed by selected Preplanned Package)</span>}
                 </label>
                 <input
                   type="text"
                   placeholder="e.g. Paris, France or Tokyo, Japan or Goa, India"
                   value={formData.destination || ''}
                   onChange={(e) => onInputChange('destination', e.target.value)}
+                  readOnly={formData.mode === 'package'}
                   style={{
                     width: '100%',
                     padding: '10px 12px',
                     borderRadius: '8px',
                     border: `1px solid ${errors.destination ? 'var(--danger, #ef4444)' : 'var(--border)'}`,
                     fontSize: '14px',
+                    background: formData.mode === 'package' ? '#f1f5f9' : '#fff',
+                    cursor: formData.mode === 'package' ? 'not-allowed' : 'text',
                   }}
                 />
                 {errors.destination && (
@@ -389,28 +450,30 @@ export default function TripForm({
                     {errors.destination}
                   </div>
                 )}
-                {/* Popular Destination Suggestions */}
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px', alignItems: 'center' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>Quick Select:</span>
-                  {['Paris', 'Tokyo', 'Swiss Alps', 'Bali', 'Goa', 'Dubai', 'Kerala', 'Rajasthan'].map((dest) => (
-                    <button
-                      key={dest}
-                      type="button"
-                      onClick={() => onInputChange('destination', dest)}
-                      style={{
-                        padding: '3px 9px',
-                        fontSize: '11px',
-                        borderRadius: '12px',
-                        border: '1px solid var(--border)',
-                        background: '#f8fafc',
-                        cursor: 'pointer',
-                        color: 'var(--text-secondary)',
-                      }}
-                    >
-                      {dest}
-                    </button>
-                  ))}
-                </div>
+                {/* Popular Destination Suggestions (Only available for Custom trips) */}
+                {formData.mode !== 'package' && (
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>Quick Select:</span>
+                    {['Paris', 'Tokyo', 'Swiss Alps', 'Bali', 'Goa', 'Dubai', 'Kerala', 'Rajasthan'].map((dest) => (
+                      <button
+                        key={dest}
+                        type="button"
+                        onClick={() => onInputChange('destination', dest)}
+                        style={{
+                          padding: '3px 9px',
+                          fontSize: '11px',
+                          borderRadius: '12px',
+                          border: '1px solid var(--border)',
+                          background: '#f8fafc',
+                          cursor: 'pointer',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        {dest}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* 3. Live Route Preview Card */}
@@ -473,6 +536,13 @@ export default function TripForm({
               tripType={formData.tripType}
               selectedCarrier={formData.transportName}
               includeProtection={formData.includeCancellationProtection}
+              protectionRatePercent={costData?.protectionRatePercent ?? 5}
+              protectionFee={costData?.cancellationFee ?? 0}
+              eligibleSubtotal={costData?.eligibleProtectionSubtotal ?? 0}
+              hasGuidePendingFee={Boolean(formData.guideId && costData?.guideCost > 0 && !guideAccepted)}
+              isPackageMode={formData.mode === 'package'}
+              packageName={packages.find((p) => String(p.packageId) === String(formData.packageId))?.name || ''}
+              error={errors.transportName}
               onTransportTypeChange={(type) => onInputChange('transportType', type)}
               onTripTypeChange={(type) => onInputChange('tripType', type)}
               onCarrierSelect={onCarrierSelect}
@@ -485,6 +555,9 @@ export default function TripForm({
             <HotelSelectStep
               destination={formData.destination}
               selectedHotel={formData.hotelName}
+              isPackageMode={formData.mode === 'package'}
+              packageName={packages.find((p) => String(p.packageId) === String(formData.packageId))?.name || ''}
+              error={errors.hotelName}
               onHotelSelect={onHotelSelect}
             />
           )}
@@ -495,6 +568,8 @@ export default function TripForm({
               guides={guides}
               loading={loadingGuides}
               selectedGuideId={formData.guideId}
+              startDate={formData.startDate}
+              endDate={formData.endDate}
               onGuideSelect={onGuideSelect}
             />
           )}

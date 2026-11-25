@@ -449,14 +449,20 @@ async function runAllTests() {
 
   await runTest('agency.approved and agency.rejected events emitted by AgenciesService', async () => {
     const agenciesService = new AgenciesService(realtimeService, notificationsService);
+    const created = agenciesService.create({
+      businessName: 'Realtime Test Agency',
+      contactEmail: `rt-agency-${Date.now()}@test.com`,
+      contactPhone: '9876543219',
+      password: 'password123',
+    });
 
-    // Approve agency 1
-    agenciesService.updateStatus(1, { status: 'approved' });
+    // Approve newly created pending agency
+    agenciesService.updateStatus(created.agencyId, { status: 'approved', reason: 'Realtime test verification approved' });
     const approveEvt = mockServer.serverEvents.find((e) => e.event === 'agency.approved');
     assert.ok(approveEvt, 'Must emit agency.approved event');
 
-    // Reject agency 1
-    agenciesService.updateStatus(1, { status: 'rejected' });
+    // Reject agency with mandatory reason
+    agenciesService.updateStatus(created.agencyId, { status: 'rejected', reason: 'Realtime test compliance failure' });
     const rejectEvt = mockServer.serverEvents.find((e) => e.event === 'agency.rejected');
     assert.ok(rejectEvt, 'Must emit agency.rejected event');
   });

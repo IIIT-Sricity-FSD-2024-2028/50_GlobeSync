@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { guidesApi } from '../../services/api';
+import { guidesApi, approvalsApi } from '../../services/api';
 import {
   AdminPage,
   AdminTable,
@@ -7,7 +7,6 @@ import {
   AdminDialog,
   Field,
   FormActions,
-  DeleteDialog,
   Details,
   matches,
   money,
@@ -268,8 +267,15 @@ export default function AdminGuidesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingGuide, setEditingGuide] = useState(null);
-  const [deletingGuide, setDeletingGuide] = useState(null);
   const [viewingGuide, setViewingGuide] = useState(null);
+  const [verifyingGuide, setVerifyingGuide] = useState(null);
+  const [deactivatingGuide, setDeactivatingGuide] = useState(null);
+  const [deactivationReason, setDeactivationReason] = useState('');
+
+  // Guide Verification form state
+  const [verifyProofUrl, setVerifyProofUrl] = useState('');
+  const [verifyExpYears, setVerifyExpYears] = useState('3');
+  const [verifyRateMinor, setVerifyRateMinor] = useState('250000');
 
   const filteredGuides = useMemo(() => {
     const raw = resource.data || [];
@@ -310,20 +316,62 @@ export default function AdminGuidesPage() {
     );
   };
 
-  const handleOpenDelete = (guide) => {
-    setDeletingGuide(guide);
+  const handleOpenVerify = (guide) => {
+    setVerifyingGuide(guide);
+    setVerifyProofUrl(guide.proofUrl || '');
+    setVerifyExpYears(guide.verifiedExperienceYears != null ? String(guide.verifiedExperienceYears) : String(guide.experience || '3'));
+    setVerifyRateMinor(guide.adminSetRateMinor != null ? String(guide.adminSetRateMinor) : String((guide.pricePerTrip || 2500) * 100));
   };
 
-  const handleCloseDelete = () => {
-    setDeletingGuide(null);
+  const handleCloseVerify = () => {
+    setVerifyingGuide(null);
   };
 
-  const handleConfirmDelete = () => {
-    if (!deletingGuide) return;
+  const handleConfirmVerify = () => {
+    if (!verifyingGuide) return;
+    const exp = parseInt(verifyExpYears, 10);
+    const rateMinor = parseInt(verifyRateMinor, 10);
+
     resource.run(
-      () => guidesApi.delete(deletingGuide.guideId),
-      `Guide ${deletingGuide.name} removed.`,
-      () => handleCloseDelete()
+      () =>
+        guidesApi.update(verifyingGuide.guideId, {
+          verificationStatus: 'VERIFIED',
+          proofUrl: verifyProofUrl.trim(),
+          verifiedExperienceYears: Number.isNaN(exp) ? 0 : exp,
+          adminSetRateMinor: Number.isNaN(rateMinor) ? 0 : rateMinor,
+        }),
+      `Guide ${verifyingGuide.name} verified successfully.`,
+      () => handleCloseVerify()
+    );
+  };
+
+  const handleOpenDeactivate = (guide) => {
+    setDeactivatingGuide(guide);
+    setDeactivationReason('');
+  };
+
+  const handleCloseDeactivate = () => {
+    setDeactivatingGuide(null);
+    setDeactivationReason('');
+  };
+
+  const handleConfirmDeactivateRequest = () => {
+    if (!deactivatingGuide || !deactivationReason.trim()) return;
+
+    resource.run(
+      () =>
+        approvalsApi.create({
+          type: 'GUIDE_DEACTIVATION',
+          entityType: 'guide',
+          entityId: deactivatingGuide.guideId,
+          proposedValues: {
+            status: 'DEACTIVATED',
+            deactivationReason: deactivationReason.trim(),
+          },
+          reason: `Permanent guide deactivation requested by Admin: ${deactivationReason.trim()}`,
+        }),
+      `Submitted deactivation approval request for ${deactivatingGuide.name} to Super Admin.`,
+      () => handleCloseDeactivate()
     );
   };
 
@@ -339,6 +387,26 @@ export default function AdminGuidesPage() {
     {
       label: 'Email',
       key: 'email',
+    },
+    {
+      label: 'Status',
+      render: (g) => {
+        const isVer = g.verificationStatus === 'VERIFIED';
+        return (
+          <span
+            style={{
+              padding: '0.2rem 0.5rem',
+              borderRadius: '4px',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              backgroundColor: isVer ? '#dcfce7' : '#fef3c7',
+              color: isVer ? '#166534' : '#92400e',
+            }}
+          >
+            {g.verificationStatus || 'UNVERIFIED'}
+          </span>
+        );
+      },
     },
     {
       label: 'Phone / Contact',
@@ -379,6 +447,15 @@ export default function AdminGuidesPage() {
           <button
             type="button"
             className="btn btn-secondary btn-sm"
+            onClick={() => handleOpenVerify(g)}
+            disabled={resource.busy}
+            title="Verify credentials and set locked rate"
+          >
+            Verify
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
             onClick={() => handleOpenEdit(g)}
             disabled={resource.busy}
             title="Edit contact and profile details"
@@ -387,12 +464,13 @@ export default function AdminGuidesPage() {
           </button>
           <button
             type="button"
-            className="btn btn-danger btn-sm"
-            onClick={() => handleOpenDelete(g)}
+            className="btn btn-secondary btn-sm"
+            onClick={() => handleOpenDeactivate(g)}
             disabled={resource.busy}
-            title="Remove guide account"
+            title="Request permanent deactivation via Super Admin"
+            style={{ color: '#dc2626' }}
           >
-            Delete
+            Deactivate
           </button>
         </div>
       ),
@@ -466,16 +544,102 @@ export default function AdminGuidesPage() {
         onSave={handleSaveGuide}
       />
 
-      {/* Delete Confirmation Dialog */}
-      {deletingGuide && (
-        <DeleteDialog
-          title={`Remove Guide ${deletingGuide.name}?`}
-          warning="This action will delete the guide account. If this guide is currently assigned to active trips, the system will prevent deletion to preserve operational safety."
+      {/* Guide Credentials Verification Dialog (Category A / B) */}
+      {verifyingGuide && (
+        <AdminDialog
+          title={`Verify Guide Credentials: ${verifyingGuide.name}`}
+          onClose={handleCloseVerify}
           busy={resource.busy}
           error={resource.error}
-          onClose={handleCloseDelete}
-          onConfirm={handleConfirmDelete}
-        />
+        >
+          <div style={{ marginBottom: '1rem', fontSize: '0.9rem', color: '#64748b' }}>
+            <p style={{ margin: '0 0 0.5rem 0' }}>
+              Inspect and verify the official credentials of the tour guide. Verification locks the daily rate and accredited experience years.
+            </p>
+          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleConfirmVerify();
+            }}
+          >
+            <Field
+              id="verify-proof-url"
+              label="Credential / License Verification URL"
+              type="url"
+              value={verifyProofUrl}
+              onChange={(e) => setVerifyProofUrl(e.target.value)}
+              placeholder="https://tourism.gov.in/guides/license-789"
+              disabled={resource.busy}
+              helperText="Official license or badge verification link."
+            />
+            <Field
+              id="verify-exp-years"
+              label="Accredited Experience (Years)"
+              type="number"
+              min="0"
+              max="50"
+              value={verifyExpYears}
+              onChange={(e) => setVerifyExpYears(e.target.value)}
+              disabled={resource.busy}
+              helperText="Verified experience level across industry expeditions."
+            />
+            <Field
+              id="verify-rate-minor"
+              label="Admin Locked Daily Rate (Cents / Minor Units)"
+              type="number"
+              min="10000"
+              step="1000"
+              value={verifyRateMinor}
+              onChange={(e) => setVerifyRateMinor(e.target.value)}
+              disabled={resource.busy}
+              helperText="e.g. 250000 minor units = INR 2,500 daily fee."
+            />
+            <FormActions
+              busy={resource.busy}
+              onCancel={handleCloseVerify}
+              submitLabel="Confirm & Lock Verification"
+            />
+          </form>
+        </AdminDialog>
+      )}
+
+      {/* Deactivation Approval Request Dialog (Category C) */}
+      {deactivatingGuide && (
+        <AdminDialog
+          title={`Request Guide Deactivation: ${deactivatingGuide.name}`}
+          onClose={handleCloseDeactivate}
+          busy={resource.busy}
+          error={resource.error}
+        >
+          <div style={{ marginBottom: '1rem', fontSize: '0.9rem', color: '#64748b' }}>
+            <p style={{ margin: '0 0 0.5rem 0' }}>
+              Permanent guide deactivation impacts scheduled traveler trips and requires Super Admin prior approval (Category C Governance).
+            </p>
+          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleConfirmDeactivateRequest();
+            }}
+          >
+            <Field
+              id="guide-deactivation-reason"
+              label="Reason for Deactivation Request (Required)"
+              type="text"
+              value={deactivationReason}
+              onChange={(e) => setDeactivationReason(e.target.value)}
+              placeholder="e.g. Multiple traveler complaints, license revocation"
+              disabled={resource.busy}
+              helperText="Rationale will be reviewed by Super Admin with impact analysis."
+            />
+            <FormActions
+              busy={resource.busy}
+              onCancel={handleCloseDeactivate}
+              submitLabel="Submit Request to Super Admin"
+            />
+          </form>
+        </AdminDialog>
       )}
     </AdminPage>
   );

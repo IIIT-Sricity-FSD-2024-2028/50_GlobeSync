@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { tripsApi } from '../../services/api';
+import {
+  getBookingDateBounds,
+  getMaxCustomEndDate,
+  validateTripDateRange,
+} from '../../config/tripDatePolicy';
 
 /**
  * TripEditModal: Controlled form modal for updating trip details
@@ -57,11 +62,12 @@ export default function TripEditModal({ trip = null, isOpen = true, onClose, onS
     return null;
   }
 
-  const tomorrow = tomorrowLocal();
+  const { minStartDate: tomorrow, maxHorizonDate } = getBookingDateBounds();
   const originalStart = String(trip.startDate || '').slice(0, 10);
   const startChanged = formData.startDate !== originalStart;
   // Allow an unchanged (already set) start date; any new start date must be tomorrow or later.
   const startMin = !startChanged && originalStart && originalStart < tomorrow ? undefined : tomorrow;
+  const endMax = getMaxCustomEndDate(formData.startDate);
 
   // Input change handler clears error on edit
   const handleInputChange = (field, value) => {
@@ -91,21 +97,14 @@ export default function TripEditModal({ trip = null, isOpen = true, onClose, onS
       newErrors.destination = 'Destination is required.';
     }
 
-    if (!formData.startDate) {
-      newErrors.startDate = 'Start date is required.';
-    } else if (isNaN(new Date(formData.startDate).getTime())) {
-      newErrors.startDate = 'Please enter a valid start date.';
-    } else if (startChanged && formData.startDate < tomorrow) {
-      newErrors.startDate = 'Trip can start from tomorrow onwards. Today or past dates are not allowed.';
-    }
-
-    if (!formData.endDate) {
-      newErrors.endDate = 'End date is required.';
-    } else if (isNaN(new Date(formData.endDate).getTime())) {
-      newErrors.endDate = 'Please enter a valid end date.';
-    } else if (formData.startDate && formData.endDate <= formData.startDate) {
-      newErrors.endDate = 'End date must be strictly after start date.';
-    }
+    const dateErrs = validateTripDateRange({
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      isPackage: Boolean(trip.packageId),
+      allowUnchangedPastStart: true,
+      originalStartDate: originalStart,
+    });
+    Object.assign(newErrors, dateErrs);
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -286,6 +285,7 @@ export default function TripEditModal({ trip = null, isOpen = true, onClose, onS
               <input
                 type="date"
                 min={startMin}
+                max={maxHorizonDate}
                 value={formData.startDate}
                 onChange={(e) => handleInputChange('startDate', e.target.value)}
                 style={{
@@ -310,6 +310,7 @@ export default function TripEditModal({ trip = null, isOpen = true, onClose, onS
               <input
                 type="date"
                 min={formData.startDate || tomorrow}
+                max={endMax}
                 value={formData.endDate}
                 onChange={(e) => handleInputChange('endDate', e.target.value)}
                 style={{

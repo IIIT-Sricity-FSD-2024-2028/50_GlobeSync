@@ -1,28 +1,34 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { supportTicketsApi, uploadsApi, API_BASE_URL } from '../../services/api';
 
 /**
  * TicketForm: Controlled form for creating a new support ticket.
- * 
- * Features:
- * - Controlled inputs for category, subject, description, priority, and optional linked booking
- * - Client-side validation: prevents empty or whitespace-only submissions
- * - Optional file attachment upload connecting to POST /uploads/attachment
- * - Prevents double submission while request is in flight
- * - Passes new ticket record to parent via onTicketCreated callback
  */
 export default function TicketForm({
   travelerId,
   bookings = [],
+  initialContext = null,
   onTicketCreated,
 }) {
   const [formData, setFormData] = useState({
-    category: 'Booking Issue',
-    subject: '',
-    description: '',
-    priority: 'Medium',
-    bookingId: '',
+    category: initialContext?.category || 'Booking Issue',
+    subject: initialContext?.subject || '',
+    description: initialContext?.description || '',
+    priority: initialContext?.priority || 'Medium',
+    bookingId: initialContext?.bookingId ? String(initialContext.bookingId) : '',
   });
+
+  useEffect(() => {
+    if (!initialContext) return;
+    setFormData((prev) => ({
+      ...prev,
+      category: initialContext.category || prev.category,
+      subject: initialContext.subject || prev.subject,
+      description: initialContext.description || prev.description,
+      priority: initialContext.priority || prev.priority,
+      bookingId: initialContext.bookingId ? String(initialContext.bookingId) : prev.bookingId,
+    }));
+  }, [initialContext]);
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -124,8 +130,14 @@ export default function TicketForm({
       ? `${formData.description.trim()}\n\nAttachment: ${attachmentData.path}`
       : formData.description.trim();
 
+    const matchedBooking = formData.bookingId
+      ? bookings.find((b) => String(b.bookingId) === String(formData.bookingId))
+      : null;
+
     const payload = {
       travelerId: Number(travelerId),
+      ...(matchedBooking?.tripId ? { tripId: Number(matchedBooking.tripId) } : {}),
+      ...(formData.bookingId ? { bookingId: Number(formData.bookingId) } : {}),
       issueType: formattedIssueType,
       description: finalDescription,
       priority: formData.priority,
@@ -209,6 +221,7 @@ export default function TicketForm({
               style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid var(--border)' }}
             >
               <option value="Booking Issue">Booking Issue</option>
+              <option value="Cancellation Assistance">Cancellation Assistance</option>
               <option value="Refund Request">Refund Request</option>
               <option value="Itinerary Inquiry">Itinerary Inquiry</option>
               <option value="Payment Dispute">Payment Dispute</option>

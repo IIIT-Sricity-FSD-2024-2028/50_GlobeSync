@@ -18,41 +18,54 @@
  * @returns {boolean}
  */
 export function isGuideAccepted(trip) {
-  return Boolean(trip && trip.guideStatus === 'Accepted');
+  return Boolean(
+    trip &&
+      trip.guideStatus === 'Accepted' &&
+      trip.status !== 'Cancelled',
+  );
 }
 
 /**
- * Returns true if the guide has declined this trip request or if unassigned.
+ * Returns true if the guide has declined this trip request, been cancelled, or is unassigned.
  * 
  * @param {object} trip 
  * @returns {boolean}
  */
 export function isGuideDeclined(trip) {
-  return Boolean(trip && (trip.guideStatus === 'Declined' || trip.guideId === null));
+  return Boolean(
+    trip &&
+      (trip.guideStatus === 'Declined' ||
+        trip.guideStatus === 'Cancelled' ||
+        trip.status === 'Cancelled' ||
+        trip.guideId === null),
+  );
 }
 
 /**
  * Returns true if the guide request is awaiting guide decision.
- * An accepted or declined trip is NEVER pending, regardless of payment/trip status.
+ * Cancelled or completed trips are NEVER pending.
  * 
  * @param {object} trip 
  * @returns {boolean}
  */
 export function isGuidePending(trip) {
   if (!trip) return false;
-  if (trip.guideStatus === 'Accepted' || trip.guideStatus === 'Declined') return false;
+  if (trip.status === 'Completed' || trip.status === 'Cancelled') return false;
+  if (trip.guideStatus === 'Accepted' || trip.guideStatus === 'Declined' || trip.guideStatus === 'Cancelled') {
+    return false;
+  }
   if (trip.guideStatus === 'Pending') return true;
-  // If guideStatus is omitted but trip is assigned to a guide, default to pending decision
-  return trip.guideId != null && trip.status !== 'Completed' && trip.status !== 'Cancelled';
+  return trip.guideId != null;
 }
 
 /**
- * Categorical helper returning 'Accepted' | 'Declined' | 'Pending' | 'Unassigned'
+ * Categorical helper returning 'Accepted' | 'Declined' | 'Cancelled' | 'Pending' | 'Unassigned'
  * 
  * @param {object} trip 
- * @returns {'Accepted' | 'Declined' | 'Pending' | 'Unassigned'}
+ * @returns {'Accepted' | 'Declined' | 'Cancelled' | 'Pending' | 'Unassigned'}
  */
 export function getGuideRequestState(trip) {
+  if (trip && (trip.status === 'Cancelled' || trip.guideStatus === 'Cancelled')) return 'Cancelled';
   if (isGuideAccepted(trip)) return 'Accepted';
   if (isGuideDeclined(trip)) return 'Declined';
   if (isGuidePending(trip)) return 'Pending';

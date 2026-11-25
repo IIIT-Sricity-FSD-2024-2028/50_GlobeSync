@@ -21,6 +21,7 @@ export interface SupportTicket {
   caseId: number;
   travelerId?: number;
   agencyId?: number;
+  guideId?: number;
   tripId?: number;
   bookingId?: number;
   description: string;

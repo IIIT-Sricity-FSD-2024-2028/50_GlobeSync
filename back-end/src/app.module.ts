@@ -35,6 +35,7 @@ import { InventoryModule } from './inventory/inventory.module';
 import { RepositoriesModule } from './repositories';
 import { RealtimeModule } from './realtime/realtime.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { ApprovalsModule } from './approvals/approvals.module';
 import { GlobalAuthGuard } from './auth/guards/global-auth.guard';
 
 @Module({
@@ -80,6 +81,7 @@ import { GlobalAuthGuard } from './auth/guards/global-auth.guard';
     RepositoriesModule,
     RealtimeModule,
     NotificationsModule,
+    ApprovalsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },

@@ -22,8 +22,8 @@ export class AgencyResponseDto {
   @ApiProperty({ example: '9876543210' })
   contactPhone: string;
 
-  @ApiProperty({ example: 'approved', enum: ['pending', 'approved', 'rejected'] })
-  status: 'pending' | 'approved' | 'rejected';
+  @ApiProperty({ example: 'approved', enum: ['pending', 'approved', 'rejected', 'suspended'] })
+  status: 'pending' | 'approved' | 'rejected' | 'suspended';
 
   @ApiPropertyOptional({ example: 1.5 })
   commissionRate?: number;
@@ -48,6 +48,6 @@ export class AgencyLookupDto {
   @ApiProperty({ example: 'Horizon Travel Partners' })
   businessName: string;
 
-  @ApiProperty({ example: 'approved', enum: ['pending', 'approved', 'rejected'] })
-  status: 'pending' | 'approved' | 'rejected';
+  @ApiProperty({ example: 'approved', enum: ['pending', 'approved', 'rejected', 'suspended'] })
+  status: 'pending' | 'approved' | 'rejected' | 'suspended';
 }

@@ -1,5 +1,6 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Optional } from '@nestjs/common';
 import { InventoryService } from '../inventory/inventory.service';
+import { PolicyService } from '../policy/policy.service';
 import { guides, packages } from '../data';
 import { testDb } from '../database/test-database';
 
@@ -11,11 +12,13 @@ export interface PriceItemInput {
 export interface PriceCalculationParams {
   items?: PriceItemInput[];
   guideId?: number;
+  guideAccepted?: boolean;
   startDate?: string;
   endDate?: string;
   packageId?: number;
   transportMode?: string;
   cancellationProtectionSelected?: boolean;
+  protectionRatePercent?: number;
 }
 
 export interface PriceBreakdownItem {
@@ -34,6 +37,8 @@ export interface CalculatedPrice {
   guideDailyRateMinor: number;
   packageSubtotalMinor: number;
   baseSubtotalMinor: number;
+  eligibleProtectionSubtotalMinor: number;
+  cancellationProtectionRatePercent: number;
   taxRatePercent: number;
   taxesMinor: number;
   insuranceMinor: number;
@@ -45,7 +50,10 @@ export interface CalculatedPrice {
 
 @Injectable()
 export class PricingService {
-  constructor(private readonly inventoryService: InventoryService) {}
+  constructor(
+    private readonly inventoryService: InventoryService,
+    @Optional() private readonly policyService?: PolicyService,
+  ) {}
 
   /**
    * Compute authoritative pricing server-side.
@@ -118,13 +126,21 @@ export class PricingService {
       insuranceMinor = Math.round(baseSubtotalMinor * 0.07);
     }
 
-    // 5. Cancellation Protection Fee
+    // 5. Dynamic Booking-Value-Based Flexible Cancellation Protection (Default: 5% of eligible subtotal)
+    // Eligible subtotal excludes pending/unaccepted guide fees and never includes protection fee recursively.
+    const eligibleGuideMinor = params.guideAccepted === false ? 0 : guideSubtotalMinor;
+    const eligibleProtectionSubtotalMinor = itemsSubtotalMinor + packageSubtotalMinor + eligibleGuideMinor;
+    const configuredRate =
+      params.protectionRatePercent ??
+      this.policyService?.getConfig()?.cancellationProtectionRatePercent ??
+      5;
+    if (typeof configuredRate !== 'number' || isNaN(configuredRate) || configuredRate < 0 || configuredRate > 100) {
+      throw new BadRequestException('Invalid cancellation protection rate.');
+    }
+
     let cancellationProtectionFeeMinor = 0;
-    if (params.cancellationProtectionSelected) {
-      if (params.transportMode === 'Flight') cancellationProtectionFeeMinor = 10000; // ₹100.00
-      else if (params.transportMode === 'Bus') cancellationProtectionFeeMinor = 7000; // ₹70.00
-      else if (params.transportMode === 'Train') cancellationProtectionFeeMinor = 5000; // ₹50.00
-      else cancellationProtectionFeeMinor = 10000; // ₹100.00
+    if (params.cancellationProtectionSelected && eligibleProtectionSubtotalMinor > 0) {
+      cancellationProtectionFeeMinor = Math.round(eligibleProtectionSubtotalMinor * (configuredRate / 100));
     }
 
     // 6. Taxes (GST 5% standard on travel services)
@@ -142,6 +158,8 @@ export class PricingService {
       guideDailyRateMinor,
       packageSubtotalMinor,
       baseSubtotalMinor,
+      eligibleProtectionSubtotalMinor,
+      cancellationProtectionRatePercent: configuredRate,
       taxRatePercent,
       taxesMinor,
       insuranceMinor,

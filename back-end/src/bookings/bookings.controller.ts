@@ -84,7 +84,7 @@ export class BookingsController {
   }
 
   @Put(':id')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.AGENCY)
+  @Roles(Role.SUPERUSER, Role.TRAVELER, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Update a booking' })
   @ApiParam({ name: 'id', type: Number })
@@ -96,9 +96,9 @@ export class BookingsController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPERUSER, Role.ADMIN)
+  @Roles(Role.SUPERUSER)
   @ApiRoleHeader()
-  @ApiOperation({ summary: 'Delete a booking' })
+  @ApiOperation({ summary: 'Delete a booking (Superuser only)' })
   @ApiParam({ name: 'id', type: Number })
   @ApiResponse({ status: 200, description: 'Booking deleted' })
   @ApiResponse({ status: 404, description: 'Booking not found' })
@@ -114,7 +114,7 @@ export class BookingsController {
   }
 
   @Post(':id/cancel')
-  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.AGENCY)
+  @Roles(Role.SUPERUSER, Role.TRAVELER, Role.AGENCY)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Cancel a booking under policy rules (idempotent, server-side refund)' })
   @ApiParam({ name: 'id', type: Number })

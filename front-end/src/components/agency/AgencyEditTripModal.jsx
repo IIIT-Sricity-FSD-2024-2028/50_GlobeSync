@@ -3,6 +3,11 @@ import PassengerSelector from './PassengerSelector';
 import AgencyTransportStep from './AgencyTransportStep';
 import AgencyItineraryBuilder from './AgencyItineraryBuilder';
 import { tripsApi, agencyApi } from '../../services/api';
+import {
+  getBookingDateBounds,
+  getMaxCustomEndDate,
+  validateTripDateRange,
+} from '../../config/tripDatePolicy';
 
 export default function AgencyEditTripModal({
   isOpen,
@@ -75,14 +80,24 @@ export default function AgencyEditTripModal({
     return diff > 0 ? diff : 1;
   })();
 
+  const { minStartDate, maxHorizonDate } = getBookingDateBounds();
+  const maxEndDate = getMaxCustomEndDate(startDate);
+
   const handleSave = async (e) => {
     e.preventDefault();
     if (!destination.trim()) {
       setSaveError('Destination cannot be empty');
       return;
     }
-    if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
-      setSaveError('End date cannot precede start date');
+    const dateErrs = validateTripDateRange({
+      startDate,
+      endDate,
+      isPackage: Boolean(trip?.packageId),
+      allowUnchangedPastStart: true,
+      originalStartDate: trip?.startDate || '',
+    });
+    if (dateErrs.startDate || dateErrs.endDate) {
+      setSaveError(dateErrs.startDate || dateErrs.endDate);
       return;
     }
     const bNum = parseFloat(budget);
@@ -280,6 +295,8 @@ export default function AgencyEditTripModal({
                   </label>
                   <input
                     type="date"
+                    min={minStartDate}
+                    max={maxHorizonDate}
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                     style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
@@ -292,6 +309,8 @@ export default function AgencyEditTripModal({
                   </label>
                   <input
                     type="date"
+                    min={startDate || minStartDate}
+                    max={maxEndDate}
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}

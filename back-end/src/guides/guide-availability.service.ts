@@ -1,5 +1,6 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { Injectable, ConflictException } from '@nestjs/common';
 import { testDb } from '../database/test-database';
+import { guides, trips, bookings } from '../data';
 
 export interface GuideBlockedDate {
   id: number;
@@ -43,23 +44,78 @@ export class GuideAvailabilityService {
   }
 
   /**
-   * Check if a guide is available for the given date range.
+   * Check whether a guide account and calendar are eligible for the given inclusive date range.
    */
-  checkAvailability(guideId: number, startDate: string, endDate: string, excludeBookingId?: number, excludeTripId?: number): boolean {
+  findConflictReason(
+    guideId: number,
+    startDate: string,
+    endDate: string,
+    excludeBookingId?: number,
+    excludeTripId?: number,
+  ): string | null {
+    const guide = guides.find((g) => g.guideId === guideId);
+    if (guide) {
+      const acctStatus = String(guide.status || 'ACTIVE').toUpperCase();
+      if (['SUSPENDED', 'INACTIVE', 'DEACTIVATED'].includes(acctStatus)) {
+        return `Guide #${guideId} account is ${acctStatus.toLowerCase()}.`;
+      }
+      const verStatus = String(guide.verificationStatus || 'VERIFIED').toUpperCase();
+      if (['UNVERIFIED', 'REJECTED'].includes(verStatus)) {
+        return `Guide #${guideId} is not verified for assignments.`;
+      }
+      if (guide.availability === 'away') {
+        return `Guide #${guideId} is currently marked away.`;
+      }
+    }
+
     if (!testDb.guideBlockedDates) {
       testDb.guideBlockedDates = [];
     }
 
-    const conflicts = testDb.guideBlockedDates.filter((block: GuideBlockedDate) => {
+    const nowMs = Date.now();
+    const blockConflict = testDb.guideBlockedDates.find((block: GuideBlockedDate) => {
       if (block.guideId !== guideId) return false;
       if (excludeTripId && block.tripId === excludeTripId) return false;
       if (excludeBookingId && block.bookingId === excludeBookingId) return false;
       if (block.status !== 'HELD' && block.status !== 'CONFIRMED') return false;
-
+      if (block.status === 'HELD' && block.bookingId) {
+        const b = bookings.find((bk) => bk.bookingId === block.bookingId);
+        if (b && (String(b.status).toUpperCase() === 'CANCELLED' || String(b.status).toUpperCase() === 'EXPIRED')) {
+          return false;
+        }
+        if (b?.holdExpiresAtUtc && new Date(b.holdExpiresAtUtc).getTime() < nowMs) {
+          return false;
+        }
+      }
       return this.doRangesOverlap(block.startDate, block.endDate, startDate, endDate);
     });
 
-    return conflicts.length === 0;
+    if (blockConflict) {
+      return `Dates ${blockConflict.startDate} to ${blockConflict.endDate} are already reserved${blockConflict.tripId ? ` (Trip #${blockConflict.tripId})` : ''}.`;
+    }
+
+    // Authoritative trip-based conflict check (survives restarts & unhydrated guideBlockedDates)
+    const tripConflict = trips.find((t) => {
+      if (t.guideId !== guideId) return false;
+      if (excludeTripId && t.tripId === excludeTripId) return false;
+      if (t.guideStatus !== 'Accepted') return false;
+      if (t.status === 'Cancelled' || t.status === 'Completed') return false;
+      if (!t.startDate || !t.endDate) return false;
+      return this.doRangesOverlap(t.startDate, t.endDate, startDate, endDate);
+    });
+
+    if (tripConflict) {
+      return `Already assigned to Trip #${tripConflict.tripId} (${tripConflict.startDate} to ${tripConflict.endDate}).`;
+    }
+
+    return null;
+  }
+
+  /**
+   * Check if a guide is available for the given date range.
+   */
+  checkAvailability(guideId: number, startDate: string, endDate: string, excludeBookingId?: number, excludeTripId?: number): boolean {
+    return this.findConflictReason(guideId, startDate, endDate, excludeBookingId, excludeTripId) === null;
   }
 
   /**

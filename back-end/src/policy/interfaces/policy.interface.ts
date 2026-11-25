@@ -6,12 +6,16 @@ export interface PolicyConfig {
   emergencyOverrideThresholdMinor: number; // default 500000 (₹5,000.00)
   cancellationProtectionTier1RefundPercent: number; // default 90%
   cancellationProtectionTier2RefundPercent: number; // default 50%
+  cancellationProtectionRatePercent: number; // default 5% of eligible booking subtotal
 }
 
 export interface PolicySnapshot {
   cancellationPenaltyPercent: number;
   defaultRefundPercent: number;
   hasCancellationProtection: boolean;
+  cancellationProtectionRatePercent?: number;
+  cancellationProtectionFeeMinor?: number;
+  eligibleSubtotalMinor?: number;
   protectedFirstTierRefundPercent: number;
   protectedSecondTierRefundPercent: number;
   leadTimeHoursRequired: number;

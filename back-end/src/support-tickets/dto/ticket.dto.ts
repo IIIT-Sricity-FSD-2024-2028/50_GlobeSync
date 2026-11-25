@@ -4,6 +4,7 @@ import { IsBoolean, IsIn, IsInt, IsNotEmpty, IsOptional, IsString } from 'class-
 export class CreateTicketDto {
   @ApiPropertyOptional({ example: 1 }) @IsOptional() @IsInt() travelerId?: number;
   @ApiPropertyOptional({ example: 1 }) @IsOptional() @IsInt() agencyId?: number;
+  @ApiPropertyOptional({ example: 1 }) @IsOptional() @IsInt() guideId?: number;
   @ApiPropertyOptional({ example: 21 }) @IsOptional() @IsInt() tripId?: number;
   @ApiPropertyOptional({ example: 101 }) @IsOptional() @IsInt() bookingId?: number;
   @ApiProperty({ example: 'Booking issue' }) @IsNotEmpty() @IsString() issueType: string;

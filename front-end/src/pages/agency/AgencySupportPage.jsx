@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
 import { supportTicketsApi, agencyApi, tripsApi } from '../../services/api';
 import SummaryCard from '../../components/common/SummaryCard';
@@ -42,6 +43,7 @@ const FAQS = [
  */
 export default function AgencySupportPage() {
   const { user } = useSession();
+  const [searchParams] = useSearchParams();
   const agencyId = Number(user?.agencyId || user?.agency_id || user?.id || 1);
 
   const [tickets, setTickets] = useState([]);
@@ -65,6 +67,26 @@ export default function AgencySupportPage() {
   const [replyMessage, setReplyMessage] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
   const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    const qTripId = searchParams.get('tripId');
+    const qIssueType = searchParams.get('issueType');
+    const qReason = searchParams.get('reason');
+    const qNotes = searchParams.get('notes');
+    if (qTripId || qIssueType) {
+      setIssueType('Cancellation & Refund Assistance');
+      setPriority('High');
+      if (qTripId) setSelectedTripId(String(qTripId));
+      const lines = [
+        qTripId ? `Related Trip: #${qTripId}` : null,
+        'Restriction: Ordinary cancellation window (<12 hours) has closed.',
+        qReason ? `Requested Reason: ${qReason}` : null,
+        qNotes ? `Additional Details: ${qNotes}` : null,
+      ].filter(Boolean);
+      setDescription(lines.join('\n'));
+      setShowCreateModal(true);
+    }
+  }, [searchParams]);
 
   const loadData = async (signal) => {
     setLoading(true);

@@ -4,6 +4,14 @@ import AgencyTransportStep from './AgencyTransportStep';
 import AgencyItineraryBuilder from './AgencyItineraryBuilder';
 import AgencyFinancialSummary from './AgencyFinancialSummary';
 import { tripsApi, bookingsApi } from '../../services/api';
+import {
+  TRIP_DATE_POLICY,
+  getBookingDateBounds,
+  getMaxCustomEndDate,
+  getInclusiveDurationDays,
+  validateTripDateRange,
+} from '../../config/tripDatePolicy';
+import { getRouteTransportCatalog } from '../trips/tripCalculations';
 
 const STEPS = [
   { step: 1, title: 'Basics & Passengers', desc: 'Destination, dates & client roster' },
@@ -42,7 +50,10 @@ export default function AgencyCreateTripWizard({
 
   // Transport & Lodging State
   const [transportType, setTransportType] = useState('Flight');
-  const [carrier, setCarrier] = useState('');
+  const [carrier, setCarrier] = useState(() => {
+    const opts = getRouteTransportCatalog('Flight', 'New Delhi, India', '');
+    return opts[0]?.name || 'SkyHigh Airlines';
+  });
   const [carrierPrice, setCarrierPrice] = useState(7800);
   const [lodgingTier, setLodgingTier] = useState('Deluxe');
   const [lodgingPrice, setLodgingPrice] = useState(27500); // 5 nights @ 5500
@@ -57,46 +68,23 @@ export default function AgencyCreateTripWizard({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
 
-  // Stay nights calculation
-  const stayDays = (() => {
-    if (!startDate || !endDate) return 1;
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-    return diff > 0 ? diff : 1;
-  })();
-
-  const tomorrowStr = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return d.toISOString().split('T')[0];
-  })();
-
-  const minEndDateStr = (() => {
-    if (startDate) {
-      const d = new Date(startDate);
-      d.setDate(d.getDate() + 1);
-      if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
-    }
-    const d = new Date();
-    d.setDate(d.getDate() + 2);
-    return d.toISOString().split('T')[0];
-  })();
+  const stayDays = Math.max(1, getInclusiveDurationDays(startDate, endDate) - 1);
+  const inclusiveDays = getInclusiveDurationDays(startDate, endDate);
+  const { minStartDate: tomorrowStr, maxHorizonDate } = getBookingDateBounds();
+  const minEndDateStr = startDate || tomorrowStr;
+  const maxEndDateStr = getMaxCustomEndDate(startDate);
 
   const validateStep = (step) => {
     const errs = {};
     if (step === 1) {
-      const todayStr = new Date().toISOString().split('T')[0];
       if (!title.trim()) errs.title = 'Trip title is required';
       if (!destination.trim()) errs.destination = 'Destination is required';
-      if (!startDate) errs.startDate = 'Start date is required';
-      else if (startDate <= todayStr) {
-        errs.startDate = 'Trip start date must be a future date (cannot be today or a past date).';
-      }
-      if (!endDate) errs.endDate = 'End date is required';
-      else if (new Date(endDate) <= new Date(startDate)) {
-        errs.endDate = 'End date must be strictly after start date';
-      }
+      const dateErrs = validateTripDateRange({
+        startDate,
+        endDate,
+        isPackage: false,
+      });
+      Object.assign(errs, dateErrs);
       if (baseBudget !== '' && baseBudget !== null && baseBudget !== undefined) {
         const bNum = parseFloat(baseBudget);
         if (isNaN(bNum) || bNum < 0) {
@@ -105,6 +93,14 @@ export default function AgencyCreateTripWizard({
       }
       if (selectedPassengerIds.length === 0) {
         errs.passengers = 'Please select at least 1 passenger from your roster (or add one inline)';
+      }
+    }
+    if (step === 2) {
+      if (!transportType || !carrier) {
+        errs.transport = 'Transportation operator selection is mandatory.';
+      }
+      if (startDate !== endDate && !lodgingTier) {
+        errs.lodging = 'Accommodation tier is mandatory for overnight trips.';
       }
     }
     setErrors(errs);
@@ -329,13 +325,21 @@ export default function AgencyCreateTripWizard({
 
             <div>
               <label style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: '6px' }}>
-                Start Date * (Advance Booking)
+                Start Date * (Horizon: {TRIP_DATE_POLICY.MAX_BOOKING_HORIZON_DAYS}d)
               </label>
               <input
                 type="date"
                 min={tomorrowStr}
+                max={maxHorizonDate}
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setStartDate(v);
+                  const maxEnd = getMaxCustomEndDate(v);
+                  if (endDate && (endDate < v || endDate > maxEnd)) {
+                    setEndDate('');
+                  }
+                }}
                 style={{
                   width: '100%',
                   padding: '10px 14px',
@@ -349,11 +353,12 @@ export default function AgencyCreateTripWizard({
 
             <div>
               <label style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: '6px' }}>
-                End Date *
+                End Date * (Max {TRIP_DATE_POLICY.MAX_CUSTOM_DURATION_DAYS}d)
               </label>
               <input
                 type="date"
                 min={minEndDateStr}
+                max={maxEndDateStr}
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 style={{
@@ -364,6 +369,11 @@ export default function AgencyCreateTripWizard({
                   fontSize: '14px',
                 }}
               />
+              {inclusiveDays > 0 && (
+                <span style={{ fontSize: '11px', color: '#0f766e', marginTop: '3px', display: 'block', fontWeight: 600 }}>
+                  Duration: {inclusiveDays} Calendar Day{inclusiveDays !== 1 ? 's' : ''} ({stayDays} Night{stayDays !== 1 ? 's' : ''})
+                </span>
+              )}
               {errors.endDate && <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.endDate}</span>}
             </div>
 

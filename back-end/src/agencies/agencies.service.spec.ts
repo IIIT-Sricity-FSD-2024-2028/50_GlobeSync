@@ -18,6 +18,7 @@
 // The reflect-metadata import satisfies emitDecoratorMetadata.
 import 'reflect-metadata';
 import * as assert from 'assert';
+import * as bcrypt from 'bcryptjs';
 
 // ─── Seed isolation ──────────────────────────────────────────────────────────
 // We import the mutable in-memory arrays directly so we can reset them between tests.
@@ -141,7 +142,7 @@ run('create: stored record retains password so auth can log in', () => {
   });
   const stored = agencies.find(a => a.contactEmail === 'test@newagency.com')!;
   assert.ok(stored, 'Stored record not found after create');
-  assert.strictEqual(stored.password, 'testpass123', 'Stored record missing password after create');
+  assert.ok(stored.password && bcrypt.compareSync('testpass123', stored.password), 'Stored record missing valid hashed password after create');
 });
 
 // 4. createDirect (admin-created agency)
@@ -168,7 +169,7 @@ run('createDirect: stored record retains password for login', () => {
   });
   const stored = agencies.find(a => a.contactEmail === 'direct@newagency.com')!;
   assert.ok(stored, 'Stored record not found after createDirect');
-  assert.strictEqual(stored.password, 'directpass123', 'Stored record missing password after createDirect');
+  assert.ok(stored.password && bcrypt.compareSync('directpass123', stored.password), 'Stored record missing valid hashed password after createDirect');
 });
 
 // 5. update (profile update)
@@ -190,7 +191,7 @@ run('update with password change: response still has no password field', () => {
 
 // 6. updateStatus
 run('updateStatus: response does not contain password', () => {
-  const result = agenciesService.updateStatus(1, { status: 'rejected' });
+  const result = agenciesService.updateStatus(1, { status: 'rejected', reason: 'Audit compliance check failure' });
   assert.ok(!hasPassword(result), `updateStatus returned password: ${JSON.stringify(result)}`);
 });
 

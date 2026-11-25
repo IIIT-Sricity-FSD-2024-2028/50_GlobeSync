@@ -12,6 +12,13 @@ export default function TransportSelectStep({
   tripType = 'round',
   selectedCarrier = '',
   includeProtection = false,
+  protectionRatePercent = 5,
+  protectionFee = 0,
+  eligibleSubtotal = 0,
+  hasGuidePendingFee = false,
+  isPackageMode = false,
+  packageName = '',
+  error = '',
   onTransportTypeChange,
   onTripTypeChange,
   onCarrierSelect,
@@ -39,9 +46,48 @@ export default function TransportSelectStep({
           </span>
         </div>
         <p style={{ color: 'var(--muted)', fontSize: '13px' }}>
-          Choose your travel mode and operator for accurate route-based itinerary budget calculations.
+          {isPackageMode
+            ? `Your "${packageName || 'Preplanned'}" package includes standard transit. Proceed with included transport or select an operator upgrade below.`
+            : 'Transportation selection is mandatory for your customized journey. Choose your travel mode and operator.'}
         </p>
       </div>
+
+      {error && (
+        <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: '8px', fontSize: '13px', marginBottom: '14px' }}>
+          ⚠️ {error}
+        </div>
+      )}
+
+      {isPackageMode && (
+        <div
+          onClick={() => onCarrierSelect('', 0)}
+          style={{
+            padding: '14px 18px',
+            borderRadius: '12px',
+            border: `1.5px solid ${!selectedCarrier ? '#10b981' : 'var(--border)'}`,
+            background: !selectedCarrier ? '#ecfdf5' : '#fafafa',
+            cursor: 'pointer',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '18px',
+          }}
+        >
+          <div>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: '#065f46' }}>
+              ✓ Use Transportation Included in Package
+            </div>
+            <div style={{ fontSize: '12px', color: '#047857' }}>
+              Package transit transfers are already included (₹0 extra charge).
+            </div>
+          </div>
+          {!selectedCarrier && (
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#059669' }}>
+              ✓ Included
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Dynamic Route Banner */}
       <div
@@ -219,7 +265,7 @@ export default function TransportSelectStep({
         </div>
       </div>
 
-      {/* Add-on: Cancellation Protection */}
+      {/* Add-on: Dynamic Booking-Value-Based Cancellation Protection */}
       <div
         style={{
           padding: '14px 16px',
@@ -227,23 +273,28 @@ export default function TransportSelectStep({
           border: '1px solid var(--border)',
           borderRadius: '10px',
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           justifyContent: 'space-between',
+          gap: '12px',
         }}
       >
         <div>
           <div style={{ fontSize: '13px', fontWeight: 700 }}>
-            🛡 Optional Flexible Cancellation Protection
+            🛡 Optional Flexible Cancellation Protection ({protectionRatePercent}% introductory rate)
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--muted)' }}>
-            Full refund minus flat fee ({transportType === 'Flight' ? '₹100' : transportType === 'Bus' ? '₹70' : '₹50'}) if cancelled up to 48h prior.
+          <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '3px', lineHeight: 1.45 }}>
+            {eligibleSubtotal > 0
+              ? `Calculated on covered itinerary value (₹${Math.round(eligibleSubtotal).toLocaleString('en-IN')}): +₹${Math.round(eligibleSubtotal * (protectionRatePercent / 100)).toLocaleString('en-IN')}.`
+              : `Calculated at ${protectionRatePercent}% of selected eligible itinerary components (transport, accommodation, package).`}
+            {hasGuidePendingFee && ' Pending unaccepted guide fees are excluded until confirmed.'}
+            {' '}Covers Tier 1 (80% refund up to 48h prior) and Tier 2 (50% refund up to 24h prior) under simulated GlobeSync policy terms.
           </div>
         </div>
         <input
           type="checkbox"
           checked={includeProtection}
           onChange={(e) => onProtectionToggle(e.target.checked)}
-          style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+          style={{ width: '18px', height: '18px', cursor: 'pointer', marginTop: '2px', flexShrink: 0 }}
         />
       </div>
     </div>

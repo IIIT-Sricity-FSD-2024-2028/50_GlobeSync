@@ -74,8 +74,39 @@ export class PackagesController {
   @ApiOperation({ summary: 'Update a package' })
   @ApiParam({ name: 'id', type: Number, description: 'Package ID' })
   @ApiResponse({ status: 200, description: 'Package updated successfully' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdatePackageDto) {
-    return this.packagesService.update(id, dto);
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdatePackageDto,
+    @Req() req: any,
+  ) {
+    const actor = req?.user
+      ? {
+          role: String(req.user.role),
+          userId: Number(req.user.id || req.user.userId || 1),
+          name: req.user.name || req.user.email || 'Admin',
+        }
+      : undefined;
+    return this.packagesService.update(id, dto, actor);
+  }
+
+  @Post(':id/archive')
+  @Roles(Role.SUPERUSER, Role.ADMIN)
+  @ApiUserHeaders()
+  @ApiOperation({ summary: 'Controlled archival of a package with mandatory reason' })
+  @ApiParam({ name: 'id', type: Number })
+  archive(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('reason') reason: string,
+    @Req() req: any,
+  ) {
+    const actor = req?.user
+      ? {
+          role: String(req.user.role),
+          userId: Number(req.user.id || req.user.userId || 1),
+          name: req.user.name || req.user.email || 'Admin',
+        }
+      : undefined;
+    return this.packagesService.archive(id, reason, actor);
   }
 
   @Delete(':id')

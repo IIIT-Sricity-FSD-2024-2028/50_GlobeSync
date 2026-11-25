@@ -77,8 +77,21 @@ export class SupportTicketsController {
     return this.ticketsService.findByAgency(agencyId, query);
   }
 
+  @Get('guide/:guideId')
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.GUIDE, Role.SUPPORT)
+  @ApiUserHeaders()
+  @ApiOperation({ summary: 'Get tickets by guide ID with pagination' })
+  @ApiParam({ name: 'guideId', type: Number })
+  @ApiResponse({ status: 200, description: 'Tickets for guide' })
+  findByGuide(
+    @Param('guideId', ParseIntPipe) guideId: number,
+    @Query() query: PaginationQueryDto,
+  ) {
+    return this.ticketsService.findByGuide(guideId, query);
+  }
+
   @Post()
-  @Roles(Role.SUPERUSER, Role.TRAVELER, Role.AGENCY, Role.SUPPORT)
+  @Roles(Role.SUPERUSER, Role.TRAVELER, Role.AGENCY, Role.GUIDE, Role.SUPPORT)
   @ApiUserHeaders()
   @ApiOperation({ summary: 'Create a support ticket' })
   @ApiResponse({ status: 201, description: 'Ticket created' })

@@ -112,6 +112,13 @@ export class ReviewsService {
       if (!targetTripId && booking.tripId) {
         targetTripId = booking.tripId;
       }
+      // T05: Actual trip completion check - trip itself must be completed
+      if (targetTripId) {
+        const trip = trips.find((t) => t.tripId === targetTripId);
+        if (trip && trip.status !== 'Completed') {
+          throw new BadRequestException('Reviews are only allowed after the physical trip has been COMPLETED.');
+        }
+      }
     } else if (targetTripId) {
       // Find booking for this trip if bookingId not directly supplied
       const booking = bookings.find((b) => b.tripId === targetTripId);
@@ -120,12 +127,11 @@ export class ReviewsService {
         if (booking.status.toUpperCase() !== 'COMPLETED') {
           throw new BadRequestException('Reviews are only allowed after a booking is COMPLETED.');
         }
-      } else {
-        // If no booking in memory, check trip status
-        const trip = trips.find((t) => t.tripId === targetTripId);
-        if (trip && trip.status !== 'Completed') {
-          throw new BadRequestException('Reviews are only allowed after a booking is COMPLETED.');
-        }
+      }
+      // T05: Enforce actual trip completion
+      const trip = trips.find((t) => t.tripId === targetTripId);
+      if (trip && trip.status !== 'Completed') {
+        throw new BadRequestException('Reviews are only allowed after the physical trip has been COMPLETED.');
       }
     } else {
       throw new BadRequestException('Either bookingId or tripId must be provided.');

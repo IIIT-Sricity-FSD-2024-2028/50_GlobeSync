@@ -39,3 +39,5 @@ export {
   systemAuditLogs,
   SystemAuditLog,
 } from './system-config.data';
+export { guideReassignmentRequests, GuideReassignmentRequest } from './reassignment-requests.data';
+export { approvalRequests, ApprovalRequest } from './approval-requests.data';

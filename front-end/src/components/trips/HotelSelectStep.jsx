@@ -6,6 +6,9 @@ import React from 'react';
 export default function HotelSelectStep({
   destination = 'Destination',
   selectedHotel = '',
+  isPackageMode = false,
+  packageName = '',
+  error = '',
   onHotelSelect,
 }) {
   const cityName = destination ? destination.split(',')[0].trim() : 'Destination';
@@ -56,11 +59,48 @@ export default function HotelSelectStep({
           </span>
         </div>
         <p style={{ color: 'var(--muted)', fontSize: '13px' }}>
-          Select your accommodation tier or opt out if arranging private stays.
+          {isPackageMode
+            ? `Your "${packageName || 'Preplanned'}" package includes standard accommodation. You may proceed with included lodging or optionally upgrade below.`
+            : 'Accommodation is mandatory for all overnight trips. Select a verified stay tier in your destination.'}
         </p>
       </div>
 
+      {error && (
+        <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: '8px', fontSize: '13px', marginBottom: '14px' }}>
+          ⚠️ {error}
+        </div>
+      )}
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {isPackageMode && (
+          <div
+            onClick={() => onHotelSelect('', 0)}
+            style={{
+              padding: '14px 18px',
+              borderRadius: '12px',
+              border: `1.5px solid ${!selectedHotel ? '#10b981' : 'var(--border)'}`,
+              background: !selectedHotel ? '#ecfdf5' : '#fafafa',
+              cursor: 'pointer',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#065f46' }}>
+                ✓ Use Accommodation Included in Package
+              </div>
+              <div style={{ fontSize: '12px', color: '#047857' }}>
+                Pre-arranged partner hotel included in your package price (₹0 extra charge).
+              </div>
+            </div>
+            {!selectedHotel && (
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#059669' }}>
+                ✓ Included
+              </span>
+            )}
+          </div>
+        )}
         {hotelTiers.map((hotel) => {
           const isChosen = selectedHotel === hotel.name;
           return (
@@ -113,35 +153,6 @@ export default function HotelSelectStep({
             </div>
           );
         })}
-
-        {/* Skip Hotel Option */}
-        <div
-          onClick={() => onHotelSelect('', 0)}
-          style={{
-            padding: '14px 18px',
-            borderRadius: '12px',
-            border: `1.5px dashed ${!selectedHotel ? 'var(--primary)' : 'var(--border)'}`,
-            background: !selectedHotel ? '#fff1f6' : '#fafafa',
-            cursor: 'pointer',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <div>
-            <div style={{ fontSize: '14px', fontWeight: 700 }}>
-              🏡 No Hotel Required (Arranging Own Stay)
-            </div>
-            <div style={{ fontSize: '12px', color: 'var(--muted)' }}>
-              Skip hotel booking for this itinerary. Hotel cost will be ₹0.
-            </div>
-          </div>
-          {!selectedHotel && (
-            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)' }}>
-              ✓ Selected
-            </span>
-          )}
-        </div>
       </div>
     </div>
   );

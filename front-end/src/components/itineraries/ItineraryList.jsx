@@ -37,6 +37,8 @@ export default function ItineraryList({
     return null;
   }
 
+  const isReadOnly = selectedTrip.status === 'Cancelled' || selectedTrip.status === 'Completed';
+
   // 1. Loading State
   if (loading) {
     return (
@@ -110,17 +112,20 @@ export default function ItineraryList({
           No itinerary activities scheduled yet
         </h3>
         <p style={{ color: 'var(--muted)', fontSize: '13px', maxWidth: '440px', margin: '6px auto 20px' }}>
-          Trip #{selectedTrip.tripId} to <strong>{selectedTrip.destination}</strong> has no planned daily
-          activities. Add your first day’s schedule to begin coordinating your travel plan!
+          {isReadOnly
+            ? `Trip #${selectedTrip.tripId} (${selectedTrip.destination}) is ${selectedTrip.status.toLowerCase()}. No activities were recorded.`
+            : `Trip #${selectedTrip.tripId} to ${selectedTrip.destination} has no planned daily activities. Add your first day’s schedule to begin coordinating your travel plan!`}
         </p>
-        <button
-          type="button"
-          onClick={onOpenAddForm}
-          className="btn btn-primary"
-          style={{ padding: '10px 22px', fontSize: '13px', fontWeight: 700, borderRadius: '10px' }}
-        >
-          ➕ Add First Activity
-        </button>
+        {!isReadOnly && (
+          <button
+            type="button"
+            onClick={onOpenAddForm}
+            className="btn btn-primary"
+            style={{ padding: '10px 22px', fontSize: '13px', fontWeight: 700, borderRadius: '10px' }}
+          >
+            ➕ Add First Activity
+          </button>
+        )}
       </div>
     );
   }
@@ -164,14 +169,30 @@ export default function ItineraryList({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={onOpenAddForm}
-          className="btn btn-primary"
-          style={{ padding: '8px 18px', fontSize: '13px', fontWeight: 700, borderRadius: '10px' }}
-        >
-          ➕ Add Activity
-        </button>
+        {!isReadOnly ? (
+          <button
+            type="button"
+            onClick={onOpenAddForm}
+            className="btn btn-primary"
+            style={{ padding: '8px 18px', fontSize: '13px', fontWeight: 700, borderRadius: '10px' }}
+          >
+            ➕ Add Activity
+          </button>
+        ) : (
+          <span
+            style={{
+              padding: '6px 12px',
+              borderRadius: '8px',
+              background: '#f1f5f9',
+              color: '#475569',
+              border: '1px solid #cbd5e1',
+              fontSize: '12px',
+              fontWeight: 700,
+            }}
+          >
+            🔒 Read-Only History ({selectedTrip.status})
+          </span>
+        )}
       </div>
 
       {/* Render Each Day's Schedule */}
@@ -277,23 +298,25 @@ export default function ItineraryList({
                         <StatusBadge status={item.activityStatus || 'Pending'} />
 
                         {/* Edit Button */}
-                        <button
-                          type="button"
-                          onClick={() => onEditItem(item)}
-                          className="btn btn-secondary"
-                          style={{
-                            padding: '5px 10px',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            borderRadius: '6px',
-                          }}
-                          title="Edit this activity"
-                        >
-                          ✏️ Edit
-                        </button>
+                        {!isReadOnly && (
+                          <button
+                            type="button"
+                            onClick={() => onEditItem(item)}
+                            className="btn btn-secondary"
+                            style={{
+                              padding: '5px 10px',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              borderRadius: '6px',
+                            }}
+                            title="Edit this activity"
+                          >
+                            ✏️ Edit
+                          </button>
+                        )}
 
                         {/* Delete Button - only enabled when backend allows deletion (RolesGuard) */}
-                        {(userRole === 'admin' || userRole === 'superuser') && onDeleteItem && (
+                        {!isReadOnly && (userRole === 'admin' || userRole === 'superuser') && onDeleteItem && (
                           <button
                             type="button"
                             onClick={() => onDeleteItem(item)}

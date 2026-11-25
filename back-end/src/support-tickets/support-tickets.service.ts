@@ -101,9 +101,19 @@ export class SupportTicketsService {
     return paginateCollection(list, query, ['description', 'issueType']);
   }
 
+  findByGuide(guideId: number): SupportTicket[];
+  findByGuide(guideId: number, query: PaginationQueryDto): SupportTicket[] | PaginatedResult<SupportTicket>;
+  findByGuide(guideId: number, query?: PaginationQueryDto): any {
+    const list = supportTickets
+      .filter((t) => (t as any).guideId === guideId)
+      .map((t) => this.sanitizeTicket(t, 'guide'));
+    return paginateCollection(list, query, ['description', 'issueType']);
+  }
+
   create(dto: CreateTicketDto): SupportTicket {
-    if (!!dto.travelerId === !!dto.agencyId) {
-      throw new BadRequestException('Exactly one of travelerId or agencyId must be provided.');
+    const providedRoles = [dto.travelerId, dto.agencyId, dto.guideId].filter(id => id !== undefined && id !== null);
+    if (providedRoles.length !== 1) {
+      throw new BadRequestException('Exactly one of travelerId, agencyId, or guideId must be provided.');
     }
 
     const maxTicketId = supportTickets.length > 0
@@ -113,13 +123,17 @@ export class SupportTicketsService {
       ? Math.max(...supportTickets.map((t) => t.caseId))
       : 0;
 
+    const senderRole = dto.guideId ? 'guide' : dto.agencyId ? 'agency' : 'traveler';
+    const senderId = dto.guideId || dto.agencyId || dto.travelerId || 1;
+    const senderName = dto.guideId ? 'Tour Guide Partner' : dto.agencyId ? 'Agency Partner' : 'Traveler Client';
+
     const initialReplies: TicketReply[] = [
       {
         replyId: 1,
         ticketId: maxTicketId + 1,
-        senderRole: dto.agencyId ? 'agency' : 'traveler',
-        senderId: dto.agencyId || dto.travelerId || 1,
-        senderName: dto.agencyId ? 'Agency Partner' : 'Traveler Client',
+        senderRole,
+        senderId,
+        senderName,
         message: dto.description,
         createdAt: new Date().toISOString(),
       },
@@ -130,6 +144,7 @@ export class SupportTicketsService {
       caseId: maxCaseId + 1,
       travelerId: dto.travelerId,
       agencyId: dto.agencyId,
+      guideId: dto.guideId,
       tripId: dto.tripId,
       bookingId: dto.bookingId,
       description: dto.description,

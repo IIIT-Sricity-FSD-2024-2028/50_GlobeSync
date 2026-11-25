@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import { tripsApi, agencyApi, passengersApi } from '../../services/api';
+import { tripsApi, agencyApi, passengersApi, bookingsApi } from '../../services/api';
 import StatusBadge from '../../components/common/StatusBadge';
 import SummaryCard from '../../components/common/SummaryCard';
 import AgencyCreateTripWizard from '../../components/agency/AgencyCreateTripWizard';
@@ -16,9 +16,10 @@ export default function AgencyTripsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const agencyId = Number(user?.agencyId || user?.agency_id || user?.id || 1);
   const [agencyProfile, setAgencyProfile] = useState(null);
-  const commissionRate = Number(agencyProfile?.commissionRate ?? user?.commissionRate ?? 10.0);
+  const commissionRate = Number(agencyProfile?.commissionRate ?? user?.commissionRate ?? 1.5);
 
   const [trips, setTrips] = useState([]);
+  const [bookings, setBookings] = useState([]);
   const [passengers, setPassengers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -64,15 +65,17 @@ export default function AgencyTripsPage() {
     setLoading(true);
     setError(null);
     try {
-      const [tripsData, passengersData, profData] = await Promise.all([
+      const [tripsData, passengersData, profData, bookingsData] = await Promise.all([
         tripsApi.getByAgency(agencyId, { signal }),
         passengersApi.getByAgency(agencyId, { signal }).catch(() => []),
         agencyApi.getProfile({ signal }).catch(() => null),
+        bookingsApi.getByAgency(agencyId, { signal }).catch(() => []),
       ]);
 
       if (!signal?.aborted) {
         setTrips(Array.isArray(tripsData) ? tripsData : []);
         setPassengers(Array.isArray(passengersData) ? passengersData : []);
+        setBookings(Array.isArray(bookingsData) ? bookingsData : []);
         if (profData) setAgencyProfile(profData);
       }
     } catch (err) {
@@ -446,7 +449,19 @@ export default function AgencyTripsPage() {
                   .map((id) => passengerMap.get(Number(id))?.name)
                   .filter(Boolean);
 
-                const isPayable = t.status === 'Planning' || t.status === 'Pending';
+                const activeBooking = bookings.find(
+                  (b) =>
+                    Number(b.tripId) === Number(t.tripId) &&
+                    !['CANCELLED', 'EXPIRED', 'REFUNDED'].includes(String(b.status || '').toUpperCase()),
+                );
+                const isBookingPaid =
+                  activeBooking &&
+                  ['PAID', 'CONFIRMED', 'COMPLETED'].includes(String(activeBooking.status || '').toUpperCase());
+                const isPayable =
+                  !isBookingPaid &&
+                  (t.status === 'Planning' ||
+                    t.status === 'Pending' ||
+                    (t.status === 'Confirmed' && activeBooking));
                 const isCancellable = t.status !== 'Completed' && t.status !== 'Cancelled';
 
                 return (
@@ -534,9 +549,9 @@ export default function AgencyTripsPage() {
                           type="button"
                           onClick={() => setActivitiesTrip(t)}
                           style={{
-                            background: '#f0fdfa',
-                            color: '#0f766e',
-                            border: '1px solid #99f6e4',
+                            background: t.status === 'Cancelled' || t.status === 'Completed' ? '#f8fafc' : '#f0fdfa',
+                            color: t.status === 'Cancelled' || t.status === 'Completed' ? '#475569' : '#0f766e',
+                            border: t.status === 'Cancelled' || t.status === 'Completed' ? '1px solid #cbd5e1' : '1px solid #99f6e4',
                             padding: '8px 14px',
                             borderRadius: '8px',
                             fontSize: '12px',
@@ -544,12 +559,31 @@ export default function AgencyTripsPage() {
                             cursor: 'pointer',
                           }}
                         >
-                          📅 Day-Wise Activities
+                          {t.status === 'Cancelled' || t.status === 'Completed'
+                            ? '📜 View Itinerary History'
+                            : '📅 Day-Wise Activities'}
                         </button>
                       )}
 
-                      {/* Checkout / Pay Button (for Planning/Pending) */}
-                      {isPayable && (
+                      {/* Checkout / Pay Button or View Booking Button */}
+                      {isBookingPaid ? (
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/agency/bookings?tripId=${t.tripId}`)}
+                          style={{
+                            background: '#ecfdf5',
+                            color: '#065f46',
+                            border: '1px solid #86efac',
+                            padding: '8px 14px',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          🎫 View Booking #{activeBooking.bookingId}
+                        </button>
+                      ) : isPayable && (
                         <button
                           type="button"
                           onClick={() => setCheckoutTrip(t)}

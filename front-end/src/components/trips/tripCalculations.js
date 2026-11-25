@@ -175,8 +175,12 @@ export function calculateTripCosts(formData = {}) {
     tripType = 'round',
     transportPrice = 0,
     includeCancellationProtection = false,
+    protectionRatePercent = 5,
     hotelPrice = 0,
     guidePrice = 0,
+    guideStatus = '',
+    guideAccepted = false,
+    packagePrice = 0,
   } = formData;
 
   // 1. Duration calculation (minimum 1 day)
@@ -199,28 +203,40 @@ export function calculateTripCosts(formData = {}) {
   const insuranceRate = 0.07;
   const insuranceCost = baseTransport > 0 ? Math.round(baseTransport * insuranceRate) : 0;
 
-  // 5. Flexible Cancellation Protection (flat fee depending on transport mode)
-  let cancellationFee = 0;
-  if (includeCancellationProtection && baseTransport > 0) {
-    if (transportType === 'Flight') cancellationFee = 100;
-    else if (transportType === 'Bus') cancellationFee = 70;
-    else if (transportType === 'Train') cancellationFee = 50;
-  }
-
-  // Total transport booking persisted in backend
-  const totalTransportBooking = baseTransport + insuranceCost + cancellationFee;
-
-  // 6. Hotel accommodation: price per night * days * persons
+  // 5. Hotel accommodation & Tour guide & Package costs
   const hotelCost = Number(hotelPrice || 0) * days * persons;
-
-  // 7. Tour guide allocation: flat fee per trip
   const guideCost = Number(guidePrice || 0);
+  const packageCost = Number(packagePrice || 0);
 
-  // 8. Platform coordination fee: charged only once something has been chosen
-  const platformFee = baseTransport + hotelCost + guideCost > 0 ? 500 : 0;
+  // 6. Dynamic Booking-Value-Based Flexible Cancellation Protection (Default 5%)
+  // Eligible subtotal excludes pending/unaccepted guide fees and never includes protection fee recursively.
+  const ratePct = Math.max(0, Math.min(100, Number(protectionRatePercent ?? 5) || 0));
+  const isGuideConfirmed = Boolean(guideAccepted || guideStatus === 'Accepted');
+  const eligibleGuideCost = guideCost > 0 && isGuideConfirmed ? guideCost : 0;
+  const eligibleProtectionSubtotal = baseTransport + hotelCost + packageCost + eligibleGuideCost;
 
-  // 9. Total calculated trip budget (persisted on Trip.budget)
-  const totalBudget = baseTransport + insuranceCost + cancellationFee + hotelCost + guideCost + platformFee;
+  const transportProtectionFee =
+    includeCancellationProtection && baseTransport > 0 ? Math.round(baseTransport * (ratePct / 100)) : 0;
+  const hotelProtectionFee =
+    includeCancellationProtection && hotelCost > 0 ? Math.round(hotelCost * (ratePct / 100)) : 0;
+  const packageProtectionFee =
+    includeCancellationProtection && packageCost > 0 ? Math.round(packageCost * (ratePct / 100)) : 0;
+
+  const cancellationFee =
+    includeCancellationProtection && eligibleProtectionSubtotal > 0
+      ? Math.round(eligibleProtectionSubtotal * (ratePct / 100))
+      : 0;
+
+  // Total transport/hotel/package bookings persisted in backend
+  const totalTransportBooking = baseTransport + insuranceCost + transportProtectionFee;
+  const totalHotelBooking = hotelCost + hotelProtectionFee;
+  const totalPackageBooking = packageCost + packageProtectionFee;
+
+  // 7. Platform coordination fee: charged only once something has been chosen
+  const platformFee = baseTransport + hotelCost + packageCost + guideCost > 0 ? 500 : 0;
+
+  // 8. Total calculated trip budget (persisted on Trip.budget)
+  const totalBudget = baseTransport + insuranceCost + hotelCost + packageCost + cancellationFee + guideCost + platformFee;
 
   return {
     days,
@@ -229,10 +245,19 @@ export function calculateTripCosts(formData = {}) {
     transportCost: baseTransport,
     insuranceCost,
     insuranceRate,
+    protectionRatePercent: ratePct,
+    eligibleProtectionSubtotal,
     cancellationFee,
+    transportProtectionFee,
+    hotelProtectionFee,
+    packageProtectionFee,
     totalTransportBooking,
+    totalHotelBooking,
+    totalPackageBooking,
     hotelCost,
+    packageCost,
     guideCost,
+    guideAcceptedForProtection: isGuideConfirmed,
     platformFee,
     totalBudget,
   };

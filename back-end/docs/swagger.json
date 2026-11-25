@@ -767,6 +767,145 @@
         ]
       }
     },
+    "/guides/available": {
+      "get": {
+        "operationId": "GuidesController_findAvailable",
+        "parameters": [
+          {
+            "name": "startDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "excludeTripId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get active verified guides annotated with date-based availability",
+        "tags": [
+          "guides"
+        ]
+      }
+    },
+    "/guides/{id}/schedule": {
+      "get": {
+        "operationId": "GuidesController_getSchedule",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get guide schedule categorized by pending, upcoming, active, completed, cancelled",
+        "tags": [
+          "guides"
+        ]
+      }
+    },
+    "/guides/{id}/blocked-dates": {
+      "post": {
+        "operationId": "GuidesController_blockManualDates",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Manually block a date range on a guide calendar",
+        "tags": [
+          "guides"
+        ]
+      }
+    },
     "/guides/{id}": {
       "get": {
         "operationId": "GuidesController_findOne",
@@ -899,7 +1038,7 @@
             "description": "Guide not found"
           }
         },
-        "summary": "Delete a guide",
+        "summary": "Delete a guide (Superuser only)",
         "tags": [
           "guides"
         ]
@@ -1317,6 +1456,135 @@
         ]
       }
     },
+    "/packages/{id}/archive": {
+      "post": {
+        "operationId": "PackagesController_archive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Controlled archival of a package with mandatory reason",
+        "tags": [
+          "packages"
+        ]
+      }
+    },
+    "/notifications": {
+      "get": {
+        "operationId": "NotificationsController_getNotifications",
+        "parameters": [
+          {
+            "name": "since",
+            "required": false,
+            "in": "query",
+            "description": "ISO date string cursor for fetching missed notifications",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notifications list and unread count"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get notifications for current user with optional since cursor for reconnect",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/notifications/{id}/read": {
+      "patch": {
+        "operationId": "NotificationsController_markAsRead",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification marked as read"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark a specific notification as read",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/notifications/read-all": {
+      "patch": {
+        "operationId": "NotificationsController_markAllAsRead",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "All notifications marked as read"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark all unread notifications as read for current user",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
     "/trips": {
       "get": {
         "operationId": "TripsController_findAll",
@@ -1684,7 +1952,7 @@
             "description": "Trip not found"
           }
         },
-        "summary": "Delete a trip",
+        "summary": "Delete a trip (Superuser only)",
         "tags": [
           "trips"
         ]
@@ -2104,6 +2372,278 @@
         ]
       }
     },
+    "/trips/{id}/request-reassignment": {
+      "post": {
+        "operationId": "TripsController_requestReassignment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestGuideReassignmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Admin request for guide reassignment with mandatory reason",
+        "tags": [
+          "trips"
+        ]
+      }
+    },
+    "/trips/{id}/reassignments": {
+      "get": {
+        "operationId": "TripsController_getReassignments",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get guide reassignment requests and history for a trip",
+        "tags": [
+          "trips"
+        ]
+      }
+    },
+    "/trips/reassignments/{requestId}/traveler-consent": {
+      "post": {
+        "operationId": "TripsController_travelerConsent",
+        "parameters": [
+          {
+            "name": "requestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TravelerConsentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Traveler responds to guide reassignment request (ACCEPT or REJECT)",
+        "tags": [
+          "trips"
+        ]
+      }
+    },
+    "/trips/reassignments/{requestId}/guide-response": {
+      "post": {
+        "operationId": "TripsController_guideResponse",
+        "parameters": [
+          {
+            "name": "requestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GuideConsentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Replacement guide responds to proposed assignment (ACCEPT or DECLINE)",
+        "tags": [
+          "trips"
+        ]
+      }
+    },
+    "/trips/reassignments/my": {
+      "get": {
+        "operationId": "TripsController_getMyReassignments",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get current user pending guide reassignment requests",
+        "tags": [
+          "trips"
+        ]
+      }
+    },
     "/bookings": {
       "get": {
         "description": "Accessible by superuser, admin, support, and guide.",
@@ -2427,7 +2967,7 @@
             "description": "Booking not found"
           }
         },
-        "summary": "Delete a booking",
+        "summary": "Delete a booking (Superuser only)",
         "tags": [
           "bookings"
         ]
@@ -7273,6 +7813,123 @@
         ]
       }
     },
+    "/support-tickets/guide/{guideId}": {
+      "get": {
+        "operationId": "SupportTicketsController_findByGuide",
+        "parameters": [
+          {
+            "name": "guideId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc",
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role for RBAC. Allowed values: traveler, guide, support, admin, superuser, agency",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "traveler",
+                "guide",
+                "support",
+                "admin",
+                "superuser",
+                "agency"
+              ]
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "User ID for ownership verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tickets for guide"
+          }
+        },
+        "summary": "Get tickets by guide ID with pagination",
+        "tags": [
+          "support-tickets"
+        ]
+      }
+    },
     "/support-tickets/{id}/assign": {
       "patch": {
         "operationId": "SupportTicketsController_assign",
@@ -10502,15 +11159,14 @@
         ]
       }
     },
-    "/notifications": {
+    "/approvals": {
       "get": {
-        "operationId": "NotificationsController_getNotifications",
+        "operationId": "ApprovalsController_findAll",
         "parameters": [
           {
-            "name": "since",
-            "required": false,
+            "name": "status",
+            "required": true,
             "in": "query",
-            "description": "ISO date string cursor for fetching missed notifications",
             "schema": {
               "type": "string"
             }
@@ -10518,7 +11174,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Notifications list and unread count"
+            "description": ""
           }
         },
         "security": [
@@ -10526,15 +11182,15 @@
             "bearer": []
           }
         ],
-        "summary": "Get notifications for current user with optional since cursor for reconnect",
+        "summary": "List approval requests (filterable by status: PENDING, APPROVED, REJECTED)",
         "tags": [
-          "notifications"
+          "approvals"
         ]
       }
     },
-    "/notifications/{id}/read": {
-      "patch": {
-        "operationId": "NotificationsController_markAsRead",
+    "/approvals/{id}": {
+      "get": {
+        "operationId": "ApprovalsController_findOne",
         "parameters": [
           {
             "name": "id",
@@ -10547,7 +11203,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Notification marked as read"
+            "description": ""
           }
         },
         "security": [
@@ -10555,19 +11211,28 @@
             "bearer": []
           }
         ],
-        "summary": "Mark a specific notification as read",
+        "summary": "Get approval request by ID",
         "tags": [
-          "notifications"
+          "approvals"
         ]
       }
     },
-    "/notifications/read-all": {
-      "patch": {
-        "operationId": "NotificationsController_markAllAsRead",
-        "parameters": [],
+    "/approvals/{id}/approve": {
+      "post": {
+        "operationId": "ApprovalsController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
         "responses": {
-          "200": {
-            "description": "All notifications marked as read"
+          "201": {
+            "description": ""
           }
         },
         "security": [
@@ -10575,9 +11240,38 @@
             "bearer": []
           }
         ],
-        "summary": "Mark all unread notifications as read for current user",
+        "summary": "Approve an administrative change request (Superuser only)",
         "tags": [
-          "notifications"
+          "approvals"
+        ]
+      }
+    },
+    "/approvals/{id}/reject": {
+      "post": {
+        "operationId": "ApprovalsController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reject an administrative change request (Superuser only)",
+        "tags": [
+          "approvals"
         ]
       }
     }
@@ -11058,6 +11752,40 @@
             "type": "string",
             "example": "available",
             "description": "Availability status"
+          },
+          "adminSetRateMinor": {
+            "type": "number",
+            "example": 250000,
+            "description": "Admin verified daily rate in minor currency units (cents)"
+          },
+          "verifiedExperienceYears": {
+            "type": "number",
+            "example": 5,
+            "description": "Admin verified experience years"
+          },
+          "verificationStatus": {
+            "type": "string",
+            "example": "VERIFIED",
+            "enum": [
+              "VERIFIED",
+              "UNVERIFIED",
+              "PENDING"
+            ]
+          },
+          "proofUrl": {
+            "type": "string",
+            "example": "https://credentials.gov.in/verify/12345",
+            "description": "Government or license proof URL"
+          },
+          "status": {
+            "type": "string",
+            "example": "ACTIVE",
+            "enum": [
+              "ACTIVE",
+              "SUSPENDED",
+              "INACTIVE",
+              "DEACTIVATED"
+            ]
           }
         }
       },
@@ -11435,6 +12163,65 @@
         },
         "required": [
           "status"
+        ]
+      },
+      "RequestGuideReassignmentDto": {
+        "type": "object",
+        "properties": {
+          "replacementGuideId": {
+            "type": "number",
+            "description": "ID of the proposed replacement guide",
+            "example": 5
+          },
+          "reason": {
+            "type": "string",
+            "description": "Justification for requesting guide replacement",
+            "example": "Guide reported health emergency"
+          }
+        },
+        "required": [
+          "replacementGuideId",
+          "reason"
+        ]
+      },
+      "TravelerConsentDto": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "description": "Traveler decision",
+            "enum": [
+              "ACCEPT",
+              "REJECT"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "Optional feedback or reason"
+          }
+        },
+        "required": [
+          "decision"
+        ]
+      },
+      "GuideConsentDto": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "description": "Guide acceptance decision",
+            "enum": [
+              "ACCEPT",
+              "DECLINE"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "Optional note or reason"
+          }
+        },
+        "required": [
+          "decision"
         ]
       },
       "CreateBookingDto": {
@@ -12312,6 +13099,10 @@
             "type": "number",
             "example": 1
           },
+          "guideId": {
+            "type": "number",
+            "example": 1
+          },
           "tripId": {
             "type": "number",
             "example": 21
@@ -12606,7 +13397,8 @@
             "enum": [
               "pending",
               "approved",
-              "rejected"
+              "rejected",
+              "suspended"
             ]
           },
           "commissionRate": {
@@ -12617,7 +13409,7 @@
           "reason": {
             "type": "string",
             "example": "Verified business licenses and tax registrations",
-            "description": "Admin reason for approval or rejection"
+            "description": "Admin reason for approval, rejection, or suspension"
           }
         },
         "required": [

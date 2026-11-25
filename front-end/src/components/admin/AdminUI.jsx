@@ -410,8 +410,9 @@ export function Field({ label, error, helperText, id, required, ...props }) {
  * SelectField
  * Accessible controlled dropdown with label, values list, and field-level error rendering.
  */
-export function SelectField({ label, values = [], error, helperText, id, required, ...props }) {
+export function SelectField({ label, values = [], options, error, helperText, id, required, ...props }) {
   const selectId = id || props.name;
+  const items = options || values;
 
   return (
     <div className="admin-field-group">
@@ -428,11 +429,20 @@ export function SelectField({ label, values = [], error, helperText, id, require
         aria-describedby={error ? `${selectId}-err` : helperText ? `${selectId}-help` : undefined}
         {...props}
       >
-        {values.map((v) => (
-          <option key={v} value={v}>
-            {v}
-          </option>
-        ))}
+        {items.map((item, idx) => {
+          if (item && typeof item === 'object') {
+            return (
+              <option key={item.value ?? idx} value={item.value}>
+                {item.label ?? item.value}
+              </option>
+            );
+          }
+          return (
+            <option key={item} value={item}>
+              {item}
+            </option>
+          );
+        })}
       </select>
       {helperText && !error && (
         <span id={`${selectId}-help`} className="admin-field-help">
@@ -581,10 +591,11 @@ export function DeleteDialog({
  * Details
  * Definition list presentation for structured entity inspection.
  */
-export function Details({ entries = [] }) {
+export function Details({ entries = [], items = null }) {
+  const rows = Array.isArray(items) && items.length > 0 ? items : entries;
   return (
     <dl className="admin-details">
-      {entries.map(([key, value]) => (
+      {rows.map(([key, value]) => (
         <React.Fragment key={key}>
           <dt>{key}</dt>
           <dd>{value ?? '-'}</dd>

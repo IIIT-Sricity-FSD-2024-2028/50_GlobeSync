@@ -11,38 +11,35 @@ import {
   AdminPage,
   AdminTable,
   Filters,
-  DeleteDialog,
   tripStatuses,
   matches,
   money,
   ownerLabel,
   useAdminData,
 } from '../../components/admin/AdminUI';
-import TripStatusModal from '../../components/admin/TripStatusModal';
-import TripEditModal from '../../components/admin/TripEditModal';
+import TripDetailsModal from '../../components/admin/TripDetailsModal';
+import GuideReassignmentModal from '../../components/admin/GuideReassignmentModal';
 
 /**
  * AdminTripsPage
  * Primary route: /admin/trips
  *
- * State & Architectural Ownership:
- * 1. AdminTripsPage (Page Coordinator):
- *    - Owns composite data loader (fetching trips, travelers, agencies, guides, packages concurrently).
- *    - Owns search filter queries and status filters.
- *    - Controls selection of the active trip record for inspection, editing, and deletion.
- * 2. TripEditModal (Controlled Form Component):
- *    - Allows full editing of trip destination, travel dates, and budget.
- *    - Handles guide assignment & reassignment, explaining the automatic reset of guideStatus to 'Pending'.
- *    - Preserves customer ownership (travelerId/agencyId) and checks FSM transition rules.
- * 3. TripStatusModal (Quick Status Lifecycle Component):
- *    - Explains lifecycle rules (FSM transitions, commission settlement).
- * 4. DeleteDialog:
- *    - Explains backend safety policy preventing unsafe deletion if active dependencies exist.
+ * Platform Operations & Governance:
+ * 1. Operational Oversight:
+ *    - Admin monitors trips, searches/filters, and inspects full trip details, traveler info,
+ *      associated bookings, and itinerary progression without directly owning or mutating traveler agreements.
+ * 2. Contractual Integrity & Prohibited Direct Mutations:
+ *    - Admin cannot directly modify traveler destination, origin, dates, budget, or force lifecycle statuses.
+ *    - Admin cannot delete traveler trips.
+ * 3. Consent-Based Guide Reassignment:
+ *    - Admin initiates replacement guide proposals with mandatory justification.
+ *    - Reassignment requires Traveler Consent followed by Replacement Guide acceptance before execution.
+ * 4. Resilient Composite Loader:
+ *    - Uses Promise.allSettled to ensure that auxiliary endpoint failures do not crash the primary management portal.
  */
 
-// Composite loader fetching all dependent collections in parallel
 const loadTripsData = async (options) => {
-  const [trips, travelers, agencies, guides, packages] = await Promise.all([
+  const [tripsRes, travelersRes, agenciesRes, guidesRes, packagesRes] = await Promise.allSettled([
     tripsApi.getAll(options),
     travelersApi.getAll(options),
     agenciesApi.getAll(options),
@@ -50,13 +47,23 @@ const loadTripsData = async (options) => {
     packagesApi.getAll(options),
   ]);
 
-  return {
-    trips: Array.isArray(trips) ? trips : [],
-    travelers: Array.isArray(travelers) ? travelers : travelers?.value || [],
-    agencies: Array.isArray(agencies) ? agencies : agencies?.value || [],
-    guides: Array.isArray(guides) ? guides : [],
-    packages: Array.isArray(packages) ? packages : [],
-  };
+  const trips = tripsRes.status === 'fulfilled' && Array.isArray(tripsRes.value) ? tripsRes.value : [];
+  const travelers =
+    travelersRes.status === 'fulfilled'
+      ? Array.isArray(travelersRes.value)
+        ? travelersRes.value
+        : travelersRes.value?.value || []
+      : [];
+  const agencies =
+    agenciesRes.status === 'fulfilled'
+      ? Array.isArray(agenciesRes.value)
+        ? agenciesRes.value
+        : agenciesRes.value?.value || []
+      : [];
+  const guides = guidesRes.status === 'fulfilled' && Array.isArray(guidesRes.value) ? guidesRes.value : [];
+  const packages = packagesRes.status === 'fulfilled' && Array.isArray(packagesRes.value) ? packagesRes.value : [];
+
+  return { trips, travelers, agencies, guides, packages };
 };
 
 export default function AdminTripsPage() {
@@ -66,14 +73,9 @@ export default function AdminTripsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  // Selected trip for quick status modal
-  const [statusTrip, setStatusTrip] = useState(null);
-
-  // Selected trip for full edit & guide assignment modal
-  const [editingTrip, setEditingTrip] = useState(null);
-
-  // Selected trip for deletion
-  const [deletingTrip, setDeletingTrip] = useState(null);
+  // Modals state
+  const [inspectingTrip, setInspectingTrip] = useState(null);
+  const [reassigningTrip, setReassigningTrip] = useState(null);
 
   // ─── Entity Name Resolvers ─────────────────────────────────────────────────
   const d = resource.data;
@@ -116,66 +118,30 @@ export default function AdminTripsPage() {
     });
   }, [d?.trips, statusFilter, searchQuery, d?.travelers, d?.agencies, d?.guides]);
 
-  // ─── Modal Handlers ────────────────────────────────────────────────────────
-
-  // Quick Status Modal
-  const handleOpenStatusModal = (trip) => {
-    setStatusTrip(trip);
+  // ─── Action Handlers ───────────────────────────────────────────────────────
+  const handleOpenInspect = (trip) => {
+    setInspectingTrip(trip);
   };
 
-  const handleCloseStatusModal = () => {
-    setStatusTrip(null);
+  const handleCloseInspect = () => {
+    setInspectingTrip(null);
   };
 
-  const handleUpdateTripStatus = (tripId, nextStatus, cancellationReason) => {
-    const payload = nextStatus === 'Cancelled' && cancellationReason
-      ? { status: nextStatus, cancellationReason }
-      : nextStatus;
+  const handleOpenReassign = (trip) => {
+    setReassigningTrip(trip);
+  };
 
+  const handleCloseReassign = () => {
+    setReassigningTrip(null);
+  };
+
+  const handleSubmitReassignment = (payload) => {
+    if (!reassigningTrip) return;
     resource.run(
-      () => tripsApi.updateStatus(tripId, payload),
-      `Trip #${tripId} status updated to '${nextStatus}'.`,
+      () => tripsApi.requestReassignment(reassigningTrip.tripId, payload),
+      `Guide reassignment request submitted for trip #${reassigningTrip.tripId}. Consent request dispatched to traveler.`,
       () => {
-        setStatusTrip(null);
-      }
-    );
-  };
-
-  // Full Edit & Guide Assignment Modal
-  const handleOpenEditTrip = (trip) => {
-    setEditingTrip(trip);
-  };
-
-  const handleCloseEditTrip = () => {
-    setEditingTrip(null);
-  };
-
-  const handleSaveTripDetails = (tripId, payload) => {
-    resource.run(
-      () => tripsApi.update(tripId, payload),
-      `Trip #${tripId} details and guide assignment saved.`,
-      () => {
-        setEditingTrip(null);
-      }
-    );
-  };
-
-  // Deletion Handlers
-  const handleOpenDelete = (trip) => {
-    setDeletingTrip(trip);
-  };
-
-  const handleCloseDelete = () => {
-    setDeletingTrip(null);
-  };
-
-  const handleConfirmDelete = () => {
-    if (!deletingTrip) return;
-    resource.run(
-      () => tripsApi.delete(deletingTrip.tripId),
-      `Trip #${deletingTrip.tripId} deleted successfully.`,
-      () => {
-        setDeletingTrip(null);
+        setReassigningTrip(null);
       }
     );
   };
@@ -242,37 +208,33 @@ export default function AdminTripsPage() {
     },
     {
       label: 'Actions',
-      render: (t) => (
-        <div className="admin-actions">
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => handleOpenEditTrip(t)}
-            disabled={resource.busy}
-            title="Edit trip details and manage guide assignment"
-          >
-            Edit / Assign
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => handleOpenStatusModal(t)}
-            disabled={resource.busy}
-            title="Update lifecycle status"
-          >
-            Status
-          </button>
-          <button
-            type="button"
-            className="btn btn-danger btn-sm"
-            onClick={() => handleOpenDelete(t)}
-            disabled={resource.busy}
-            title="Delete trip record"
-          >
-            Delete
-          </button>
-        </div>
-      ),
+      render: (t) => {
+        const canReassign = !['Cancelled', 'Completed'].includes(t.status);
+        return (
+          <div className="admin-actions">
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => handleOpenInspect(t)}
+              disabled={resource.busy}
+              title="Inspect comprehensive trip details, bookings, and assignment history"
+            >
+              Inspect
+            </button>
+            {canReassign && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => handleOpenReassign(t)}
+                disabled={resource.busy}
+                title="Initiate consent-based guide reassignment request"
+              >
+                Reassign Guide
+              </button>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
@@ -298,43 +260,27 @@ export default function AdminTripsPage() {
         </>
       )}
 
-      {/* Controlled Trip Detail, Edit, & Guide Assignment Modal */}
-      <TripEditModal
-        isOpen={Boolean(editingTrip)}
-        trip={editingTrip}
+      {/* Comprehensive Trip Inspection Modal */}
+      <TripDetailsModal
+        isOpen={Boolean(inspectingTrip)}
+        trip={inspectingTrip}
+        ownerName={inspectingTrip ? resolveOwnerName(inspectingTrip) : 'Unassigned'}
+        guideName={inspectingTrip ? resolveGuideName(inspectingTrip) : 'Unassigned'}
+        packageName={inspectingTrip ? resolvePackageName(inspectingTrip) : 'Custom trip'}
+        onClose={handleCloseInspect}
+        onRequestReassign={handleOpenReassign}
+      />
+
+      {/* Consent-Based Guide Reassignment Request Modal */}
+      <GuideReassignmentModal
+        isOpen={Boolean(reassigningTrip)}
+        trip={reassigningTrip}
         guides={d?.guides || []}
-        ownerName={editingTrip ? resolveOwnerName(editingTrip) : 'Unassigned'}
-        packageName={editingTrip ? resolvePackageName(editingTrip) : 'Custom trip'}
-        isBusy={resource.busy}
-        error={resource.error}
-        onClose={handleCloseEditTrip}
-        onSubmit={handleSaveTripDetails}
+        busy={resource.busy}
+        dialogError={resource.error}
+        onClose={handleCloseReassign}
+        onSubmit={handleSubmitReassignment}
       />
-
-      {/* Controlled Trip Status Lifecycle Modal */}
-      <TripStatusModal
-        isOpen={Boolean(statusTrip)}
-        trip={statusTrip}
-        ownerName={statusTrip ? resolveOwnerName(statusTrip) : 'Unassigned'}
-        guideName={statusTrip ? resolveGuideName(statusTrip) : 'Unassigned'}
-        packageName={statusTrip ? resolvePackageName(statusTrip) : 'Custom trip'}
-        isBusy={resource.busy}
-        error={resource.error}
-        onClose={handleCloseStatusModal}
-        onSubmit={handleUpdateTripStatus}
-      />
-
-      {/* Permanent Deletion Dialog */}
-      {deletingTrip && (
-        <DeleteDialog
-          title={`Delete Trip #${deletingTrip.tripId}: ${deletingTrip.destination}?`}
-          warning="This action will permanently delete this trip. If dependent records (such as bookings, itineraries, or payments) exist, the backend policy will reject the deletion to protect historical data."
-          busy={resource.busy}
-          error={resource.error}
-          onClose={handleCloseDelete}
-          onConfirm={handleConfirmDelete}
-        />
-      )}
     </AdminPage>
   );
 }

@@ -28,6 +28,7 @@ const DEFAULT_POLICY_CONFIG: PolicyConfig = {
   emergencyOverrideThresholdMinor: 500000, // ₹5,000.00
   cancellationProtectionTier1RefundPercent: 90,
   cancellationProtectionTier2RefundPercent: 50,
+  cancellationProtectionRatePercent: 5, // Introductory configurable 5% rate
 };
 
 @Injectable()
@@ -121,6 +122,18 @@ export class PolicyService {
       this.config.cancellationProtectionTier2RefundPercent = updates.cancellationProtectionTier2RefundPercent;
     }
 
+    if (updates.cancellationProtectionRatePercent !== undefined) {
+      if (
+        typeof updates.cancellationProtectionRatePercent !== 'number' ||
+        isNaN(updates.cancellationProtectionRatePercent) ||
+        updates.cancellationProtectionRatePercent < 0 ||
+        updates.cancellationProtectionRatePercent > 100
+      ) {
+        throw new BadRequestException('cancellationProtectionRatePercent must be a finite number between 0 and 100');
+      }
+      this.config.cancellationProtectionRatePercent = updates.cancellationProtectionRatePercent;
+    }
+
     this.recordAuditLog(
       superuserId || 1,
       'UPDATE_POLICY_CONFIG',
@@ -163,11 +176,19 @@ export class PolicyService {
    * Creates an immutable snapshot of cancellation rules at booking creation time.
    * Stored in booking.policy_snapshot so later setting changes never alter existing bookings.
    */
-  createSnapshot(hasCancellationProtection = false): PolicySnapshot {
+  createSnapshot(
+    hasCancellationProtection = false,
+    protectionMeta?: { feeMinor?: number; eligibleSubtotalMinor?: number; ratePercent?: number },
+  ): PolicySnapshot {
     return {
       cancellationPenaltyPercent: this.config.cancellationPenaltyPercent,
       defaultRefundPercent: Math.max(0, 100 - this.config.cancellationPenaltyPercent),
       hasCancellationProtection,
+      ...(hasCancellationProtection && {
+        cancellationProtectionRatePercent: protectionMeta?.ratePercent ?? this.config.cancellationProtectionRatePercent,
+        cancellationProtectionFeeMinor: protectionMeta?.feeMinor,
+        eligibleSubtotalMinor: protectionMeta?.eligibleSubtotalMinor,
+      }),
       protectedFirstTierRefundPercent: this.config.cancellationProtectionTier1RefundPercent,
       protectedSecondTierRefundPercent: this.config.cancellationProtectionTier2RefundPercent,
       leadTimeHoursRequired: this.config.leadTimeHours,
@@ -642,6 +663,12 @@ export class PolicyService {
     const pending = this.pendingOverrides.get(bookingId);
     if (!pending) {
       throw new NotFoundException(`No pending emergency override request found for Booking #${bookingId}`);
+    }
+
+    if (pending.supportAgentId && pending.supportAgentId === adminId) {
+      throw new ForbiddenException(
+        'Self-approval is strictly prohibited. The requesting agent cannot approve their own emergency override request.',
+      );
     }
 
     const { booking, reason, refundAmountMinor, supportAgentName } = pending;

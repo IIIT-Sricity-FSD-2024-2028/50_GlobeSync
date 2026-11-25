@@ -120,7 +120,14 @@ export default function GuideRequestCard({
 
       {/* Action Decision Buttons */}
       <div className="guide-req-actions">
-        {isAccepted ? (
+        {trip.status === 'Cancelled' || trip.guideStatus === 'Cancelled' ? (
+          <div
+            className="guide-declined-pill"
+            style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' }}
+          >
+            <span>🚫</span> Trip Cancelled
+          </div>
+        ) : isAccepted ? (
           <div className="guide-accepted-pill">
             <span>✓</span> Accepted by You
           </div>

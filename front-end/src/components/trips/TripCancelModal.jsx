@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useSession } from '../../context/SessionContext';
 
 const COMMON_REASONS = [
   'Change of travel plans',
@@ -19,9 +21,22 @@ export default function TripCancelModal({
 }) {
   if (!isOpen || !trip) return null;
 
+  const navigate = useNavigate();
+  const { role } = useSession();
   const [selectedReason, setSelectedReason] = useState(COMMON_REASONS[0]);
   const [comments, setComments] = useState('');
   const [validationError, setValidationError] = useState('');
+
+  const handleContactSupport = () => {
+    const supportPath = role === 'agency' ? '/agency/support' : '/traveler/support';
+    const params = new URLSearchParams();
+    params.set('tripId', String(trip.tripId || trip.id));
+    params.set('issueType', 'Cancellation Assistance');
+    if (selectedReason) params.set('reason', selectedReason);
+    if (comments.trim()) params.set('notes', comments.trim());
+    onClose();
+    navigate(`${supportPath}?${params.toString()}`);
+  };
 
   // ── Cancellation Policy Calculation (3-Day & 12-Hour Cutoff Rules) ──────
   // Rules:
@@ -375,64 +390,81 @@ export default function TripCancelModal({
             background: '#f8fafc',
             display: 'flex',
             justifyContent: 'flex-end',
+            flexWrap: 'wrap',
             gap: '12px',
           }}
         >
-          {refund.isBlocked && (
-            <a
-              href="/support"
-              style={{
-                padding: '8px 16px',
-                fontSize: '13px',
-                fontWeight: 600,
-                borderRadius: '8px',
-                background: '#2563eb',
-                color: '#ffffff',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              📞 Contact Support
-            </a>
+          {refund.isBlocked ? (
+            <>
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn btn-secondary"
+                style={{
+                  padding: '8px 16px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  borderRadius: '8px',
+                }}
+              >
+                Keep Itinerary
+              </button>
+              <button
+                type="button"
+                onClick={handleContactSupport}
+                style={{
+                  padding: '8px 18px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  borderRadius: '8px',
+                  background: '#2563eb',
+                  color: '#ffffff',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                📞 Contact Support
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={isCancelling}
+                className="btn btn-secondary"
+                style={{
+                  padding: '8px 16px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  borderRadius: '8px',
+                }}
+              >
+                Keep Itinerary
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirm}
+                disabled={isCancelling}
+                style={{
+                  padding: '8px 20px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  borderRadius: '8px',
+                  background: '#dc2626',
+                  color: '#ffffff',
+                  border: 'none',
+                  cursor: isCancelling ? 'not-allowed' : 'pointer',
+                  opacity: isCancelling ? 0.7 : 1,
+                }}
+              >
+                {isCancelling ? 'Cancelling...' : 'Confirm Cancellation'}
+              </button>
+            </>
           )}
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isCancelling}
-            className="btn btn-secondary"
-            style={{
-              padding: '8px 16px',
-              fontSize: '13px',
-              fontWeight: 600,
-              borderRadius: '8px',
-            }}
-          >
-            Keep Itinerary
-          </button>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={isCancelling || refund.isBlocked}
-            style={{
-              padding: '8px 20px',
-              fontSize: '13px',
-              fontWeight: 700,
-              borderRadius: '8px',
-              background: refund.isBlocked ? '#94a3b8' : '#dc2626',
-              color: '#ffffff',
-              border: 'none',
-              cursor: isCancelling || refund.isBlocked ? 'not-allowed' : 'pointer',
-              opacity: isCancelling ? 0.7 : 1,
-            }}
-          >
-            {refund.isBlocked
-              ? 'Cancellation Closed (<12h)'
-              : isCancelling
-              ? 'Cancelling...'
-              : 'Confirm Cancellation'}
-          </button>
         </div>
       </div>
     </div>

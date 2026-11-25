@@ -21,6 +21,42 @@ export class GuidesController {
     return this.guidesService.findAll(query);
   }
 
+  @Get('available')
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY, Role.SUPPORT)
+  @ApiRoleHeader()
+  @ApiOperation({ summary: 'Get active verified guides annotated with date-based availability' })
+  findAvailable(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('excludeTripId') excludeTripId?: string,
+  ) {
+    const parsedExclude = excludeTripId ? Number(excludeTripId) : undefined;
+    return this.guidesService.findAvailableForDates(
+      startDate,
+      endDate,
+      parsedExclude && !isNaN(parsedExclude) ? parsedExclude : undefined,
+    );
+  }
+
+  @Get(':id/schedule')
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.GUIDE)
+  @ApiRoleHeader()
+  @ApiOperation({ summary: 'Get guide schedule categorized by pending, upcoming, active, completed, cancelled' })
+  getSchedule(@Param('id', ParseIntPipe) id: number) {
+    return this.guidesService.getGuideSchedule(id);
+  }
+
+  @Post(':id/blocked-dates')
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.GUIDE)
+  @ApiRoleHeader()
+  @ApiOperation({ summary: 'Manually block a date range on a guide calendar' })
+  blockManualDates(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { startDate: string; endDate: string },
+  ) {
+    return this.guidesService.blockManualDates(id, body.startDate, body.endDate);
+  }
+
   @Get(':id')
   @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE, Role.AGENCY, Role.SUPPORT)
   @ApiRoleHeader()
@@ -68,9 +104,9 @@ export class GuidesController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPERUSER, Role.ADMIN)
+  @Roles(Role.SUPERUSER)
   @ApiRoleHeader()
-  @ApiOperation({ summary: 'Delete a guide' })
+  @ApiOperation({ summary: 'Delete a guide (Superuser only)' })
   @ApiParam({ name: 'id', type: Number, description: 'Guide ID' })
   @ApiResponse({ status: 200, description: 'Guide deleted successfully' })
   @ApiResponse({ status: 404, description: 'Guide not found' })

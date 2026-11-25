@@ -28,15 +28,23 @@ export default function TripCostSummary({ formData, costData }) {
     days = 1,
     transportCost = 0,
     insuranceCost = 0,
+    protectionRatePercent = 5,
+    eligibleProtectionSubtotal = 0,
     cancellationFee = 0,
     totalTransportBooking = 0,
+    totalHotelBooking = 0,
+    totalPackageBooking = 0,
     hotelCost = 0,
+    packageCost = 0,
     guideCost = 0,
     platformFee = 500,
     totalBudget = 0,
   } = costData;
 
-  const totalPersistedBookings = (transportName ? totalTransportBooking : 0) + (hotelName ? hotelCost : 0);
+  const totalPersistedBookings =
+    (transportName ? totalTransportBooking : 0) +
+    (hotelName ? totalHotelBooking : 0) +
+    (!transportName && !hotelName && packageCost > 0 ? totalPackageBooking : 0);
 
   return (
     <div
@@ -121,10 +129,24 @@ export default function TripCostSummary({ formData, costData }) {
         {cancellationFee > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', color: '#047857' }}>
             <div>
-              <span>Flexible Cancellation Protection</span>
-              <div style={{ fontSize: '11px', color: '#059669' }}>Persisted with Transport Booking ({transportType}: ₹{cancellationFee})</div>
+              <span>Flexible Cancellation Protection ({protectionRatePercent}%)</span>
+              <div style={{ fontSize: '11px', color: '#059669' }}>
+                {protectionRatePercent}% of ₹{Math.round(eligibleProtectionSubtotal).toLocaleString('en-IN')} covered itinerary
+                {guideCost > 0 && !costData?.guideAcceptedForProtection ? ' (pending guide excluded)' : ''}
+              </div>
             </div>
             <span style={{ fontWeight: 600 }}>₹{cancellationFee.toLocaleString('en-IN')}</span>
+          </div>
+        )}
+
+        {/* Package Base Cost */}
+        {packageCost > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', color: 'var(--text-secondary)' }}>
+            <div>
+              <span>Preplanned Tour Package Base</span>
+              <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Includes standard package transit & stay</div>
+            </div>
+            <span style={{ fontWeight: 600 }}>₹{packageCost.toLocaleString('en-IN')}</span>
           </div>
         )}
 
@@ -205,7 +227,8 @@ export default function TripCostSummary({ formData, costData }) {
           <div>
             <strong>💾 Persisted Bookings:</strong> ₹{totalPersistedBookings.toLocaleString('en-IN')}
             {transportName && ` (Transit ₹${totalTransportBooking.toLocaleString('en-IN')})`}
-            {hotelName && ` (Hotel ₹${hotelCost.toLocaleString('en-IN')})`}
+            {hotelName && ` (Hotel ₹${totalHotelBooking.toLocaleString('en-IN')})`}
+            {!transportName && !hotelName && packageCost > 0 && ` (Package ₹${totalPackageBooking.toLocaleString('en-IN')})`}
           </div>
           <div>
             <strong>📋 Persisted Trip Budget:</strong> ₹{Math.round(totalBudget).toLocaleString('en-IN')} (Includes bookings + guide + coordination fee)

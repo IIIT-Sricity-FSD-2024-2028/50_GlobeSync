@@ -428,6 +428,9 @@ export const packagesApi = {
 
   delete: (id, options) =>
     apiDelete(`/packages/${id}`, options),
+
+  archive: (id, payload, options) =>
+    apiPost(`/packages/${id}/archive`, typeof payload === 'string' ? { reason: payload } : payload, options),
 };
 
 export const tripsApi = {
@@ -462,6 +465,21 @@ export const tripsApi = {
 
   delete: (id, options) =>
     apiDelete(`/trips/${id}`, options),
+
+  requestReassignment: (tripId, payload, options) =>
+    apiPost(`/trips/${tripId}/request-reassignment`, payload, options),
+
+  getReassignments: (tripId, options) =>
+    apiGet(`/trips/${tripId}/reassignments`, options),
+
+  respondTravelerConsent: (requestId, payload, options) =>
+    apiPost(`/trips/reassignments/${requestId}/traveler-consent`, payload, options),
+
+  respondGuideAssignment: (requestId, payload, options) =>
+    apiPost(`/trips/reassignments/${requestId}/guide-response`, payload, options),
+
+  getMyReassignments: (options) =>
+    apiGet('/trips/reassignments/my', options),
 };
 
 export const itinerariesApi = {
@@ -565,6 +583,18 @@ export const refundsApi = {
 export const guidesApi = {
   getAll: (options) =>
     apiGet('/guides', options),
+
+  getAvailable: (startDate, endDate, options = {}) => {
+    const params = new URLSearchParams();
+    if (startDate) params.set('startDate', String(startDate).slice(0, 10));
+    if (endDate) params.set('endDate', String(endDate).slice(0, 10));
+    if (options.excludeTripId) params.set('excludeTripId', String(options.excludeTripId));
+    const qs = params.toString();
+    return apiGet(`/guides/available${qs ? `?${qs}` : ''}`, options);
+  },
+
+  getSchedule: (id, options) =>
+    apiGet(`/guides/${id}/schedule`, options),
 
   getById: (id, options) =>
     apiGet(`/guides/${id}`, options),
@@ -835,4 +865,15 @@ export const notificationsApi = {
   },
   markAsRead: (id, options) => apiPatch(`/notifications/${id}/read`, {}, options),
   markAllAsRead: (options) => apiPatch('/notifications/read-all', {}, options),
+};
+
+export const approvalsApi = {
+  getAll: (params = {}, options = {}) => {
+    const qs = params.status ? `?status=${params.status}` : '';
+    return apiGet(`/approvals${qs}`, options);
+  },
+  getById: (id, options) => apiGet(`/approvals/${id}`, options),
+  create: (data, options) => apiPost('/approvals', data, options),
+  approve: (id, reason, options) => apiPost(`/approvals/${id}/approve`, { reason }, options),
+  reject: (id, reason, options) => apiPost(`/approvals/${id}/reject`, { reason }, options),
 };

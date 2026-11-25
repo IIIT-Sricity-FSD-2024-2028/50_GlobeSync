@@ -7,6 +7,8 @@ export default function GuideSelectStep({
   guides = [],
   loading = false,
   selectedGuideId = null,
+  startDate = '',
+  endDate = '',
   onGuideSelect,
 }) {
   const [selectedLanguage, setSelectedLanguage] = useState('');
@@ -145,17 +147,21 @@ export default function GuideSelectStep({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {filteredGuides.map((guide) => {
             const isChosen = selectedGuideId === guide.guideId;
+            const isUnavailable = guide.isAvailableForDates === false;
             const price = Number(guide.pricePerTrip || 5000);
             return (
               <div
                 key={guide.guideId}
-                onClick={() => onGuideSelect(guide.guideId, guide.name, price)}
+                onClick={() => {
+                  if (!isUnavailable) onGuideSelect(guide.guideId, guide.name, price);
+                }}
                 style={{
                   padding: '16px',
                   borderRadius: '12px',
-                  border: `1.5px solid ${isChosen ? 'var(--primary)' : 'var(--border)'}`,
-                  background: isChosen ? '#fff1f6' : '#fff',
-                  cursor: 'pointer',
+                  border: `1.5px solid ${isChosen ? 'var(--primary)' : isUnavailable ? '#e2e8f0' : 'var(--border)'}`,
+                  background: isChosen ? '#fff1f6' : isUnavailable ? '#f8fafc' : '#fff',
+                  opacity: isUnavailable ? 0.65 : 1,
+                  cursor: isUnavailable ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
@@ -168,7 +174,7 @@ export default function GuideSelectStep({
                       width: '44px',
                       height: '44px',
                       borderRadius: '50%',
-                      background: isChosen ? 'var(--primary)' : '#6366f1',
+                      background: isChosen ? 'var(--primary)' : isUnavailable ? '#94a3b8' : '#6366f1',
                       color: '#fff',
                       display: 'flex',
                       alignItems: 'center',
@@ -180,11 +186,25 @@ export default function GuideSelectStep({
                     {guide.name ? guide.name[0] : 'G'}
                   </div>
                   <div>
-                    <div style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       <span>{guide.name}</span>
                       {isChosen && (
                         <span style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 800 }}>
                           ✓ SELECTED
+                        </span>
+                      )}
+                      {startDate && endDate && (
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            fontWeight: 700,
+                            background: isUnavailable ? '#fee2e2' : '#dcfce7',
+                            color: isUnavailable ? '#991b1b' : '#166534',
+                          }}
+                        >
+                          {isUnavailable ? '⛔ Conflict on Dates' : '✓ Available for Dates'}
                         </span>
                       )}
                     </div>
@@ -194,6 +214,11 @@ export default function GuideSelectStep({
                     <div style={{ fontSize: '12px', color: '#b45309', marginTop: '2px' }}>
                       ⭐ {guide.rating} • {guide.experience} Years Experience
                     </div>
+                    {isUnavailable && guide.conflictReason && (
+                      <div style={{ fontSize: '11px', color: '#b91c1c', marginTop: '3px', fontWeight: 600 }}>
+                        {guide.conflictReason}
+                      </div>
+                    )}
                   </div>
                 </div>
 

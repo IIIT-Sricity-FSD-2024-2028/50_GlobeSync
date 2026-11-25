@@ -3,7 +3,9 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  Optional,
 } from '@nestjs/common';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   packages, Package,
   trips,
@@ -23,6 +25,9 @@ import { paginateCollection } from '../common/utils/pagination.util';
 
 @Injectable()
 export class PackagesService {
+  constructor(
+    @Optional() private readonly notificationsService?: NotificationsService,
+  ) {}
   findAll(): Package[];
   findAll(query: PaginationQueryDto): Package[] | PaginatedResult<Package>;
   findAll(query?: PaginationQueryDto): any {
@@ -118,16 +123,27 @@ export class PackagesService {
     };
 
     packages.push(newPackage);
+
+    if (creatorRole?.toLowerCase() === 'admin' && this.notificationsService) {
+      this.notificationsService.createNotification(
+        1,
+        'Package Created by Admin',
+        `Admin #${creatorId || 1} created package #${newPackage.packageId} '${newPackage.name}' (Budget: ₹${newPackage.budget}, Duration: ${newPackage.duration} days).`,
+        { role: 'superuser', type: 'package_created', metadata: { packageId: newPackage.packageId, budget: newPackage.budget } },
+      ).catch(() => {});
+    }
+
     return newPackage;
   }
 
-  update(id: number, dto: UpdatePackageDto): Package {
+  update(id: number, dto: UpdatePackageDto, actor?: { role: string; userId: number; name?: string }): Package {
     const index = packages.findIndex((p) => p.packageId === id);
     if (index === -1) {
       throw new NotFoundException(`Package with ID ${id} not found`);
     }
 
     const existing = packages[index];
+    const previousValues = { ...existing };
     const updated: Package = {
       ...existing,
       ...(dto.name !== undefined && { name: dto.name }),
@@ -140,7 +156,41 @@ export class PackagesService {
     };
 
     packages[index] = updated;
+
+    if (actor?.role?.toLowerCase() === 'admin' && this.notificationsService) {
+      this.notificationsService.createNotification(
+        1,
+        `Package #${id} Modified by Admin`,
+        `Admin ${actor.name || 'Admin'} modified package '${updated.name}'.`,
+        { role: 'superuser', type: 'package_updated', metadata: { packageId: id, previousValues, updatedValues: dto } },
+      ).catch(() => {});
+    }
+
     return updated;
+  }
+
+  archive(id: number, reason: string, actor?: { role: string; userId: number; name?: string }): Package {
+    const index = packages.findIndex((p) => p.packageId === id);
+    if (index === -1) {
+      throw new NotFoundException(`Package with ID ${id} not found`);
+    }
+
+    const pkg = packages[index];
+    pkg.status = 'archived';
+    pkg.archivedAt = new Date().toISOString();
+    pkg.archivedReason = reason || 'Archived by administrator';
+    pkg.archivedBy = actor?.userId || 1;
+
+    if (this.notificationsService) {
+      this.notificationsService.createNotification(
+        1,
+        `Package #${id} Archived by Admin`,
+        `Admin ${actor?.name || 'Admin'} archived package '${pkg.name}'. Reason: "${reason}". New bookings are now prevented while historical records remain intact.`,
+        { role: 'superuser', type: 'package_archived', metadata: { packageId: id, reason } },
+      ).catch(() => {});
+    }
+
+    return pkg;
   }
 
   /**

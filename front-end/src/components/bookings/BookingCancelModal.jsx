@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useSession } from '../../context/SessionContext';
 
 const COMMON_BOOKING_REASONS = [
   'Trip reschedule or itinerary cancellation',
@@ -19,30 +21,60 @@ export default function BookingCancelModal({
 }) {
   if (!isOpen || !booking) return null;
 
+  const navigate = useNavigate();
+  const { role } = useSession();
   const [selectedReason, setSelectedReason] = useState(COMMON_BOOKING_REASONS[0]);
   const [comments, setComments] = useState('');
   const [validationError, setValidationError] = useState('');
 
   const bookingId = booking.bookingId || booking.id;
   const hasProtection = Boolean(booking.cancellationProtectionSelected);
+  const scheduledDepRaw =
+    booking.departureAtUtc ||
+    booking.departure_at_utc ||
+    booking.trip?.startDate ||
+    booking.startDate ||
+    null;
 
   // ── Cancellation Policy Calculation (3-Day & 12-Hour Cutoff Rules) ──────
   const getRefundPolicy = () => {
     const amount = Number(booking.amount) || 0;
     if (hasProtection) {
-      return { percentage: 100, isProtected: true, isBlocked: false, isEligible: true, amount, refundAmount: amount, penaltyAmount: 0, daysUntil: null, hoursUntil: null };
+      return {
+        percentage: 100,
+        isProtected: true,
+        isBlocked: false,
+        isEligible: true,
+        hasExactTime: Boolean(booking.departureAtUtc || booking.departure_at_utc),
+        amount,
+        refundAmount: amount,
+        penaltyAmount: 0,
+        daysUntil: null,
+        hoursUntil: null,
+      };
     }
 
-    const dateStr = booking.bookingDate || booking.createdAt;
-    let daysUntil = 5;
-    let hoursUntil = 120;
-    if (dateStr) {
-      const now = new Date();
-      const d = new Date(dateStr.includes('T') ? dateStr : `${dateStr}T00:00:00`);
-      const diffMs = d.getTime() - now.getTime();
-      hoursUntil = Math.round(diffMs / (1000 * 60 * 60));
-      daysUntil = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    if (!scheduledDepRaw) {
+      return {
+        percentage: 65,
+        isProtected: false,
+        isBlocked: false,
+        isEligible: true,
+        hasExactTime: false,
+        amount,
+        refundAmount: Math.round(amount * 0.65),
+        penaltyAmount: amount - Math.round(amount * 0.65),
+        daysUntil: null,
+        hoursUntil: null,
+      };
     }
+
+    const now = new Date();
+    const hasExactTime = Boolean(booking.departureAtUtc || booking.departure_at_utc || String(scheduledDepRaw).includes('T'));
+    const d = new Date(String(scheduledDepRaw).includes('T') ? scheduledDepRaw : `${String(scheduledDepRaw).slice(0, 10)}T00:00:00`);
+    const diffMs = d.getTime() - now.getTime();
+    const hoursUntil = diffMs / (1000 * 60 * 60);
+    const daysUntil = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
     const isBlocked = hoursUntil < 12;
     const isEligible = !isBlocked && daysUntil >= 3;
@@ -50,7 +82,30 @@ export default function BookingCancelModal({
     const refundAmount = Math.round(amount * (percentage / 100));
     const penaltyAmount = amount - refundAmount;
 
-    return { percentage, isProtected: false, isBlocked, isEligible, amount, refundAmount, penaltyAmount, daysUntil, hoursUntil };
+    return {
+      percentage,
+      isProtected: false,
+      isBlocked,
+      isEligible,
+      hasExactTime,
+      amount,
+      refundAmount,
+      penaltyAmount,
+      daysUntil,
+      hoursUntil: Math.round(hoursUntil * 10) / 10,
+    };
+  };
+
+  const handleContactSupport = () => {
+    const supportPath = role === 'agency' ? '/agency/support' : '/traveler/support';
+    const params = new URLSearchParams();
+    params.set('bookingId', String(bookingId));
+    if (booking.tripId) params.set('tripId', String(booking.tripId));
+    params.set('issueType', 'Cancellation Assistance');
+    if (selectedReason) params.set('reason', selectedReason);
+    if (comments.trim()) params.set('notes', comments.trim());
+    onClose();
+    navigate(`${supportPath}?${params.toString()}`);
   };
 
   const refund = getRefundPolicy();
@@ -361,64 +416,81 @@ export default function BookingCancelModal({
             background: '#f8fafc',
             display: 'flex',
             justifyContent: 'flex-end',
+            flexWrap: 'wrap',
             gap: '12px',
           }}
         >
-          {refund.isBlocked && (
-            <a
-              href="/support"
-              style={{
-                padding: '8px 16px',
-                fontSize: '13px',
-                fontWeight: 600,
-                borderRadius: '8px',
-                background: '#2563eb',
-                color: '#ffffff',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              📞 Contact Support
-            </a>
+          {refund.isBlocked ? (
+            <>
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn btn-secondary"
+                style={{
+                  padding: '8px 16px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  borderRadius: '8px',
+                }}
+              >
+                Keep Reservation
+              </button>
+              <button
+                type="button"
+                onClick={handleContactSupport}
+                style={{
+                  padding: '8px 18px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  borderRadius: '8px',
+                  background: '#2563eb',
+                  color: '#ffffff',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                📞 Contact Support
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={isCancelling}
+                className="btn btn-secondary"
+                style={{
+                  padding: '8px 16px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  borderRadius: '8px',
+                }}
+              >
+                Keep Reservation
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirm}
+                disabled={isCancelling}
+                style={{
+                  padding: '8px 20px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  borderRadius: '8px',
+                  background: '#dc2626',
+                  color: '#ffffff',
+                  border: 'none',
+                  cursor: isCancelling ? 'not-allowed' : 'pointer',
+                  opacity: isCancelling ? 0.7 : 1,
+                }}
+              >
+                {isCancelling ? 'Cancelling...' : 'Confirm Cancellation'}
+              </button>
+            </>
           )}
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isCancelling}
-            className="btn btn-secondary"
-            style={{
-              padding: '8px 16px',
-              fontSize: '13px',
-              fontWeight: 600,
-              borderRadius: '8px',
-            }}
-          >
-            Keep Reservation
-          </button>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={isCancelling || refund.isBlocked}
-            style={{
-              padding: '8px 20px',
-              fontSize: '13px',
-              fontWeight: 700,
-              borderRadius: '8px',
-              background: refund.isBlocked ? '#94a3b8' : '#dc2626',
-              color: '#ffffff',
-              border: 'none',
-              cursor: isCancelling || refund.isBlocked ? 'not-allowed' : 'pointer',
-              opacity: isCancelling ? 0.7 : 1,
-            }}
-          >
-            {refund.isBlocked
-              ? 'Cancellation Closed (<12h)'
-              : isCancelling
-              ? 'Cancelling...'
-              : 'Confirm Cancellation'}
-          </button>
         </div>
       </div>
     </div>

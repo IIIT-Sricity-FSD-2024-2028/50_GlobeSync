@@ -338,13 +338,13 @@ async function runAllTests() {
     // Guide Subtotal: 2 days * 250,000 = 500,000
     // Base Subtotal: 1,760,000
     // Insurance (7%): 1,760,000 * 0.07 = 123,200
-    // Cancellation Protection Fee (Flight): 10,000 (₹100)
+    // Dynamic Cancellation Protection Fee (5% of 1,760,000): 88,000 (₹880)
     // Taxes (5% GST): 1,760,000 * 0.05 = 88,000
-    // Total Minor: 1,760,000 + 123,200 + 10,000 + 88,000 = 1,981,200 (₹19,812.00)
+    // Total Minor: 1,760,000 + 123,200 + 88,000 + 88,000 = 2,059,200 (₹20,592.00)
 
     assert.notStrictEqual(booking.amount, 1, 'Client forged price must NOT be used');
-    assert.strictEqual(booking.total_minor, 1981200, 'Server must compute exact authoritative totalMinor');
-    assert.strictEqual(booking.amount, 19812, 'Server amount must be ₹19,812.00');
+    assert.strictEqual(booking.total_minor, 2059200, 'Server must compute exact authoritative totalMinor');
+    assert.strictEqual(booking.amount, 20592, 'Server amount must be ₹20,592.00');
   });
 
   // ─── 6. GUIDE ATOMIC DOUBLE-BOOKING CHECK ──────────────────────────────────

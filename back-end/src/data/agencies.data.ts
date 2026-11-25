@@ -5,7 +5,7 @@ export interface Agency {
   contactEmail: string;
   contactPhone: string;
   password?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'suspended';
   commissionRate?: number;
   licenseGstin?: string;
   officeAddress?: string;
@@ -13,6 +13,10 @@ export interface Agency {
   createdAt: string;
   role?: string;
   statusReason?: string;
+  approvedBy?: number;
+  approvedAt?: string;
+  suspendedAt?: string;
+  suspensionReason?: string;
 }
 
 export const agencies: Agency[] = [

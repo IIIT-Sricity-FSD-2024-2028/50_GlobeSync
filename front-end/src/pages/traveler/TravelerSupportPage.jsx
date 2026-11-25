@@ -1,21 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
 import { supportTicketsApi, bookingsApi } from '../../services/api';
 import TicketForm from '../../components/support/TicketForm';
 import TicketList from '../../components/support/TicketList';
 
-/**
- * TravelerSupportPage: Traveler customer support portal.
- * 
- * Responsibilities:
- * - Loads traveler's support tickets via GET /support-tickets/traveler/:travelerId
- * - Loads traveler's bookings via GET /bookings/traveler/:travelerId for linking exceptions
- * - Provides controlled ticket creation via TicketForm (POST /support-tickets)
- * - Renders TicketList with search, status filtering, and priority indicators
- * - Provides clear manual refresh mechanism without WebSocket or polling complexity
- */
 export default function TravelerSupportPage() {
   const { user } = useSession();
+  const [searchParams] = useSearchParams();
   const travelerId = Number(user?.travelerId || user?.traveler_id || user?.id);
 
   const [tickets, setTickets] = useState([]);
@@ -105,6 +97,48 @@ export default function TravelerSupportPage() {
 
   const openTicketsCount = tickets.filter((t) => t.status === 'Open' || t.status === 'In Progress').length;
   const resolvedTicketsCount = tickets.filter((t) => t.status === 'Resolved' || t.status === 'Closed').length;
+
+  const supportPrefill = useMemo(() => {
+    const qBookingId = searchParams.get('bookingId');
+    const qTripId = searchParams.get('tripId');
+    const qIssueType = searchParams.get('issueType');
+    const qReason = searchParams.get('reason');
+    const qNotes = searchParams.get('notes');
+    if (!qBookingId && !qTripId && !qIssueType) return null;
+
+    // Derive authoritative booking metadata strictly from backend-owned bookings list
+    const ownedBooking = qBookingId
+      ? bookings.find((b) => String(b.bookingId) === String(qBookingId))
+      : null;
+
+    const lines = [];
+    if (ownedBooking) {
+      lines.push(`Booking Reference: BK#${ownedBooking.bookingId} — ${ownedBooking.service} (${ownedBooking.type})`);
+      lines.push(`Booking Status: ${ownedBooking.status} | Amount: ₹${Number(ownedBooking.amount || 0).toLocaleString('en-IN')}`);
+      if (ownedBooking.departureAtUtc || ownedBooking.departure_at_utc || ownedBooking.bookingDate) {
+        lines.push(`Scheduled Date/Time: ${ownedBooking.departureAtUtc || ownedBooking.departure_at_utc || ownedBooking.bookingDate}`);
+      }
+      if (ownedBooking.tripId) lines.push(`Related Trip: #${ownedBooking.tripId}`);
+    } else if (qTripId) {
+      lines.push(`Related Trip: #${qTripId}`);
+    }
+    lines.push('Restriction: Ordinary cancellation window (<12 hours) has closed.');
+    if (qReason) lines.push(`Requested Reason: ${qReason}`);
+    if (qNotes) lines.push(`Additional Details: ${qNotes}`);
+    lines.push('Note: Request is subject to Support review under GlobeSync cancellation policy.');
+
+    return {
+      category: qIssueType === 'Cancellation Assistance' ? 'Cancellation Assistance' : 'Booking Issue',
+      priority: 'High',
+      bookingId: ownedBooking ? String(ownedBooking.bookingId) : '',
+      subject: ownedBooking
+        ? `Cancellation Assistance — BK#${ownedBooking.bookingId} (${ownedBooking.service})`
+        : qTripId
+          ? `Cancellation Assistance — Trip #${qTripId}`
+          : 'Cancellation Assistance Request',
+      description: lines.join('\n'),
+    };
+  }, [searchParams, bookings]);
 
   return (
     <div className="traveler-support-page">
@@ -268,6 +302,7 @@ export default function TravelerSupportPage() {
           <TicketForm
             travelerId={travelerId}
             bookings={bookings}
+            initialContext={supportPrefill}
             onTicketCreated={handleTicketCreated}
           />
         </div>

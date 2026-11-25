@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Put, Patch, Delete, Param, Body, Query, ParseIntPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { TripsService } from './trips.service';
-import { CreateTripDto, UpdateTripDto, UpdateTripStatusDto } from './dto';
+import { CreateTripDto, UpdateTripDto, UpdateTripStatusDto, RequestGuideReassignmentDto, TravelerConsentDto, GuideConsentDto } from './dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { ApiUserHeaders } from '../common/decorators/api-user-headers.decorator';
 import { ApiRoleHeader } from '../common/decorators/api-role-header.decorator';
@@ -16,7 +16,7 @@ const toActor = (user: any): TripActor | undefined =>
 @ApiTags('trips')
 @Controller('trips')
 export class TripsController {
-  constructor(private readonly tripsService: TripsService) {}
+  constructor(private readonly tripsService: TripsService) { }
 
   @Get()
   @Roles(Role.SUPERUSER, Role.ADMIN, Role.SUPPORT)
@@ -122,13 +122,73 @@ export class TripsController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPERUSER, Role.ADMIN)
+  @Roles(Role.SUPERUSER)
   @ApiRoleHeader()
-  @ApiOperation({ summary: 'Delete a trip' })
+  @ApiOperation({ summary: 'Delete a trip (Superuser only)' })
   @ApiParam({ name: 'id', type: Number })
   @ApiResponse({ status: 200, description: 'Trip deleted' })
   @ApiResponse({ status: 404, description: 'Trip not found' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.tripsService.remove(id);
+  }
+
+  @Post(':id/request-reassignment')
+  @Roles(Role.ADMIN, Role.SUPERUSER)
+  @ApiUserHeaders()
+  @ApiOperation({ summary: 'Admin request for guide reassignment with mandatory reason' })
+  @ApiParam({ name: 'id', type: Number })
+  requestReassignment(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: RequestGuideReassignmentDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.tripsService.requestGuideReassignment(id, dto.replacementGuideId, dto.reason, user);
+  }
+
+  @Get(':id/reassignments')
+  @Roles(Role.SUPERUSER, Role.ADMIN, Role.TRAVELER, Role.GUIDE)
+  @ApiUserHeaders()
+  @ApiOperation({ summary: 'Get guide reassignment requests and history for a trip' })
+  @ApiParam({ name: 'id', type: Number })
+  getReassignments(@Param('id', ParseIntPipe) id: number) {
+    return this.tripsService.getTripReassignments(id);
+  }
+
+  @Post('reassignments/:requestId/traveler-consent')
+  @Roles(Role.TRAVELER, Role.SUPERUSER)
+  @ApiUserHeaders()
+  @ApiOperation({ summary: 'Traveler responds to guide reassignment request (ACCEPT or REJECT)' })
+  @ApiParam({ name: 'requestId', type: Number })
+  travelerConsent(
+    @Param('requestId', ParseIntPipe) requestId: number,
+    @Body() dto: TravelerConsentDto,
+    @CurrentUser() user: any,
+  ) {
+    const travelerId = Number(user?.userId || user?.id || 1);
+    return this.tripsService.respondTravelerConsent(requestId, dto.decision, dto.reason, travelerId);
+  }
+
+  @Post('reassignments/:requestId/guide-response')
+  @Roles(Role.GUIDE, Role.SUPERUSER)
+  @ApiUserHeaders()
+  @ApiOperation({ summary: 'Replacement guide responds to proposed assignment (ACCEPT or DECLINE)' })
+  @ApiParam({ name: 'requestId', type: Number })
+  guideResponse(
+    @Param('requestId', ParseIntPipe) requestId: number,
+    @Body() dto: GuideConsentDto,
+    @CurrentUser() user: any,
+  ) {
+    const guideId = Number(user?.userId || user?.id || 1);
+    return this.tripsService.respondGuideAssignment(requestId, dto.decision, dto.reason, guideId);
+  }
+
+  @Get('reassignments/my')
+  @Roles(Role.TRAVELER, Role.GUIDE, Role.ADMIN, Role.SUPERUSER)
+  @ApiUserHeaders()
+  @ApiOperation({ summary: 'Get current user pending guide reassignment requests' })
+  getMyReassignments(@CurrentUser() user: any) {
+    const userId = Number(user?.userId || user?.id || 1);
+    const role = String(user?.role || '').toLowerCase();
+    return this.tripsService.getMyReassignments(userId, role);
   }
 }

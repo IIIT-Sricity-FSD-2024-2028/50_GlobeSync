@@ -2,6 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
 import { packagesApi, passengersApi, tripsApi, bookingsApi, paymentsApi } from '../../services/api';
+import {
+  getBookingDateBounds,
+  calculatePackageEndDate,
+  validateTripDateRange,
+} from '../../config/tripDatePolicy';
 
 /**
  * AgencyBookPackagePage
@@ -41,11 +46,7 @@ export default function AgencyBookPackagePage() {
   const [submitError, setSubmitError] = useState(null);
   const [completedBooking, setCompletedBooking] = useState(null);
 
-  const tomorrowStr = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return d.toISOString().split('T')[0];
-  })();
+  const { minStartDate: tomorrowStr, maxHorizonDate } = getBookingDateBounds();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -99,17 +100,11 @@ export default function AgencyBookPackagePage() {
     return passengers.find((p) => String(p.passId || p.id) === String(selectedPassId));
   }, [passengers, selectedPassId]);
 
-  // Calculate End Date
+  // Calculate End Date using shared package calendar-day convention (start + duration - 1)
   const endDate = useMemo(() => {
     if (!startDate) return '';
-    try {
-      const d = new Date(startDate);
-      const duration = selectedPackage?.duration ? parseInt(selectedPackage.duration, 10) : 5;
-      d.setDate(d.getDate() + duration);
-      return d.toISOString().split('T')[0];
-    } catch {
-      return startDate;
-    }
+    const duration = selectedPackage?.duration ? parseInt(selectedPackage.duration, 10) : 5;
+    return calculatePackageEndDate(startDate, duration) || startDate;
   }, [startDate, selectedPackage]);
 
   // Pricing & Commission Breakdown
@@ -117,12 +112,10 @@ export default function AgencyBookPackagePage() {
     const basePrice = Number(selectedPackage?.budget ?? selectedPackage?.price ?? 0);
     const insuranceAmount = Math.round(basePrice * 0.07 * 100) / 100;
 
-    let cancellationFee = 0;
-    if (cancellationProtection) {
-      if (transportMode === 'Flight') cancellationFee = 100;
-      else if (transportMode === 'Bus') cancellationFee = 70;
-      else if (transportMode === 'Train') cancellationFee = 50;
-    }
+    const protectionRatePercent = 5;
+    const cancellationFee = cancellationProtection
+      ? Math.round(basePrice * (protectionRatePercent / 100) * 100) / 100
+      : 0;
 
     const totalAmount = basePrice + insuranceAmount + cancellationFee;
     const earnedCommission = Math.round(totalAmount * (commissionRate / 100) * 100) / 100;
@@ -148,13 +141,14 @@ export default function AgencyBookPackagePage() {
       setSubmitError('Please select a client passenger from your roster.');
       return;
     }
-    if (!startDate) {
-      setSubmitError('Please select a trip start date.');
-      return;
-    }
-    const todayStr = new Date().toISOString().split('T')[0];
-    if (startDate <= todayStr) {
-      setSubmitError('Trip start date must be a future date (cannot be today or a past date). Advance booking is required.');
+    const dateErrs = validateTripDateRange({
+      startDate,
+      endDate,
+      isPackage: true,
+      packageDurationDays: selectedPackage?.duration ?? 5,
+    });
+    if (dateErrs.startDate || dateErrs.endDate) {
+      setSubmitError(dateErrs.startDate || dateErrs.endDate);
       return;
     }
 
@@ -173,7 +167,7 @@ export default function AgencyBookPackagePage() {
         startDate,
         endDate,
         budget: pricing.totalAmount,
-        status: 'Confirmed',
+        status: 'Pending',
         passengerIds: [passengerIdNum],
         travelersCount: 1,
         transportDetails: {
@@ -365,7 +359,7 @@ export default function AgencyBookPackagePage() {
               >
                 {packages.map((pkg) => (
                   <option key={pkg.packageId || pkg.id} value={pkg.packageId || pkg.id}>
-                    {pkg.title} — {pkg.destination} (${pkg.price}) [{pkg.duration} Days]
+                    {pkg.name || pkg.title} — {pkg.destinations || pkg.destination} (₹{Number(pkg.budget ?? pkg.price ?? 0).toLocaleString('en-IN')}) [{pkg.duration} Days]
                   </option>
                 ))}
               </select>
@@ -418,6 +412,7 @@ export default function AgencyBookPackagePage() {
                 <input
                   type="date"
                   min={tomorrowStr}
+                  max={maxHorizonDate}
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                   className="form-control"
@@ -488,10 +483,10 @@ export default function AgencyBookPackagePage() {
                 />
                 <div>
                   <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    Add Flexible Cancellation Protection
+                    Add Flexible Cancellation Protection (5% introductory rate)
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--muted)' }}>
-                    {transportMode === 'Flight' ? '+₹100 protection fee' : transportMode === 'Bus' ? '+₹70 protection fee' : '+₹50 protection fee'} (Allows penalty-free trip rescheduling)
+                    +₹{pricing.cancellationFee.toLocaleString('en-IN')} (5% of package base ₹{pricing.basePrice.toLocaleString('en-IN')}; Tier 1/2 policy refund rules apply)
                   </div>
                 </div>
               </label>

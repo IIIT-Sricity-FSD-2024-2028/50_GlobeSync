@@ -15,7 +15,7 @@ import AgencyCheckoutModal from './AgencyCheckoutModal';
 export default function BookingDetailModal({
   isOpen,
   booking,
-  commissionRate = 10.0,
+  commissionRate = 1.5,
   onClose,
   onBookingUpdated,
 }) {
@@ -537,6 +537,7 @@ export default function BookingDetailModal({
       {showCheckout && (
         <AgencyCheckoutModal
           isOpen={showCheckout}
+          booking={booking}
           trip={{
             tripId: booking.tripId,
             budget: booking.amount,

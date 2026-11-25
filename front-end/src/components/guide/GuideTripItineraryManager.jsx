@@ -54,24 +54,26 @@ export default function GuideTripItineraryManager({
           </span>
         </div>
 
-        <div className="guide-itin-actions-row">
-          <button
-            type="button"
-            className="btn btn-secondary guide-btn-suggest-itinerary"
-            onClick={onOpenSuggestModal}
-            title="Send an itinerary change suggestion directly to client message desk"
-          >
-            ✈️ Suggest Itinerary
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary guide-btn-add-activity"
-            onClick={onOpenAddActivity}
-            title="Add a new activity to this trip's confirmed itinerary"
-          >
-            ➕ Add Activity
-          </button>
-        </div>
+        {!['Cancelled', 'Completed'].includes(trip?.status) && (
+          <div className="guide-itin-actions-row">
+            <button
+              type="button"
+              className="btn btn-secondary guide-btn-suggest-itinerary"
+              onClick={onOpenSuggestModal}
+              title="Send an itinerary change suggestion directly to client message desk"
+            >
+              ✈️ Suggest Itinerary
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary guide-btn-add-activity"
+              onClick={onOpenAddActivity}
+              title="Add a new activity to this trip's confirmed itinerary"
+            >
+              ➕ Add Activity
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Progress & Metric Summary Cards */}

@@ -180,13 +180,22 @@ export default function TripCard({
                 fontWeight: 700,
                 borderRadius: '8px',
               }}
-              title="View and manage daily itinerary schedule"
+              title={
+                trip.status === 'Cancelled' || trip.status === 'Completed'
+                  ? 'View historical itinerary (read-only)'
+                  : 'View and manage daily itinerary schedule'
+              }
             >
-              {isSelected ? '📋 Viewing Schedule' : '📅 Manage Itinerary'}
+              {isSelected
+                ? '📋 Viewing Schedule'
+                : trip.status === 'Cancelled' || trip.status === 'Completed'
+                  ? '📜 View Itinerary History'
+                  : '📅 Manage Itinerary'}
             </button>
           )}
 
-          {onEdit && (
+          {/* T02: Unrestricted Edit Trip removed for confirmed/active trips. Allowed only for draft Planning trips */}
+          {onEdit && isDraft && (
             <button
               type="button"
               onClick={() => onEdit(trip)}
@@ -197,8 +206,9 @@ export default function TripCard({
                 fontWeight: 600,
                 borderRadius: '8px',
               }}
+              title="Edit draft itinerary plan"
             >
-              ✏️ Edit
+              ✏️ Edit Draft
             </button>
           )}
 

@@ -10,6 +10,9 @@ export interface Package {
   agencyId?: number;
   isFeatured?: boolean;
   status?: string;
+  archivedAt?: string;
+  archivedReason?: string;
+  archivedBy?: number;
 }
 
 export const packages: Package[] = [

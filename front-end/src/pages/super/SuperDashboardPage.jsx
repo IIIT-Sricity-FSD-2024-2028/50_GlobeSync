@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
 import {
@@ -8,6 +8,7 @@ import {
   guidesApi,
   tripsApi,
   bookingsApi,
+  approvalsApi,
 } from '../../services/api';
 import {
   AdminPage,
@@ -38,13 +39,14 @@ const loadDashboard = async (options) => {
   const startTime = performance.now();
 
   // All endpoints are called without silent catch fallbacks so real errors surface
-  const [dash, revenue, travelers, guides, trips, bookings] = await Promise.all([
+  const [dash, revenue, travelers, guides, trips, bookings, approvals] = await Promise.all([
     dashboardApi.getSuperuser(options),
     revenueApi.getOverview(options),
     travelersApi.getAll(options),
     guidesApi.getAll(options),
     tripsApi.getAll(options),
     bookingsApi.getAll(options),
+    approvalsApi.getAll({ status: 'PENDING' }, options).catch(() => []),
   ]);
 
   const measuredLatencyMs = Math.round(performance.now() - startTime);
@@ -56,6 +58,7 @@ const loadDashboard = async (options) => {
     guideCount: Array.isArray(guides) ? guides.length : 0,
     tripCount: Array.isArray(trips) ? trips.length : 0,
     bookingCount: Array.isArray(bookings) ? bookings.length : 0,
+    pendingApprovals: Array.isArray(approvals) ? approvals : [],
     measuredLatencyMs,
   };
 };
@@ -66,6 +69,25 @@ export default function SuperDashboardPage() {
   const data = resource.data;
   const dash = data?.dash;
   const revenue = data?.revenue;
+  const pendingApprovals = data?.pendingApprovals || [];
+
+  const [decisionBusy, setDecisionBusy] = useState(false);
+
+  const handleDecision = async (id, decision) => {
+    setDecisionBusy(true);
+    try {
+      if (decision === 'APPROVE') {
+        await approvalsApi.approve(id, 'Approved via Super Admin Governance Center');
+      } else {
+        await approvalsApi.reject(id, 'Rejected via Super Admin Governance Center');
+      }
+      resource.reload();
+    } catch (err) {
+      alert(`Decision failed: ${err.message}`);
+    } finally {
+      setDecisionBusy(false);
+    }
+  };
 
   // Real measured latency for backend probe
   const livePing = data?.measuredLatencyMs != null ? `${data.measuredLatencyMs}ms` : 'Measuring...';
@@ -441,6 +463,109 @@ export default function SuperDashboardPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Category C High-Risk Governance Approval Center */}
+          <div style={{ marginTop: '24px', marginBottom: '24px' }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              🛡️ High-Risk Approval Requests (Category C Governance)
+              {pendingApprovals.length > 0 && (
+                <span
+                  style={{
+                    backgroundColor: '#ef4444',
+                    color: '#ffffff',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                  }}
+                >
+                  {pendingApprovals.length} Action Required
+                </span>
+              )}
+            </h2>
+
+            {pendingApprovals.length === 0 ? (
+              <div
+                style={{
+                  padding: '20px',
+                  borderRadius: '12px',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  color: '#64748b',
+                  fontSize: '14px',
+                }}
+              >
+                No pending high-risk approval requests. Ordinary operational tasks are independently handled by Administrators.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {pendingApprovals.map((req) => (
+                  <div
+                    key={req.id}
+                    style={{
+                      padding: '18px 24px',
+                      borderRadius: '12px',
+                      background: '#ffffff',
+                      border: '1px solid #fed7aa',
+                      borderLeft: '6px solid #f97316',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '16px', color: '#9a3412' }}>
+                          Request #{req.id}: {req.type} ({req.entityType.toUpperCase()} #{req.entityId})
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#64748b', marginTop: '2px' }}>
+                          Submitted by <strong>{req.requesterName}</strong> on {new Date(req.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          disabled={decisionBusy}
+                          onClick={() => handleDecision(req.id, 'APPROVE')}
+                          style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
+                        >
+                          ✓ Authorize & Execute
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          disabled={decisionBusy}
+                          onClick={() => handleDecision(req.id, 'REJECT')}
+                          style={{ color: '#dc2626' }}
+                        >
+                          ✕ Reject
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: '12px', fontSize: '14px', color: '#334155' }}>
+                      <strong>Admin Justification:</strong> "{req.reason}"
+                    </div>
+
+                    {req.impactAnalysis && (
+                      <div
+                        style={{
+                          marginTop: '8px',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          background: '#fef2f2',
+                          border: '1px solid #fee2e2',
+                          fontSize: '13px',
+                          color: '#991b1b',
+                        }}
+                      >
+                        <strong>Operational Impact Analysis:</strong> Affects {req.impactAnalysis.activeTripsCount} active trips (Trips: {req.impactAnalysis.activeTripIds?.join(', ') || 'none'}) and {req.impactAnalysis.activeBookingsCount} active bookings.
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <h2>Governance Operations</h2>

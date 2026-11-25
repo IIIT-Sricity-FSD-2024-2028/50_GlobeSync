@@ -11,35 +11,31 @@ import {
   AdminPage,
   AdminTable,
   Filters,
-  DeleteDialog,
   bookingStatuses,
   matches,
   money,
   ownerLabel,
   useAdminData,
 } from '../../components/admin/AdminUI';
-import BookingStatusModal from '../../components/admin/BookingStatusModal';
+import BookingInspectionModal from '../../components/admin/BookingInspectionModal';
 
 /**
  * AdminBookingsPage
  * Primary route: /admin/bookings
  *
- * State & Architectural Ownership:
- * 1. AdminBookingsPage (Page Coordinator):
- *    - Owns composite data loader (fetching bookings, trips, travelers, agencies, payments in parallel).
- *    - Displays operational booking status separately from actual recorded financial payment status.
- *    - Owns search filter queries and status filters.
- *    - Controls selection of the active booking record for inspection/status update.
- * 2. BookingStatusModal (Presentation & Form Component):
- *    - Displays financial breakdown (service, transport, insurance, cancellation protection).
- *    - Clearly distinguishes operational status from recorded payment status.
- *    - Renders stored fractional insurance rates accurately (0.07 represents 7%).
- *    - Displays errors directly inside the active modal dialog.
+ * Operational Governance:
+ * 1. Read-Only Inspection:
+ *    - Admin monitors booking records, inspection details, traveler/guide information,
+ *      associated trips, authorized payment info, and refund statuses.
+ * 2. Prohibited Direct Mutations:
+ *    - Admin cannot directly modify booking details, amounts, change booking/payment status,
+ *      or delete booking records.
+ * 3. Composite Loader Resilience:
+ *    - Uses Promise.allSettled so secondary failures (e.g. auxiliary lookups) do not crash the page.
  */
 
-// Composite loader fetching bookings and related entities including recorded payments
 const loadBookingsData = async (options) => {
-  const [bookings, trips, travelers, agencies, payments] = await Promise.all([
+  const [bookingsRes, tripsRes, travelersRes, agenciesRes, paymentsRes] = await Promise.allSettled([
     bookingsApi.getAll(options),
     tripsApi.getAll(options),
     travelersApi.getAll(options),
@@ -47,13 +43,23 @@ const loadBookingsData = async (options) => {
     paymentsApi.getAll(options),
   ]);
 
-  return {
-    bookings: Array.isArray(bookings) ? bookings : [],
-    trips: Array.isArray(trips) ? trips : [],
-    travelers: Array.isArray(travelers) ? travelers : travelers?.value || [],
-    agencies: Array.isArray(agencies) ? agencies : agencies?.value || [],
-    payments: Array.isArray(payments) ? payments : [],
-  };
+  const bookings = bookingsRes.status === 'fulfilled' && Array.isArray(bookingsRes.value) ? bookingsRes.value : [];
+  const trips = tripsRes.status === 'fulfilled' && Array.isArray(tripsRes.value) ? tripsRes.value : [];
+  const travelers =
+    travelersRes.status === 'fulfilled'
+      ? Array.isArray(travelersRes.value)
+        ? travelersRes.value
+        : travelersRes.value?.value || []
+      : [];
+  const agencies =
+    agenciesRes.status === 'fulfilled'
+      ? Array.isArray(agenciesRes.value)
+        ? agenciesRes.value
+        : agenciesRes.value?.value || []
+      : [];
+  const payments = paymentsRes.status === 'fulfilled' && Array.isArray(paymentsRes.value) ? paymentsRes.value : [];
+
+  return { bookings, trips, travelers, agencies, payments };
 };
 
 export default function AdminBookingsPage() {
@@ -66,9 +72,6 @@ export default function AdminBookingsPage() {
   // Selected booking for detail modal
   const [selectedBooking, setSelectedBooking] = useState(null);
 
-  // Selected booking for delete dialog
-  const [deletingBooking, setDeletingBooking] = useState(null);
-
   // ─── Entity Resolvers ──────────────────────────────────────────────────────
   const d = resource.data;
 
@@ -80,9 +83,35 @@ export default function AdminBookingsPage() {
     return trip?.destination || `Trip #${row.tripId}`;
   };
 
+  const resolvePaymentsForBooking = (booking) => {
+    if (!booking) return [];
+    return (d?.payments || []).filter((p) => Number(p.bookingId) === Number(booking.bookingId));
+  };
+
   const resolvePayment = (booking) => {
-    if (!booking) return null;
-    return (d?.payments || []).find((p) => p.bookingId === booking.bookingId) || null;
+    const list = resolvePaymentsForBooking(booking);
+    if (list.length === 0) return null;
+    // Prefer authoritative Paid payment over pending/failed attempts
+    return list.find((p) => String(p.status).toLowerCase() === 'paid') || list[list.length - 1];
+  };
+
+  const resolveBookingAmount = (b) => {
+    if (!b) return null;
+    if (b.total_minor != null) return Number(b.total_minor) / 100;
+    if (b.totalPriceMinor != null) return Number(b.totalPriceMinor) / 100;
+    if (b.amount != null) return Number(b.amount);
+    if (b.totalAmount != null) return Number(b.totalAmount);
+    return null;
+  };
+
+  const resolveAgency = (booking) => {
+    if (!booking?.agencyId) return null;
+    return (d?.agencies || []).find((a) => Number(a.agencyId) === Number(booking.agencyId)) || null;
+  };
+
+  const resolveTrip = (booking) => {
+    if (!booking?.tripId) return null;
+    return (d?.trips || []).find((t) => Number(t.tripId) === Number(booking.tripId)) || null;
   };
 
   // ─── Memoized Filtered Bookings ────────────────────────────────────────────
@@ -117,47 +146,13 @@ export default function AdminBookingsPage() {
     });
   }, [d?.bookings, statusFilter, searchQuery, d?.trips, d?.travelers, d?.agencies, d?.payments]);
 
-  // ─── Modal & Action Handlers ───────────────────────────────────────────────
-
+  // ─── Modal Handlers ────────────────────────────────────────────────────────
   const handleSelectBooking = (booking) => {
     setSelectedBooking(booking);
   };
 
   const handleCloseModal = () => {
     setSelectedBooking(null);
-  };
-
-  const handleUpdateBookingStatus = (bookingId, nextStatus, cancellationReason) => {
-    const payload = nextStatus === 'Cancelled' && cancellationReason
-      ? { status: nextStatus, cancellationReason, cancelledAt: new Date().toISOString() }
-      : { status: nextStatus };
-
-    resource.run(
-      () => bookingsApi.update(bookingId, payload),
-      `Booking #${bookingId} status updated to '${nextStatus}'.`,
-      () => {
-        setSelectedBooking(null);
-      }
-    );
-  };
-
-  const handleOpenDelete = (booking) => {
-    setDeletingBooking(booking);
-  };
-
-  const handleCloseDelete = () => {
-    setDeletingBooking(null);
-  };
-
-  const handleConfirmDelete = () => {
-    if (!deletingBooking) return;
-    resource.run(
-      () => bookingsApi.delete(deletingBooking.bookingId),
-      `Booking #${deletingBooking.bookingId} deleted.`,
-      () => {
-        setDeletingBooking(null);
-      }
-    );
   };
 
   // ─── Table Columns Definition ──────────────────────────────────────────────
@@ -169,25 +164,25 @@ export default function AdminBookingsPage() {
     {
       label: 'Service',
       key: 'service',
-    },
-    {
-      label: 'Type',
-      key: 'type',
+      render: (b) => b.service || b.itemType || b.type || 'Travel Item',
     },
     {
       label: 'Customer / Owner',
       render: resolveOwnerName,
     },
     {
-      label: 'Associated Trip',
+      label: 'Destination',
       render: resolveDestination,
     },
     {
       label: 'Amount',
-      render: (b) => money(b.amount),
+      render: (b) => {
+        const amt = resolveBookingAmount(b);
+        return amt === null ? 'Unavailable' : money(amt);
+      },
     },
     {
-      label: 'Booking Status',
+      label: 'Reservation Status',
       render: (b) => <StatusBadge status={b.status} />,
     },
     {
@@ -223,18 +218,9 @@ export default function AdminBookingsPage() {
             className="btn btn-secondary btn-sm"
             onClick={() => handleSelectBooking(b)}
             disabled={resource.busy}
-            title="Inspect financials and update operational status"
+            title="Inspect booking financials, payment records, and refund status"
           >
-            Inspect / Status
-          </button>
-          <button
-            type="button"
-            className="btn btn-danger btn-sm"
-            onClick={() => handleOpenDelete(b)}
-            disabled={resource.busy}
-            title="Delete booking record"
-          >
-            Delete
+            Inspect
           </button>
         </div>
       ),
@@ -263,32 +249,18 @@ export default function AdminBookingsPage() {
         </>
       )}
 
-      {/* Controlled Booking Detail & Status Modal */}
-      {selectedBooking && (
-        <BookingStatusModal
-          isOpen={Boolean(selectedBooking)}
-          booking={selectedBooking}
-          payment={resolvePayment(selectedBooking)}
-          destinationName={resolveDestination(selectedBooking)}
-          ownerName={resolveOwnerName(selectedBooking)}
-          isBusy={resource.busy}
-          error={resource.error}
-          onClose={handleCloseModal}
-          onSubmit={handleUpdateBookingStatus}
-        />
-      )}
-
-      {/* Delete Dialog */}
-      {deletingBooking && (
-        <DeleteDialog
-          title={`Delete Booking #${deletingBooking.bookingId}: ${deletingBooking.service}?`}
-          warning="This action will delete this booking record. If financial transactions reference this booking, deletion will be blocked by backend integrity rules."
-          busy={resource.busy}
-          error={resource.error}
-          onClose={handleCloseDelete}
-          onConfirm={handleConfirmDelete}
-        />
-      )}
+      {/* Controlled Read-Only Booking Inspection Modal */}
+      <BookingInspectionModal
+        isOpen={Boolean(selectedBooking)}
+        booking={selectedBooking}
+        payment={resolvePayment(selectedBooking)}
+        payments={resolvePaymentsForBooking(selectedBooking)}
+        trip={resolveTrip(selectedBooking)}
+        agency={resolveAgency(selectedBooking)}
+        destinationName={selectedBooking ? resolveDestination(selectedBooking) : 'Unknown Trip'}
+        ownerName={selectedBooking ? resolveOwnerName(selectedBooking) : 'Unassigned'}
+        onClose={handleCloseModal}
+      />
     </AdminPage>
   );
 }

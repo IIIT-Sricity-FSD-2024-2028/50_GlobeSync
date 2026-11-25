@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
 import { useRealtime } from '../../context/RealtimeContext';
 
@@ -7,6 +8,7 @@ import { useRealtime } from '../../context/RealtimeContext';
  */
 export default function Header({ title, onToggleSidebar, isSidebarOpen }) {
   const { user, role, logout } = useSession();
+  const navigate = useNavigate();
   const { isConnected, reconnecting, notifications, unreadCount, markAsRead, markAllAsRead } = useRealtime();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -48,6 +50,36 @@ export default function Header({ title, onToggleSidebar, isSidebarOpen }) {
     if (diffMin < 60) return `${diffMin}m ago`;
     if (diffHr < 24) return `${diffHr}h ago`;
     return `${diffDay}d ago`;
+  };
+
+  const handleNotificationClick = (n) => {
+    if (!n.is_read) {
+      markAsRead(n.id);
+    }
+    const meta = n.metadata || {};
+    const nType = String(n.type || '').toLowerCase();
+    let targetPath = null;
+    if (role === 'traveler') {
+      if (nType.includes('reassignment') && meta.requestId) {
+        targetPath = `/traveler/trips?reassignmentId=${meta.requestId}`;
+      } else if (meta.tripId) {
+        targetPath = `/traveler/trips?tripId=${meta.tripId}`;
+      }
+    } else if (role === 'guide') {
+      if (nType.includes('reassignment') || nType.includes('guide_assignment')) {
+        targetPath = '/guide/requests';
+      }
+    } else if (role === 'admin') {
+      if (nType === 'agency_application') {
+        targetPath = '/admin/agencies';
+      } else if (nType.includes('reassignment') || meta.tripId) {
+        targetPath = '/admin/trips';
+      }
+    }
+    if (targetPath) {
+      setIsDropdownOpen(false);
+      navigate(targetPath);
+    }
   };
 
   return (
@@ -228,12 +260,12 @@ export default function Header({ title, onToggleSidebar, isSidebarOpen }) {
                   notifications.map((n) => (
                     <div
                       key={n.id}
-                      onClick={() => !n.is_read && markAsRead(n.id)}
+                      onClick={() => handleNotificationClick(n)}
                       style={{
                         padding: '12px 16px',
                         borderBottom: '1px solid #f3f4f6',
                         background: n.is_read ? '#fff' : '#f0f9ff',
-                        cursor: n.is_read ? 'default' : 'pointer',
+                        cursor: 'pointer',
                         transition: 'background 0.2s',
                         display: 'flex',
                         alignItems: 'flex-start',

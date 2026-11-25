@@ -12,6 +12,7 @@ import { RealtimeService } from '../realtime/realtime.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PaginationQueryDto, PaginatedResult } from '../common/dto/pagination-query.dto';
 import { paginateCollection } from '../common/utils/pagination.util';
+import { validateTripDates } from '../common/config/trip-date-policy';
 
 
 @Injectable()
@@ -116,6 +117,14 @@ export class BookingsService {
         throw new BadRequestException('Bookings can only be made for trips that start tomorrow or later.');
       }
     }
+    if (dto.startDate || dto.endDate || parentTrip?.startDate) {
+      validateTripDates({
+        startDate: dto.startDate || parentTrip?.startDate,
+        endDate: dto.endDate || parentTrip?.endDate,
+        enforceAdvanceAndHorizon: !explicitDeparture,
+        enforcePackageDuration: false,
+      });
+    }
 
     // 3. Server-Side Authoritative Pricing Calculation
     let finalAmount = dto.amount;
@@ -124,13 +133,18 @@ export class BookingsService {
     let insuranceAmount = 0;
     let cancellationFee = 0;
     let cancellationProtectionSelected = Boolean(dto.cancellationProtectionSelected);
+    let protectionRatePercent = this.policyService.getConfig().cancellationProtectionRatePercent ?? 5;
+    let protectionFeeMinor = 0;
+    let protectionEligibleMinor = 0;
 
     const hasStructuredItems = (dto.items && dto.items.length > 0) || dto.guideId || dto.packageId;
+    const guideAcceptedForPricing = parentTrip?.guideId ? parentTrip.guideStatus === 'Accepted' : true;
 
     if (hasStructuredItems) {
       const priceCalc = this.pricingService.calculatePrice({
         items: dto.items,
         guideId: dto.guideId,
+        guideAccepted: guideAcceptedForPricing,
         startDate: dto.startDate,
         endDate: dto.endDate,
         packageId: dto.packageId,
@@ -143,23 +157,32 @@ export class BookingsService {
       finalTotalMinor = priceCalc.totalMinor;
       insuranceAmount = priceCalc.insuranceMinor / 100;
       insuranceRate = priceCalc.insuranceMinor > 0 ? 0.07 : 0;
-      cancellationFee = priceCalc.cancellationProtectionFeeMinor / 100;
-      cancellationProtectionSelected = priceCalc.cancellationProtectionFeeMinor > 0;
-    } else if (dto.transportMode) {
-      // Legacy fallback
-      insuranceRate = 0.07;
-      insuranceAmount = dto.amount * insuranceRate;
-      finalAmount += insuranceAmount;
+      protectionRatePercent = priceCalc.cancellationProtectionRatePercent;
+      protectionFeeMinor = priceCalc.cancellationProtectionFeeMinor;
+      protectionEligibleMinor = priceCalc.eligibleProtectionSubtotalMinor;
+      cancellationFee = protectionFeeMinor / 100;
+      cancellationProtectionSelected = protectionFeeMinor > 0;
+    } else {
+      const baseAmount = Math.max(0, Number(dto.amount || 0));
+      const baseMinor = Math.round(baseAmount * 100);
+      finalAmount = baseAmount;
 
-      if (dto.cancellationProtectionSelected) {
-        if (dto.transportMode === 'Flight') cancellationFee = 100;
-        else if (dto.transportMode === 'Bus') cancellationFee = 70;
-        else if (dto.transportMode === 'Train') cancellationFee = 50;
+      if (dto.transportMode) {
+        insuranceRate = 0.07;
+        insuranceAmount = Math.round(baseAmount * insuranceRate * 100) / 100;
+        finalAmount += insuranceAmount;
       }
 
-      if (cancellationFee > 0) {
-        cancellationProtectionSelected = true;
-        finalAmount += cancellationFee;
+      if (dto.cancellationProtectionSelected && baseMinor > 0) {
+        protectionEligibleMinor = baseMinor;
+        protectionFeeMinor = Math.round(protectionEligibleMinor * (protectionRatePercent / 100));
+        cancellationFee = protectionFeeMinor / 100;
+        if (protectionFeeMinor > 0) {
+          cancellationProtectionSelected = true;
+          finalAmount += cancellationFee;
+        }
+      } else {
+        cancellationProtectionSelected = false;
       }
       finalTotalMinor = Math.round(finalAmount * 100);
     }
@@ -201,7 +224,11 @@ export class BookingsService {
     }
 
     // 6. Snapshot Business Policy & Cancellation Protection
-    const policySnapshot = this.policyService.createSnapshot(cancellationProtectionSelected);
+    const policySnapshot = this.policyService.createSnapshot(cancellationProtectionSelected, {
+      feeMinor: protectionFeeMinor,
+      eligibleSubtotalMinor: protectionEligibleMinor,
+      ratePercent: protectionRatePercent,
+    });
 
     // 7. State Machine Status & Hold Expiration
     const nowIso = new Date().toISOString();
@@ -236,6 +263,7 @@ export class BookingsService {
       ...(cancellationProtectionSelected && {
         cancellationProtectionSelected: true,
         cancellationFee,
+        cancellationProtectionRatePercent: protectionRatePercent,
       }),
     };
 
@@ -261,12 +289,16 @@ export class BookingsService {
     }
 
     if (this.notificationsService) {
-      this.notificationsService.createNotification(
-        newBooking.travelerId,
-        'Booking Created (15m Hold)',
-        `Booking #${newBooking.bookingId} created. You have 15 minutes to complete payment before hold expires.`,
-        { role: 'traveler', type: 'booking_held', metadata: { bookingId: newBooking.bookingId } },
-      ).catch(() => {});
+      const targetId = newBooking.travelerId || newBooking.agencyId;
+      const targetRole = newBooking.agencyId ? 'agency' : 'traveler';
+      if (targetId) {
+        this.notificationsService.createNotification(
+          targetId,
+          'Booking Created (15m Hold)',
+          `Booking #${newBooking.bookingId} created. You have 15 minutes to complete payment before hold expires.`,
+          { role: targetRole, type: 'booking_held', metadata: { bookingId: newBooking.bookingId, tripId: newBooking.tripId } },
+        ).catch(() => {});
+      }
     }
 
     return newBooking;

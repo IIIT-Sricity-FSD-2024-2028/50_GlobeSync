@@ -82,6 +82,7 @@ export default function AgencyDayActivitiesModal({
   }, [isOpen, trip?.tripId]);
 
   if (!isOpen || !trip) return null;
+  const isReadOnly = trip.status === 'Cancelled' || trip.status === 'Completed';
 
   // Split activities into pending suggestions and scheduled activities
   const pendingGuideSuggestions = activities.filter(
@@ -314,6 +315,22 @@ export default function AgencyDayActivitiesModal({
 
         {/* Modal Scrollable Body */}
         <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
+          {isReadOnly && (
+            <div
+              style={{
+                background: '#f8fafc',
+                color: '#334155',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                marginBottom: '16px',
+                border: '1px solid #cbd5e1',
+                fontWeight: 600,
+              }}
+            >
+              🔒 Historical Itinerary ({trip.status}) — Activities are preserved in read-only mode and cannot be modified.
+            </div>
+          )}
           {error && (
             <div
               style={{
@@ -405,42 +422,44 @@ export default function AgencyDayActivitiesModal({
                       ) : null}
                     </div>
 
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        type="button"
-                        onClick={() => handleApproveSuggestion(sug)}
-                        disabled={actionProcessingId === sug.itineraryId}
-                        style={{
-                          background: '#16a34a',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '6px',
-                          padding: '6px 12px',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        ✓ Approve
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleRejectSuggestion(sug)}
-                        disabled={actionProcessingId === sug.itineraryId}
-                        style={{
-                          background: '#ef4444',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '6px',
-                          padding: '6px 12px',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        ✕ Reject
-                      </button>
-                    </div>
+                    {!isReadOnly && (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleApproveSuggestion(sug)}
+                          disabled={actionProcessingId === sug.itineraryId}
+                          style={{
+                            background: '#16a34a',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '6px 12px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ✓ Approve
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRejectSuggestion(sug)}
+                          disabled={actionProcessingId === sug.itineraryId}
+                          style={{
+                            background: '#ef4444',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '6px 12px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ✕ Reject
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -619,41 +638,43 @@ export default function AgencyDayActivitiesModal({
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <button
-                        type="button"
-                        onClick={() => handleStartEdit(act)}
-                        style={{
-                          background: '#f8fafc',
-                          color: '#334155',
-                          border: '1px solid #cbd5e1',
-                          borderRadius: '6px',
-                          padding: '5px 10px',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        ✏️ Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteActivity(act.itineraryId)}
-                        disabled={actionProcessingId === act.itineraryId}
-                        style={{
-                          background: '#fef2f2',
-                          color: '#b91c1c',
-                          border: '1px solid #fecaca',
-                          borderRadius: '6px',
-                          padding: '5px 10px',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        🗑 Delete
-                      </button>
-                    </div>
+                    {!isReadOnly && (
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleStartEdit(act)}
+                          style={{
+                            background: '#f8fafc',
+                            color: '#334155',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '6px',
+                            padding: '5px 10px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteActivity(act.itineraryId)}
+                          disabled={actionProcessingId === act.itineraryId}
+                          style={{
+                            background: '#fef2f2',
+                            color: '#b91c1c',
+                            border: '1px solid #fecaca',
+                            borderRadius: '6px',
+                            padding: '5px 10px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          🗑 Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -661,6 +682,7 @@ export default function AgencyDayActivitiesModal({
           </div>
 
           {/* Add / Edit Activity Form */}
+          {!isReadOnly && (
           <form
             onSubmit={handleSaveActivity}
             style={{
@@ -796,6 +818,7 @@ export default function AgencyDayActivitiesModal({
               </button>
             </div>
           </form>
+          )}
         </div>
 
         {/* Footer */}

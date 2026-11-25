@@ -166,27 +166,49 @@ export class DashboardService {
 
   /** Guide dashboard — assignment metrics */
   getGuideDashboard(guideId: number) {
-    const assignedTrips = trips.filter((t) => t.guideId === guideId);
-    const completedTrips = assignedTrips.filter((t) => t.status === 'Completed');
-    const pendingRequests = assignedTrips.filter(
+    const guideTrips = trips.filter((t) => t.guideId === guideId);
+    const activeTrips = guideTrips.filter(
       (t) =>
-        t.guideStatus === 'Pending' ||
-        (!t.guideStatus &&
-          t.status !== 'Completed' &&
-          t.status !== 'Cancelled' &&
-          t.guideStatus !== 'Accepted' &&
-          t.guideStatus !== 'Declined'),
+        t.guideStatus === 'Accepted' &&
+        t.status !== 'Cancelled' &&
+        t.status !== 'Completed',
+    );
+    const completedTrips = guideTrips.filter(
+      (t) => t.status === 'Completed' && t.guideStatus === 'Accepted',
+    );
+    const cancelledTrips = guideTrips.filter((t) => t.status === 'Cancelled');
+    const pendingRequests = guideTrips.filter(
+      (t) =>
+        t.status !== 'Completed' &&
+        t.status !== 'Cancelled' &&
+        t.guideStatus !== 'Cancelled' &&
+        (t.guideStatus === 'Pending' ||
+          (!t.guideStatus &&
+            t.guideStatus !== 'Accepted' &&
+            t.guideStatus !== 'Declined')),
     );
     const guideMessages = messages.filter(
       (m) =>
         (m.sender === 'guide' && m.senderId === guideId) ||
         (m.receiver === 'guide' && m.receiverId === guideId),
     );
+    const assignedTravelersCount = new Set(
+      activeTrips.map((t) =>
+        t.travelerId ? `traveler:${t.travelerId}` : `agency:${t.agencyId || t.tripId}`,
+      ),
+    ).size;
+    const assignedPassengersCount = activeTrips.reduce(
+      (sum, t) => sum + Number(t.travelersCount || t.passengerIds?.length || 1),
+      0,
+    );
 
     return {
-      assignedTripsCount: assignedTrips.length,
+      assignedTripsCount: activeTrips.length,
       completedTripsCount: completedTrips.length,
+      cancelledTripsCount: cancelledTrips.length,
       pendingRequests: pendingRequests.length,
+      assignedTravelersCount,
+      assignedPassengersCount,
       messagesCount: guideMessages.length,
     };
   }

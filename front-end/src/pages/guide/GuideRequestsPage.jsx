@@ -50,6 +50,10 @@ export default function GuideRequestsPage() {
   // Per-trip action states: { [tripId]: 'accepting' | 'declining' | 'notifying' }
   const [actionLoading, setActionLoading] = useState({});
 
+  // Pending Guide Reassignment Offers (Category D Governance)
+  const [pendingReassignments, setPendingReassignments] = useState([]);
+  const [reassignBusy, setReassignBusy] = useState(false);
+
   // Decoupled notification errors: { [tripId]: { message: string, payload: object } }
   const [notificationErrors, setNotificationErrors] = useState({});
 
@@ -76,7 +80,7 @@ export default function GuideRequestsPage() {
       const warnings = [];
 
       // Concurrently fetch guide trips, travelers, and agencies lookup
-      const [tripsData, travelersData, agenciesData] = await Promise.all([
+      const [tripsData, travelersData, agenciesData, myReassignments] = await Promise.all([
         tripsApi.getByGuide(guideId, { signal }),
         travelersApi.getAll({ signal }).catch((err) => {
           if (err.isCancelled || signal?.aborted) throw err;
@@ -90,7 +94,18 @@ export default function GuideRequestsPage() {
           warnings.push('Agency directory could not be reached; partner agency business names are displayed with fallback IDs.');
           return [];
         }),
+        tripsApi.getMyReassignments({ signal }).catch(() => []),
       ]);
+
+      const pendingOffers = Array.isArray(myReassignments)
+        ? myReassignments.filter(
+            (r) =>
+              r.proposedGuideId === Number(guideId) &&
+              r.status === 'TRAVELER_ACCEPTED' &&
+              (r.guideConsent === 'PENDING' || !r.guideConsent),
+          )
+        : [];
+      setPendingReassignments(pendingOffers);
 
       setSecondaryWarnings(warnings);
 
@@ -448,6 +463,30 @@ export default function GuideRequestsPage() {
     }
   };
 
+  const handleRespondReassignment = async (requestId, accept, notes) => {
+    setReassignBusy(true);
+    try {
+      await tripsApi.respondGuideAssignment(requestId, {
+        decision: accept ? 'ACCEPT' : 'DECLINE',
+        reason: notes,
+      });
+      setFeedback({
+        type: 'success',
+        message: accept ? 'Reassignment offer accepted!' : 'Reassignment offer declined.',
+      });
+      setPendingReassignments((prev) => prev.filter((r) => r.id !== requestId));
+      const controller = new AbortController();
+      fetchRequestsData(controller.signal);
+    } catch (err) {
+      setFeedback({
+        type: 'error',
+        message: err.message || 'Failed to submit reassignment response.',
+      });
+    } finally {
+      setReassignBusy(false);
+    }
+  };
+
   // Refresh handler
   const handleRefresh = () => {
     const controller = new AbortController();
@@ -532,6 +571,66 @@ export default function GuideRequestsPage() {
           >
             ✕
           </button>
+        </div>
+      )}
+
+      {/* Pending Guide Replacement Assignment Offers (Category D Governance) */}
+      {pendingReassignments.length > 0 && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          {pendingReassignments.map((req) => (
+            <div
+              key={req.id}
+              style={{
+                padding: '16px 20px',
+                borderRadius: '12px',
+                background: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                borderLeft: '5px solid #3b82f6',
+                marginBottom: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <span style={{ fontWeight: 700, color: '#1e40af', fontSize: '15px' }}>
+                  🎯 Administrative Tour Assignment Offer: Trip #{req.tripId}
+                  {req.tripDestination ? ` (${req.tripDestination})` : ''}
+                </span>
+                <span style={{ fontSize: '12px', color: '#3b82f6' }}>
+                  Requested {new Date(req.createdAt).toLocaleDateString()}
+                  {req.expiresAt ? ` • Expires ${new Date(req.expiresAt).toLocaleDateString()}` : ''}
+                </span>
+              </div>
+              <p style={{ margin: 0, fontSize: '14px', color: '#1e3a8a' }}>
+                You have been nominated by Administration (and approved by the traveler) as the lead tour guide for Trip #{req.tripId}
+                {req.tripStartDate && req.tripEndDate ? ` (${req.tripStartDate} → ${req.tripEndDate})` : ''}.
+                {req.proposedGuideDailyRate ? ` Daily rate: ₹${Number(req.proposedGuideDailyRate).toLocaleString('en-IN')}/day.` : ''}
+                <br />
+                <strong>Reason:</strong> "{req.reason}"
+              </p>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  disabled={reassignBusy}
+                  onClick={() => handleRespondReassignment(req.id, true, 'Guide accepted tour assignment')}
+                  style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
+                >
+                  ✓ Accept Tour Assignment
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  disabled={reassignBusy}
+                  onClick={() => handleRespondReassignment(req.id, false, 'Guide declined due to schedule conflict')}
+                  style={{ color: '#dc2626' }}
+                >
+                  ✕ Decline Assignment
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
