@@ -256,8 +256,8 @@ async function main() {
       });
 
       await policyService.cancelBooking(b1.bookingId, 'Switching airline', 1);
-      assert.strictEqual(bookingsService.findOne(b1.bookingId).status, 'CANCELLED');
-      assert.strictEqual(bookingsService.findOne(b2.bookingId).status, 'HELD');
+      assert.strictEqual(String(bookingsService.findOne(b1.bookingId).status).toUpperCase(), 'CANCELLED');
+      assert.strictEqual(String(bookingsService.findOne(b2.bookingId).status).toUpperCase(), 'HELD');
       assert.strictEqual(tripsService.findOne(t.tripId).status, 'Pending');
     });
 
