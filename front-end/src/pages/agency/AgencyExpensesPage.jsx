@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import { tripsApi, expensesApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import SummaryCard from '../../components/common/SummaryCard';
 
 const EXPENSE_TYPES = ['Hotel', 'Flight', 'Transport', 'Food', 'Activity', 'Shopping', 'Package'];
@@ -17,14 +17,16 @@ export default function AgencyExpensesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const agencyId = Number(user?.agencyId || user?.agency_id || user?.id || 1);
 
-  const [trips, setTrips] = useState([]);
+  const tripResource = useResource('trips', { scope: 'getByAgency', id: agencyId }, { load: Boolean(agencyId) });
+  const expenseResource = useResource('expenses', undefined, { load: false });
+  const trips = tripResource.items;
   const [selectedTripId, setSelectedTripId] = useState(
     searchParams.get('tripId') ? Number(searchParams.get('tripId')) : null
   );
-  const [expenses, setExpenses] = useState([]);
-  const [loadingTrips, setLoadingTrips] = useState(true);
-  const [loadingExpenses, setLoadingExpenses] = useState(false);
-  const [error, setError] = useState(null);
+  const expenses = expenseResource.items;
+  const loadingTrips = tripResource.status === 'loading';
+  const loadingExpenses = expenseResource.status === 'loading';
+  const error = tripResource.error || expenseResource.error;
 
   // Search filter inside table
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,59 +40,15 @@ export default function AgencyExpensesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
 
-  // Load trips owned by agency
   useEffect(() => {
-    const controller = new AbortController();
-    const fetchTrips = async () => {
-      setLoadingTrips(true);
-      setError(null);
-      try {
-        const data = await tripsApi.getByAgency(agencyId, { signal: controller.signal });
-        if (!controller.signal.aborted) {
-          const list = Array.isArray(data) ? data : data?.data || [];
-          setTrips(list);
-          if (list.length > 0 && !selectedTripId) {
-            setSelectedTripId(list[0].tripId);
-          }
-        }
-      } catch (err) {
-        if (!controller.signal.aborted) {
-          setError(err.message || 'Failed to load agency trips.');
-        }
-      } finally {
-        if (!controller.signal.aborted) setLoadingTrips(false);
-      }
-    };
-
-    if (agencyId) fetchTrips();
-    return () => controller.abort();
+    if (trips.length > 0 && !selectedTripId) setSelectedTripId(trips[0].tripId);
   }, [agencyId]);
 
   // Load expenses whenever selectedTripId changes
   useEffect(() => {
     if (!selectedTripId) return;
 
-    const controller = new AbortController();
-    const fetchExpenses = async () => {
-      setLoadingExpenses(true);
-      setError(null);
-      try {
-        const data = await expensesApi.getByTrip(selectedTripId, { signal: controller.signal });
-        if (!controller.signal.aborted) {
-          const list = Array.isArray(data) ? data : data?.data || [];
-          setExpenses(list);
-        }
-      } catch (err) {
-        if (!controller.signal.aborted) {
-          setError(err.message || 'Failed to load trip expenses.');
-        }
-      } finally {
-        if (!controller.signal.aborted) setLoadingExpenses(false);
-      }
-    };
-
-    fetchExpenses();
-    return () => controller.abort();
+    expenseResource.refresh({ tripId: selectedTripId }).catch(() => {});
   }, [selectedTripId]);
 
   const activeTrip = useMemo(() => {
@@ -154,11 +112,10 @@ export default function AgencyExpensesPage() {
   const handleDeleteExpense = async (expId) => {
     if (!window.confirm('Are you sure you want to delete this expense entry?')) return;
     try {
-      await expensesApi.delete(expId);
-      setExpenses((prev) => prev.filter((e) => (e.expenseId || e.id) !== expId));
+      await expenseResource.remove(expId);
     } catch (err) {
       console.error('Failed to delete expense:', err);
-      setError(err.message || 'Failed to delete expense.');
+      console.error(err);
     }
   };
 
@@ -179,13 +136,13 @@ export default function AgencyExpensesPage() {
     setSubmitting(true);
     try {
       if (editingExpenseId) {
-        await expensesApi.update(editingExpenseId, {
+        await expenseResource.update(editingExpenseId, {
           type: formType,
           amount: amountNum,
           description: formDesc.trim(),
         });
       } else {
-        await expensesApi.create({
+        await expenseResource.create({
           tripId: selectedTripId,
           type: formType,
           amount: amountNum,
@@ -194,9 +151,7 @@ export default function AgencyExpensesPage() {
       }
 
       // Refresh list
-      const refreshed = await expensesApi.getByTrip(selectedTripId);
-      const list = Array.isArray(refreshed) ? refreshed : refreshed?.data || [];
-      setExpenses(list);
+      await expenseResource.refresh({ tripId: selectedTripId });
       setShowAddModal(false);
       setEditingExpenseId(null);
       setFormAmount('');

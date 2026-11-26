@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { expensesApi } from '../../services/api';
 
 const EXPENSE_TYPES = [
   'Hotel',
@@ -137,15 +136,8 @@ export default function ExpenseFormModal({
         };
 
     try {
-      if (isEdit) {
-        // Calls PUT /expenses/:id (ownership verified by RolesGuard)
-        const updated = await expensesApi.update(editingExpense.expenseId, payload);
-        onSave(updated, true);
-      } else {
-        // Calls POST /expenses (ownership verified by RolesGuard)
-        const created = await expensesApi.create(payload);
-        onSave(created, false);
-      }
+      // The page dispatches the matching Redux CRUD thunk and returns its result.
+      await onSave(payload, isEdit, expenseId);
       onClose();
     } catch (err) {
       console.error('[ExpenseFormModal] Error saving expense:', err);

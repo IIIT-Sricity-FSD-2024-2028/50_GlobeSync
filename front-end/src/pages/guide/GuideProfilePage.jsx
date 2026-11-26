@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { guidesApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import GuideProfileForm from '../../components/guide/GuideProfileForm';
 import './guide.css';
 
@@ -28,9 +28,10 @@ export default function GuideProfilePage() {
   const guideId = user?.guideId ?? user?.id;
 
   // ── Data state ──────────────────────────────────────────────────────────
-  const [profile, setProfile] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState(null);
+  const guideResource = useResource('guides', { scope: 'getById', id: guideId }, { load: Boolean(guideId) });
+  const profile = guideResource.items[0] || null;
+  const isLoading = guideResource.status === 'loading';
+  const loadError = guideResource.error;
 
   // ── Edit mode state ─────────────────────────────────────────────────────
   const [isEditing, setIsEditing] = useState(false);
@@ -38,41 +39,7 @@ export default function GuideProfilePage() {
   const [saveError, setSaveError] = useState(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const abortRef = useRef(null);
-
-  // ── Load guide profile ──────────────────────────────────────────────────
-  const loadProfile = useCallback(async () => {
-    if (!guideId) {
-      setIsLoading(false);
-      setLoadError('No active guide session. Please log in again.');
-      return;
-    }
-
-    if (abortRef.current) abortRef.current.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    setIsLoading(true);
-    setLoadError(null);
-
-    try {
-      const data = await guidesApi.getById(guideId, { signal: controller.signal });
-      if (controller.signal.aborted) return;
-      setProfile(data);
-    } catch (err) {
-      if (err.isCancelled || controller.signal.aborted) return;
-      setLoadError(err.message || 'Failed to load profile. Please try again.');
-    } finally {
-      if (!controller.signal.aborted) setIsLoading(false);
-    }
-  }, [guideId]);
-
-  useEffect(() => {
-    loadProfile();
-    return () => {
-      if (abortRef.current) abortRef.current.abort();
-    };
-  }, [loadProfile]);
+  const loadProfile = () => guideResource.refresh();
 
   // ── Save handler — called by GuideProfileForm with a validated payload ──
   async function handleSave(payload) {
@@ -81,10 +48,7 @@ export default function GuideProfilePage() {
     setIsSaving(true);
 
     try {
-      const updated = await guidesApi.update(guideId, payload);
-
-      // Update local profile display with the response
-      setProfile(updated);
+      const updated = await guideResource.update(guideId, payload);
 
       // Sync safe public fields into SessionContext.
       // Password is intentionally excluded — never stored in session.

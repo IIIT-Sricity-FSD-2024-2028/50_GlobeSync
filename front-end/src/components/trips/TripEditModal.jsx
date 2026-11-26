@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { tripsApi } from '../../services/api';
 import {
   getBookingDateBounds,
   getMaxCustomEndDate,
@@ -130,11 +129,8 @@ export default function TripEditModal({ trip = null, isOpen = true, onClose, onS
         endDate: formData.endDate,
       };
 
-      // Calls PUT /trips/:id — verified traveler endpoint
-      const updatedTrip = await tripsApi.update(trip.tripId, payload);
-
-      // Notify parent to update state with the fresh response from the backend
-      onSave(updatedTrip);
+      // Parent owns the Redux mutation and returns the authoritative record.
+      await onSave(payload, trip.tripId);
     } catch (err) {
       console.error('[TripEditModal] Failed to update trip:', err);
       setSaveError(err.message || 'Failed to update trip on backend.');

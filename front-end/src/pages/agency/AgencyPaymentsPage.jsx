@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { paymentsApi, refundsApi, tripsApi, bookingsApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import SummaryCard from '../../components/common/SummaryCard';
 import StatusBadge from '../../components/common/StatusBadge';
 
@@ -15,63 +15,24 @@ export default function AgencyPaymentsPage() {
   const { user } = useSession();
   const agencyId = Number(user?.agencyId || user?.agency_id || user?.id || 1);
 
-  const [payments, setPayments] = useState([]);
-  const [refunds, setRefunds] = useState([]);
-  const [trips, setTrips] = useState([]);
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const paymentResource = useResource('payments', { scope: 'getByAgency', id: agencyId }, { load: Boolean(agencyId) });
+  const refundResource = useResource('refunds', { scope: 'getByAgency', id: agencyId }, { load: Boolean(agencyId) });
+  const tripResource = useResource('trips', { scope: 'getByAgency', id: agencyId }, { load: Boolean(agencyId) });
+  const bookingResource = useResource('bookings', { scope: 'getByAgency', id: agencyId }, { load: Boolean(agencyId) });
+  const payments = paymentResource.items;
+  const refunds = refundResource.items;
+  const trips = tripResource.items;
+  const bookings = bookingResource.items;
+  const loading = paymentResource.status === 'loading';
+  const error = paymentResource.error || refundResource.error || tripResource.error || bookingResource.error;
 
   // Filter: 'all', 'paid', 'pending', 'refunded'
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const loadData = async (signal) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [paymentsData, refundsData, tripsData, bookingsData] = await Promise.all([
-        paymentsApi.getByAgency(agencyId, { signal }).catch((err) => {
-          console.warn('Payments load notice:', err);
-          return [];
-        }),
-        refundsApi.getByAgency(agencyId, { signal }).catch((err) => {
-          console.warn('Refunds load notice:', err);
-          return [];
-        }),
-        tripsApi.getByAgency(agencyId, { signal }).catch((err) => {
-          console.warn('Trips load notice:', err);
-          return [];
-        }),
-        bookingsApi.getByAgency(agencyId, { signal }).catch((err) => {
-          console.warn('Bookings load notice:', err);
-          return [];
-        }),
-      ]);
-
-      if (!signal?.aborted) {
-        setPayments(Array.isArray(paymentsData) ? paymentsData : []);
-        setRefunds(Array.isArray(refundsData) ? refundsData : []);
-        setTrips(Array.isArray(tripsData) ? tripsData : []);
-        setBookings(Array.isArray(bookingsData) ? bookingsData : []);
-      }
-    } catch (err) {
-      if (!signal?.aborted) {
-        console.error('Failed to load agency payments ledger:', err);
-        setError(err.message || 'Failed to load payments from backend.');
-      }
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    if (agencyId) {
-      loadData(controller.signal);
-    }
-    return () => controller.abort();
-  }, [agencyId]);
+  const loadData = () => Promise.all([
+    paymentResource.refresh(), refundResource.refresh(), tripResource.refresh(), bookingResource.refresh(),
+  ]);
 
   const tripsMap = useMemo(() => {
     const map = {};

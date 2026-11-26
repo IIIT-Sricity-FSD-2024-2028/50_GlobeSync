@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { itinerariesApi } from '../../services/api';
 
 /**
  * ItineraryForm: Controlled form component for adding and editing itinerary entries
@@ -139,8 +138,7 @@ export default function ItineraryForm({
           activityStatus: formData.activityStatus,
         };
 
-        const updated = await itinerariesApi.update(editingItem.itineraryId, payload);
-        onSave(updated, true);
+        await onSave(payload, true, editingItem.itineraryId);
       } else {
         // Calls POST /itineraries (ownership verified by backend RolesGuard)
         const payload = {
@@ -152,7 +150,7 @@ export default function ItineraryForm({
           activityStatus: formData.activityStatus,
         };
 
-        const created = await itinerariesApi.create(payload);
+        await onSave(payload, false, null);
         setFormData({
           dayNumber: 1,
           city: selectedTrip?.destination || '',
@@ -161,7 +159,6 @@ export default function ItineraryForm({
           activityStatus: 'Pending',
         });
         setErrors({});
-        onSave(created, false);
       }
     } catch (err) {
       console.error('[ItineraryForm] Failed to save itinerary:', err);

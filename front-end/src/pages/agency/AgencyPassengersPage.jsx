@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { passengersApi, tripsApi, agencyApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import SummaryCard from '../../components/common/SummaryCard';
 import PassengerModal from '../../components/agency/PassengerModal';
 
@@ -8,10 +8,12 @@ export default function AgencyPassengersPage() {
   const { user } = useSession();
   const agencyId = Number(user?.agencyId || user?.agency_id || user?.id || 1);
 
-  const [passengers, setPassengers] = useState([]);
-  const [trips, setTrips] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const passengerResource = useResource('passengers', { scope: 'getByAgency', id: agencyId }, { load: Boolean(agencyId) });
+  const tripResource = useResource('trips', { scope: 'getByAgency', id: agencyId }, { load: Boolean(agencyId) });
+  const passengers = passengerResource.items;
+  const trips = tripResource.items;
+  const loading = passengerResource.status === 'loading' || tripResource.status === 'loading';
+  const error = passengerResource.error || tripResource.error;
   const [searchTerm, setSearchTerm] = useState('');
 
   // Modals state
@@ -30,37 +32,6 @@ export default function AgencyPassengersPage() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const loadData = async (signal) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [passData, tripsData] = await Promise.all([
-        passengersApi.getByAgency(agencyId, { signal }),
-        tripsApi.getByAgency(agencyId, { signal }).catch(() => []),
-      ]);
-
-      if (!signal?.aborted) {
-        setPassengers(Array.isArray(passData) ? passData : []);
-        setTrips(Array.isArray(tripsData) ? tripsData : []);
-      }
-    } catch (err) {
-      if (!signal?.aborted) {
-        console.error('Failed to load agency passengers:', err);
-        setError(err.message || 'Failed to load passengers roster from backend.');
-      }
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    if (agencyId) {
-      loadData(controller.signal);
-    }
-    return () => controller.abort();
-  }, [agencyId]);
-
   // Count trips booked for each passenger
   const tripCountByPassenger = useMemo(() => {
     const counts = new Map();
@@ -76,13 +47,12 @@ export default function AgencyPassengersPage() {
 
   const handleCreateOrUpdate = async (payload, passId) => {
     if (passId) {
-      await passengersApi.update(passId, payload);
+      await passengerResource.update(passId, payload);
       showToast(`Passenger #${passId} updated successfully! ✓`);
     } else {
-      await passengersApi.create(payload);
+      await passengerResource.create(payload);
       showToast('New passenger saved to your agency roster! ✓');
     }
-    await loadData();
   };
 
   const handleConfirmDelete = async () => {
@@ -90,10 +60,9 @@ export default function AgencyPassengersPage() {
     const targetId = Number(deletingPassenger.passId || deletingPassenger.id);
     setDeleting(true);
     try {
-      await passengersApi.delete(targetId);
+      await passengerResource.remove(targetId);
       showToast(`Passenger #${targetId} removed from roster. ✓`);
       setDeletingPassenger(null);
-      await loadData();
     } catch (err) {
       console.error('Delete passenger error:', err);
       showToast(`Delete failed: ${err.message || 'Cannot delete passenger'}`);

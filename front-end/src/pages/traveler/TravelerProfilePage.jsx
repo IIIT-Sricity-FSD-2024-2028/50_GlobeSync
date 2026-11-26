@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { travelersApi, passengersApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import ProfileForm from '../../components/profile/ProfileForm';
 import PassengerList from '../../components/passengers/PassengerList';
 import PassengerFormModal from '../../components/passengers/PassengerFormModal';
@@ -19,11 +19,6 @@ import Toast from '../../components/common/Toast';
  */
 export default function TravelerProfilePage() {
   const { user, updateUser } = useSession();
-
-  const [traveler, setTraveler] = useState(null);
-  const [passengers, setPassengers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   // Passenger Modal State
   const [isPassengerModalOpen, setIsPassengerModalOpen] = useState(false);
@@ -46,80 +41,26 @@ export default function TravelerProfilePage() {
   const [passengersWarning, setPassengersWarning] = useState(null);
 
   const travelerId = Number(user?.travelerId || user?.traveler_id || user?.id);
-
-  const loadData = async (signal) => {
-    if (!travelerId) {
-      setLoading(false);
-      setError('No authenticated traveler ID found. Please log in.');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setPassengersWarning(null);
-
-    try {
-      // Parallel loading: Traveler profile is required; passenger list is secondary
-      const [travelerRes, passengersRes] = await Promise.allSettled([
-        travelersApi.getById(travelerId, { signal }),
-        passengersApi.getByTraveler(travelerId, { signal }),
-      ]);
-
-      if (signal?.aborted) return;
-
-      // 1. Required: Traveler Profile
-      if (travelerRes.status === 'fulfilled') {
-        setTraveler(travelerRes.value);
-      } else if (!travelerRes.reason?.isCancelled) {
-        console.error('[TravelerProfilePage] Failed to load traveler profile:', travelerRes.reason);
-        setError(travelerRes.reason?.message || 'Failed to load profile records from backend.');
-      }
-
-      // 2. Secondary: Saved Co-Travelers Master List
-      if (passengersRes.status === 'fulfilled') {
-        setPassengers(Array.isArray(passengersRes.value) ? passengersRes.value : []);
-      } else if (!passengersRes.reason?.isCancelled) {
-        console.warn('[TravelerProfilePage] Failed to load passengers:', passengersRes.reason);
-        setPassengers([]);
-        setPassengersWarning(
-          passengersRes.reason?.message || 'Saved co-traveler records are temporarily unavailable.'
-        );
-      }
-    } catch (err) {
-      if (!err.isCancelled && !signal?.aborted) {
-        console.error('[TravelerProfilePage] Failed to load profile data:', err);
-        setError(err.message || 'Failed to load profile records from backend.');
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
-  };
+  const travelerResource = useResource('travelers', { scope: 'getById', id: travelerId }, { load: Boolean(travelerId) });
+  const passengerResource = useResource('passengers', { scope: 'getByTraveler', id: travelerId }, { load: Boolean(travelerId) });
+  const traveler = travelerResource.items[0] || null;
+  const passengers = passengerResource.items;
+  const loading = travelerResource.status === 'loading';
+  const error = travelerResource.error;
 
   // Dedicated retry for secondary passenger list
   const retryPassengers = async () => {
     try {
       setPassengersWarning(null);
-      const data = await passengersApi.getByTraveler(travelerId);
-      setPassengers(Array.isArray(data) ? data : []);
+      await passengerResource.refresh();
     } catch (err) {
       setPassengersWarning(err.message || 'Could not reach co-traveler service.');
     }
   };
 
-  useEffect(() => {
-    const controller = new AbortController();
-    loadData(controller.signal);
-
-    return () => {
-      controller.abort();
-    };
-  }, [travelerId]);
-
   // Handler: Profile saved successfully
-  const handleProfileSaved = (updatedTraveler) => {
-    setTraveler(updatedTraveler);
+  const handleProfileSaved = async (payload, id) => {
+    const updatedTraveler = await travelerResource.update(id, payload);
 
     // Update session so header, sidebar, and hero banner update immediately
     if (updateUser) {
@@ -134,23 +75,22 @@ export default function TravelerProfilePage() {
 
     setActionMessage('Profile details updated successfully! Active session synchronized.');
     setTimeout(() => setActionMessage(null), 4000);
+    return updatedTraveler;
   };
 
   // Handler: Passenger saved successfully (create or update)
-  const handlePassengerSaved = (savedPassenger, isEdit) => {
+  const handlePassengerSaved = async (payload, isEdit, id) => {
+    const savedPassenger = isEdit
+      ? await passengerResource.update(id, payload)
+      : await passengerResource.create(payload);
     if (isEdit) {
-      // Immutable update: Replace matching passenger in array
-      setPassengers((prev) =>
-        prev.map((p) => (p.passId === savedPassenger.passId ? savedPassenger : p))
-      );
       setActionMessage(`Passenger "${savedPassenger.name}" updated successfully.`);
     } else {
-      // Immutable update: Append new passenger to array
-      setPassengers((prev) => [...prev, savedPassenger]);
       setActionMessage(`Passenger "${savedPassenger.name}" added to Master List.`);
     }
 
     setTimeout(() => setActionMessage(null), 4000);
+    return savedPassenger;
   };
 
   // Handler: Delete saved passenger with confirmation
@@ -161,11 +101,7 @@ export default function TravelerProfilePage() {
     if (!confirmDelete) return;
 
     try {
-      // Calls DELETE /passengers/:id (verified permitted for Traveler owner)
-      await passengersApi.delete(passenger.passId);
-
-      // Immutable state update
-      setPassengers((prev) => prev.filter((p) => p.passId !== passenger.passId));
+      await passengerResource.remove(passenger.passId);
       setActionMessage(`Passenger "${passenger.name}" removed from Master List.`);
       setTimeout(() => setActionMessage(null), 4000);
     } catch (err) {
@@ -283,7 +219,7 @@ export default function TravelerProfilePage() {
           <div style={{ fontSize: '36px', marginBottom: '8px' }}>⚠️</div>
           <h4 style={{ fontSize: '17px', fontWeight: 800 }}>Failed to load profile</h4>
           <p style={{ fontSize: '14px', margin: '8px 0 16px' }}>{error}</p>
-          <button type="button" onClick={() => loadData()} className="btn btn-primary">
+          <button type="button" onClick={() => travelerResource.refresh()} className="btn btn-primary">
             Retry Connection ↺
           </button>
         </div>

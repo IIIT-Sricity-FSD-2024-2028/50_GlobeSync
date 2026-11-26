@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import { supportTicketsApi, agencyApi, tripsApi } from '../../services/api';
+import { agencyApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import SummaryCard from '../../components/common/SummaryCard';
 import StatusBadge from '../../components/common/StatusBadge';
 import Toast from '../../components/common/Toast';
@@ -46,10 +47,12 @@ export default function AgencySupportPage() {
   const [searchParams] = useSearchParams();
   const agencyId = Number(user?.agencyId || user?.agency_id || user?.id || 1);
 
-  const [tickets, setTickets] = useState([]);
-  const [agencyTrips, setAgencyTrips] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const ticketResource = useResource('supportTickets', { scope: 'getByAgency', id: agencyId }, { load: Boolean(agencyId) });
+  const tripResource = useResource('trips', { scope: 'getByAgency', id: agencyId }, { load: Boolean(agencyId) });
+  const tickets = ticketResource.items;
+  const agencyTrips = tripResource.items;
+  const loading = ticketResource.status === 'loading';
+  const error = ticketResource.error || tripResource.error;
   const [toast, setToast] = useState(null);
 
   // New ticket modal
@@ -88,36 +91,7 @@ export default function AgencySupportPage() {
     }
   }, [searchParams]);
 
-  const loadData = async (signal) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [ticketsData, tripsData] = await Promise.all([
-        supportTicketsApi.getByAgency(agencyId, { signal }).catch(() => []),
-        tripsApi.getByAgency(agencyId, { signal }).catch(() => []),
-      ]);
-
-      if (!signal?.aborted) {
-        setTickets(Array.isArray(ticketsData) ? ticketsData : []);
-        setAgencyTrips(Array.isArray(tripsData) ? tripsData : []);
-      }
-    } catch (err) {
-      if (!signal?.aborted) {
-        console.error('Failed to load agency tickets:', err);
-        setError(err.message || 'Failed to load support tickets.');
-      }
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    if (agencyId) {
-      loadData(controller.signal);
-    }
-    return () => controller.abort();
-  }, [agencyId]);
+  const loadData = () => Promise.all([ticketResource.refresh(), tripResource.refresh()]);
 
   // Scroll conversation to bottom on update
   useEffect(() => {
@@ -173,7 +147,7 @@ export default function AgencySupportPage() {
         status: 'Open',
       };
 
-      const created = await supportTicketsApi.create(payload);
+      const created = await ticketResource.create(payload);
       setShowCreateModal(false);
       setDescription('');
       setSelectedTripId('');

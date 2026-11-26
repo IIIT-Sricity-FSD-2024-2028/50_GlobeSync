@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import { dashboardApi, guidesApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import GuideStatsGrid from '../../components/guide/GuideStatsGrid';
 import GuideProfileCard from '../../components/guide/GuideProfileCard';
 import GuideQuickActions from '../../components/guide/GuideQuickActions';
@@ -10,8 +10,7 @@ import './guide.css';
 /**
  * GuideDashboardPage
  * Primary dashboard view for authenticated guides.
- * - Fetches real assignment metrics using dashboardApi.getGuide(guideId)
- * - Fetches real guide profile using guidesApi.getById(guideId)
+ * - Fetches assignment metrics and guide profile through Redux resources
  * - Shows assignedTripsCount, completedTripsCount, pendingRequests, messagesCount
  * - Does not invent missing ratings or prices
  * - Labels pricePerTrip accurately as Price per Trip
@@ -23,84 +22,30 @@ export default function GuideDashboardPage() {
   const guideId = user?.guideId ?? user?.id;
 
   // Component state
-  const [stats, setStats] = useState({
-    assignedTripsCount: 0,
-    completedTripsCount: 0,
-    pendingRequests: 0,
-    messagesCount: 0,
-  });
-  const [guideProfile, setGuideProfile] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState(null);
+  const dashboardResource = useResource('guideDashboard', { guideId }, { load: Boolean(guideId) });
+  const guideResource = useResource('guides', { scope: 'getById', id: guideId }, { load: Boolean(guideId) });
+  const dashData = dashboardResource.items[0] || {};
+  const stats = {
+    assignedTripsCount: Number(dashData.assignedTripsCount) || 0,
+    completedTripsCount: Number(dashData.completedTripsCount) || 0,
+    pendingRequests: Number(dashData.pendingRequests) || 0,
+    messagesCount: Number(dashData.messagesCount) || 0,
+  };
+  const guideProfile = guideResource.items[0] || user;
+  const isLoading = dashboardResource.status === 'loading' || guideResource.status === 'loading';
+  const errorMessage = dashboardResource.error || guideResource.error;
   const [lastUpdated, setLastUpdated] = useState(null);
 
   // Named fetch handler with AbortController support
-  const fetchDashboardData = async (signal) => {
-    if (!guideId) {
-      setIsLoading(false);
-      setErrorMessage('No active guide identifier found in current session.');
-      return;
-    }
-
-    setIsLoading(true);
-    setErrorMessage(null);
-
-    try {
-      // 1. Fetch dashboard metrics and guide details concurrently
-      const [dashData, profileData] = await Promise.all([
-        dashboardApi.getGuide(guideId, { signal }),
-        guidesApi.getById(guideId, { signal }).catch((err) => {
-          // If guide profile endpoint fails or is unauthorized, log and fallback to user session
-          console.warn('[GuideDashboard] Could not fetch guide profile from API, using session data:', err);
-          return null;
-        }),
-      ]);
-
-      if (dashData) {
-        setStats({
-          assignedTripsCount: Number(dashData.assignedTripsCount) || 0,
-          completedTripsCount: Number(dashData.completedTripsCount) || 0,
-          pendingRequests: Number(dashData.pendingRequests) || 0,
-          messagesCount: Number(dashData.messagesCount) || 0,
-        });
-      }
-
-      if (profileData) {
-        setGuideProfile(profileData);
-      } else {
-        // Fallback to active user session data
-        setGuideProfile(user);
-      }
-
-      setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-    } catch (err) {
-      if (err.isCancelled) return;
-      console.error('[GuideDashboard] Failed to fetch dashboard data:', err);
-      setErrorMessage(err.message || 'Failed to load dashboard metrics. Please check network or backend connection.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Purposeful useEffect to load data on mount or when guideId changes
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchDashboardData(controller.signal);
-
-    return () => {
-      controller.abort();
-    };
-  }, [guideId]);
+  const fetchDashboardData = () => Promise.all([dashboardResource.refresh(), guideResource.refresh()]);
 
   // Named event handlers
   const handleRefresh = () => {
-    const controller = new AbortController();
-    fetchDashboardData(controller.signal);
+    fetchDashboardData();
   };
 
   const handleRetry = () => {
-    const controller = new AbortController();
-    fetchDashboardData(controller.signal);
+    fetchDashboardData();
   };
 
   const guideDisplayName = guideProfile?.name || user?.name || 'Guide';

@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import { supportTicketsApi, bookingsApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import TicketForm from '../../components/support/TicketForm';
 import TicketList from '../../components/support/TicketList';
 
@@ -10,89 +10,32 @@ export default function TravelerSupportPage() {
   const [searchParams] = useSearchParams();
   const travelerId = Number(user?.travelerId || user?.traveler_id || user?.id);
 
-  const [tickets, setTickets] = useState([]);
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [bookingsWarning, setBookingsWarning] = useState(null);
   const [successBanner, setSuccessBanner] = useState(null);
-
-  const loadData = async (signal) => {
-    if (!travelerId) {
-      setLoading(false);
-      setError('No authenticated traveler session found. Please log in.');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setBookingsWarning(null);
-
-    try {
-      // Parallel loading distinguishing required tickets from optional bookings
-      const [ticketsRes, bookingsRes] = await Promise.allSettled([
-        supportTicketsApi.getByTraveler(travelerId, { signal }),
-        bookingsApi.getByTraveler(travelerId, { signal }),
-      ]);
-
-      if (signal?.aborted) return;
-
-      // 1. Primary Required: Support Tickets
-      if (ticketsRes.status === 'fulfilled') {
-        setTickets(Array.isArray(ticketsRes.value) ? ticketsRes.value : []);
-      } else if (!ticketsRes.reason?.isCancelled) {
-        setError(ticketsRes.reason?.message || 'Failed to load support tickets from backend.');
-      }
-
-      // 2. Secondary Optional: Bookings for linking exceptions
-      if (bookingsRes.status === 'fulfilled') {
-        setBookings(Array.isArray(bookingsRes.value) ? bookingsRes.value : []);
-        setBookingsWarning(null);
-      } else if (!bookingsRes.reason?.isCancelled) {
-        setBookings([]);
-        if (ticketsRes.status === 'fulfilled') {
-          setBookingsWarning(
-            'Your travel bookings list is temporarily unavailable. You can still submit support tickets without linking a booking.'
-          );
-        }
-      }
-    } catch (err) {
-      if (!err.isCancelled && !signal?.aborted) {
-        console.error('[TravelerSupportPage] Error loading support data:', err);
-        setError(err.message || 'Failed to load support records from backend.');
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
-  };
+  const ticketResource = useResource('supportTickets', { scope: 'getByTraveler', id: travelerId }, { load: Boolean(travelerId) });
+  const bookingResource = useResource('bookings', { scope: 'getByTraveler', id: travelerId }, { load: Boolean(travelerId) });
+  const tickets = ticketResource.items;
+  const bookings = bookingResource.items;
+  const loading = ticketResource.status === 'loading';
+  const error = ticketResource.error;
 
   const retryBookings = async () => {
     try {
-      const data = await bookingsApi.getByTraveler(travelerId);
-      setBookings(Array.isArray(data) ? data : []);
+      await bookingResource.refresh();
       setBookingsWarning(null);
     } catch (err) {
       console.warn('[SupportPage] Retry bookings failed:', err);
     }
   };
 
-  useEffect(() => {
-    const controller = new AbortController();
-    loadData(controller.signal);
-
-    return () => {
-      controller.abort();
-    };
-  }, [travelerId]);
-
   // Handler: Child callback when TicketForm creates a new ticket
   const handleTicketCreated = (newTicket) => {
-    // Immutable append of newly created ticket to the tickets state
-    setTickets((prev) => [newTicket, ...prev]);
     setSuccessBanner(`Support Ticket #TICK-${newTicket.ticketId} has been submitted successfully!`);
     setTimeout(() => setSuccessBanner(null), 5000);
+  };
+
+  const handleCreateTicket = async (payload) => {
+    return ticketResource.create(payload);
   };
 
   const openTicketsCount = tickets.filter((t) => t.status === 'Open' || t.status === 'In Progress').length;
@@ -244,7 +187,7 @@ export default function TravelerSupportPage() {
           <p style={{ fontSize: '13px', margin: '4px 0 14px' }}>{error}</p>
           <button
             type="button"
-            onClick={() => loadData()}
+            onClick={() => ticketResource.refresh()}
             className="btn btn-primary"
             style={{ padding: '8px 18px', fontSize: '13px' }}
           >
@@ -304,6 +247,7 @@ export default function TravelerSupportPage() {
             bookings={bookings}
             initialContext={supportPrefill}
             onTicketCreated={handleTicketCreated}
+            onSubmitTicket={handleCreateTicket}
           />
         </div>
 
@@ -313,7 +257,7 @@ export default function TravelerSupportPage() {
             tickets={tickets}
             travelerName={user?.name || 'Traveler'}
             isLoading={loading}
-            onRefresh={() => loadData()}
+            onRefresh={() => ticketResource.refresh()}
           />
 
           {/* Frequently Asked Questions Card */}

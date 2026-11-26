@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { travelersApi } from '../../services/api';
 
 /**
  * ProfileForm: Controlled form for updating traveler personal details and changing password.
@@ -106,13 +105,10 @@ export default function ProfileForm({
     };
 
     try {
-      const travelerId = Number(traveler.travelerId || traveler.id);
-      // Calls PUT /travelers/:id
-      const updated = await travelersApi.update(travelerId, payload);
+      const updated = await onSaveSuccess(payload, Number(traveler.travelerId || traveler.id));
 
       // Clear password fields on successful save
       setFormData((prev) => ({ ...prev, password: '', confirmPassword: '' }));
-      onSaveSuccess(updated);
     } catch (err) {
       console.error('[ProfileForm] Profile update failed:', err);
       setBackendError(err.message || 'Failed to update profile.');

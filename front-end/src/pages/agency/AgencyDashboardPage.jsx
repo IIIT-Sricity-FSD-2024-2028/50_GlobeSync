@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import { tripsApi, passengersApi, agencyApi, agenciesApi, packagesApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import SummaryCard from '../../components/common/SummaryCard';
 import StatusBadge from '../../components/common/StatusBadge';
 
@@ -21,50 +21,19 @@ export default function AgencyDashboardPage() {
   const navigate = useNavigate();
   const agencyId = Number(user?.agencyId || user?.agency_id || user?.id || 1);
 
-  const [agencyProfile, setAgencyProfile] = useState(user || null);
-  const [trips, setTrips] = useState([]);
-  const [passengers, setPassengers] = useState([]);
-  const [commissions, setCommissions] = useState([]);
-  const [packages, setPackages] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const loadDashboardData = async (signal) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [tripsData, passengersData, commissionsData, agencyData, packagesData] = await Promise.all([
-        tripsApi.getByAgency(agencyId, { signal }).catch(() => []),
-        passengersApi.getByAgency(agencyId, { signal }).catch(() => []),
-        agencyApi.getCommissions({ signal }).catch(() => []),
-        agenciesApi.getById(agencyId, { signal }).catch(() => null),
-        packagesApi.getAll({ signal }).catch(() => []),
-      ]);
-
-      if (!signal?.aborted) {
-        setTrips(Array.isArray(tripsData) ? tripsData : []);
-        setPassengers(Array.isArray(passengersData) ? passengersData : []);
-        setCommissions(Array.isArray(commissionsData) ? commissionsData : []);
-        if (agencyData) setAgencyProfile(agencyData);
-        if (Array.isArray(packagesData)) setPackages(packagesData.slice(0, 4));
-      }
-    } catch (err) {
-      if (!signal?.aborted) {
-        console.error('Agency dashboard data load error:', err);
-        setError(err.message || 'Failed to load agency dashboard metrics.');
-      }
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    if (agencyId) {
-      loadDashboardData(controller.signal);
-    }
-    return () => controller.abort();
-  }, [agencyId]);
+  const tripResource = useResource('trips', { scope: 'getByAgency', id: agencyId }, { load: Boolean(agencyId) });
+  const passengerResource = useResource('passengers', { scope: 'getByAgency', id: agencyId }, { load: Boolean(agencyId) });
+  const commissionResource = useResource('agencyCommissions');
+  const agencyResource = useResource('agencies', { scope: 'getById', id: agencyId }, { load: Boolean(agencyId) });
+  const packageResource = useResource('packages');
+  const agencyProfile = agencyResource.items[0] || user || null;
+  const trips = tripResource.items;
+  const passengers = passengerResource.items;
+  const commissions = commissionResource.items;
+  const packages = packageResource.items.slice(0, 4);
+  const loading = [tripResource, passengerResource, commissionResource, agencyResource, packageResource]
+    .some((resource) => resource.status === 'loading');
+  const error = tripResource.error || passengerResource.error || commissionResource.error || agencyResource.error || packageResource.error;
 
   const businessName = agencyProfile?.businessName || user?.businessName || 'Horizon Travel Partners';
   const commissionRate = agencyProfile?.commissionRate ?? user?.commissionRate ?? 10.0;

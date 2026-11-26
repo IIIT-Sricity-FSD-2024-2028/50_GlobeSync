@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import { packagesApi, agenciesApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import AgencyResellModal from '../../components/agency/AgencyResellModal';
 
 export default function AgencyPackagesPage() {
@@ -9,10 +9,12 @@ export default function AgencyPackagesPage() {
   const navigate = useNavigate();
   const agencyId = Number(user?.agencyId || user?.agency_id || user?.id || 1);
 
-  const [agencyProfile, setAgencyProfile] = useState(null);
-  const [packages, setPackages] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const packageResource = useResource('packages');
+  const agencyResource = useResource('agencies', { scope: 'getById', id: agencyId }, { load: Boolean(agencyId) });
+  const agencyProfile = agencyResource.items[0] || null;
+  const packages = packageResource.items;
+  const loading = packageResource.status === 'loading' || agencyResource.status === 'loading';
+  const error = packageResource.error || agencyResource.error;
 
   // Filters State
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,38 +31,6 @@ export default function AgencyPackagesPage() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const loadPackagesAndAgency = async (signal) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [pkgsData, agencyData] = await Promise.all([
-        packagesApi.getAll({ signal }),
-        agenciesApi.getById(agencyId, { signal }).catch(() => null),
-      ]);
-
-      if (!signal?.aborted) {
-        if (Array.isArray(pkgsData)) {
-          setPackages(pkgsData);
-        }
-        if (agencyData) {
-          setAgencyProfile(agencyData);
-        }
-      }
-    } catch (err) {
-      if (!signal?.aborted) {
-        console.error('Failed to load packages:', err);
-        setError(err.message || 'Failed to load tour packages catalog.');
-      }
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    loadPackagesAndAgency(controller.signal);
-    return () => controller.abort();
-  }, [agencyId]);
 
   const commissionRate = useMemo(() => {
     if (agencyProfile?.commissionRate !== undefined && agencyProfile?.commissionRate !== null) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import { tripsApi, agencyApi, passengersApi, bookingsApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import StatusBadge from '../../components/common/StatusBadge';
 import SummaryCard from '../../components/common/SummaryCard';
 import AgencyCreateTripWizard from '../../components/agency/AgencyCreateTripWizard';
@@ -15,14 +15,24 @@ export default function AgencyTripsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const agencyId = Number(user?.agencyId || user?.agency_id || user?.id || 1);
-  const [agencyProfile, setAgencyProfile] = useState(null);
+  const agencyResource = useResource('agencies', { scope: 'getById', id: agencyId }, { load: Boolean(agencyId) });
+  const tripResource = useResource('trips', { scope: 'getByAgency', id: agencyId }, { load: Boolean(agencyId) });
+  const passengerResource = useResource('passengers', { scope: 'getByAgency', id: agencyId }, { load: Boolean(agencyId) });
+  const bookingResource = useResource('bookings', { scope: 'getByAgency', id: agencyId }, { load: Boolean(agencyId) });
+  const agencyProfile = agencyResource.items[0] || null;
   const commissionRate = Number(agencyProfile?.commissionRate ?? user?.commissionRate ?? 1.5);
 
-  const [trips, setTrips] = useState([]);
-  const [bookings, setBookings] = useState([]);
-  const [passengers, setPassengers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const trips = tripResource.items;
+  const bookings = bookingResource.items;
+  const passengers = passengerResource.items;
+  const loading = tripResource.status === 'loading';
+  const error = tripResource.error || passengerResource.error || bookingResource.error || agencyResource.error;
+  const loadData = () => Promise.all([
+    tripResource.refresh(),
+    passengerResource.refresh(),
+    bookingResource.refresh(),
+    agencyResource.refresh(),
+  ]);
 
   // View state: 'list' | 'create'
   const [viewMode, setViewMode] = useState(searchParams.get('create') === 'true' ? 'create' : 'list');
@@ -61,40 +71,6 @@ export default function AgencyTripsPage() {
     }
   };
 
-  const loadData = async (signal) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [tripsData, passengersData, profData, bookingsData] = await Promise.all([
-        tripsApi.getByAgency(agencyId, { signal }),
-        passengersApi.getByAgency(agencyId, { signal }).catch(() => []),
-        agencyApi.getProfile({ signal }).catch(() => null),
-        bookingsApi.getByAgency(agencyId, { signal }).catch(() => []),
-      ]);
-
-      if (!signal?.aborted) {
-        setTrips(Array.isArray(tripsData) ? tripsData : []);
-        setPassengers(Array.isArray(passengersData) ? passengersData : []);
-        setBookings(Array.isArray(bookingsData) ? bookingsData : []);
-        if (profData) setAgencyProfile(profData);
-      }
-    } catch (err) {
-      if (!signal?.aborted) {
-        console.error('Failed to load agency trips:', err);
-        setError(err.message || 'Failed to load trips from backend.');
-      }
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    if (agencyId) {
-      loadData(controller.signal);
-    }
-    return () => controller.abort();
-  }, [agencyId]);
 
   // Passenger map for fast lookup
   const passengerMap = useMemo(() => {

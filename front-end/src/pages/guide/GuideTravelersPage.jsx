@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { tripsApi, travelersApi, agenciesApi, bookingsApi, itinerariesApi, messagesApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import GuideTravelerRoster from '../../components/guide/GuideTravelerRoster';
 import GuideTravelerProfile from '../../components/guide/GuideTravelerProfile';
 import GuideActivityModal from '../../components/guide/GuideActivityModal';
@@ -27,6 +27,12 @@ import './guide.css';
 export default function GuideTravelersPage() {
   const { user } = useSession();
   const guideId = user?.guideId ?? user?.id;
+  const tripResource = useResource('trips', { scope: 'getByGuide', id: guideId }, { load: Boolean(guideId) });
+  const bookingResource = useResource('bookings', { scope: 'getByGuide', id: guideId }, { load: Boolean(guideId) });
+  const itineraryResource = useResource('itineraries', undefined, { load: false });
+  const messageResource = useResource('messages', undefined, { load: false });
+  const travelerResource = useResource('travelers');
+  const agencyResource = useResource('agencies', { scope: 'getLookup' }, { load: false });
 
   // Primary data state
   const [contacts, setContacts] = useState([]);
@@ -35,7 +41,7 @@ export default function GuideTravelersPage() {
   const [selectedTripId, setSelectedTripId] = useState(null);
 
   // Itinerary state for active trip
-  const [itineraries, setItineraries] = useState([]);
+  const itineraries = itineraryResource.items;
   const [isLoadingItineraries, setIsLoadingItineraries] = useState(false);
 
   // UI / Async action states
@@ -72,20 +78,20 @@ export default function GuideTravelersPage() {
       const warnings = [];
 
       const [tripsData, travelersData, agenciesData, bookingsData] = await Promise.all([
-        tripsApi.getByGuide(guideId, { signal }),
-        travelersApi.getAll({ signal }).catch((err) => {
+        tripResource.refresh(),
+        travelerResource.refresh().catch((err) => {
           if (err.isCancelled || signal?.aborted) throw err;
           console.warn('[GuideTravelersPage] Could not fetch travelers:', err);
           warnings.push('Traveler directory could not be reached; traveler client names are displayed with fallback IDs.');
           return [];
         }),
-        agenciesApi.getLookup({ signal }).catch((err) => {
+        agencyResource.refresh().catch((err) => {
           if (err.isCancelled || signal?.aborted) throw err;
           console.warn('[GuideTravelersPage] Could not fetch agencies:', err);
           warnings.push('Agency directory could not be reached; partner agency business names are displayed with fallback IDs.');
           return [];
         }),
-        bookingsApi.getByGuide(guideId, { signal }).catch((err) => {
+        bookingResource.refresh().catch((err) => {
           if (err.isCancelled || signal?.aborted) throw err;
           console.warn('[GuideTravelersPage] Could not fetch scoped bookings:', err);
           warnings.push('Scoped booking accommodations could not be retrieved.');
@@ -225,30 +231,15 @@ export default function GuideTravelersPage() {
   // 2. Fetch Itineraries for Selected Trip
   useEffect(() => {
     if (!currentTrip?.tripId) {
-      setItineraries([]);
+      itineraryResource.replaceAll([]);
       return;
     }
 
-    const controller = new AbortController();
     setIsLoadingItineraries(true);
-
-    itinerariesApi
-      .getByTrip(currentTrip.tripId, { signal: controller.signal })
-      .then((data) => {
-        setItineraries(Array.isArray(data) ? data : []);
-      })
-      .catch((err) => {
-        if (err.isCancelled) return;
-        console.warn(`[GuideTravelersPage] Could not load itineraries for trip ${currentTrip.tripId}:`, err);
-        setItineraries([]);
-      })
-      .finally(() => {
-        setIsLoadingItineraries(false);
-      });
-
-    return () => {
-      controller.abort();
-    };
+    itineraryResource.refresh({ tripId: currentTrip.tripId }).catch((err) => {
+      console.warn(`[GuideTravelersPage] Could not load itineraries for trip ${currentTrip.tripId}:`, err);
+      itineraryResource.replaceAll([]);
+    }).finally(() => setIsLoadingItineraries(false));
   }, [currentTrip?.tripId]);
 
   // Trip Selection Handler
@@ -274,7 +265,7 @@ export default function GuideTravelersPage() {
     setIsUpdatingStatus(true);
     setFeedback(null);
     try {
-      await tripsApi.updateStatus(tripId, 'Active');
+      await tripResource.updateStatus([tripId, 'Active']);
       // Update state locally
       setContacts((prev) =>
         prev.map((c) => ({
@@ -307,7 +298,7 @@ export default function GuideTravelersPage() {
     setIsUpdatingStatus(true);
     setFeedback(null);
     try {
-      await tripsApi.updateStatus(tripId, 'Completed');
+      await tripResource.updateStatus([tripId, 'Completed']);
       // Update state locally
       setContacts((prev) =>
         prev.map((c) => ({
@@ -349,17 +340,13 @@ export default function GuideTravelersPage() {
     setIsActivitySubmitting(true);
     try {
       if (activityModalMode === 'edit' && editingActivity) {
-        const updated = await itinerariesApi.update(editingActivity.itineraryId, payload);
-        setItineraries((prev) =>
-          prev.map((i) => (i.itineraryId === editingActivity.itineraryId ? updated : i))
-        );
+        const updated = await itineraryResource.update(editingActivity.itineraryId, payload);
         setFeedback({
           type: 'success',
           text: `Itinerary activity "${updated.activity}" updated successfully.`,
         });
       } else {
-        const created = await itinerariesApi.create(payload);
-        setItineraries((prev) => [...prev, created]);
+        const created = await itineraryResource.create(payload);
         setFeedback({
           type: 'success',
           text: `New activity "${created.activity}" added to Day ${created.dayNumber}.`,
@@ -382,10 +369,7 @@ export default function GuideTravelersPage() {
   const handleUpdateActivityStatus = async (activityId, nextStatus) => {
     setIsUpdatingActivity(true);
     try {
-      const updated = await itinerariesApi.update(activityId, { activityStatus: nextStatus });
-      setItineraries((prev) =>
-        prev.map((i) => (i.itineraryId === activityId ? { ...i, activityStatus: nextStatus } : i))
-      );
+      await itineraryResource.update(activityId, { activityStatus: nextStatus });
       setFeedback({
         type: 'success',
         text: `Activity marked as ${nextStatus}.`,
@@ -412,7 +396,7 @@ export default function GuideTravelersPage() {
     const messageContent = `[Itinerary Proposal for ${currentTrip.destination} - Trip #${currentTrip.tripId}]\nDay: ${suggestionData.dayNumber} (${suggestionData.time || 'Flexible'})\nCategory: ${suggestionData.activityType}\nDetails: ${suggestionData.notes}\nEstimated Cost: ₹${suggestionData.estimatedCost.toLocaleString('en-IN')}`;
 
     try {
-      await messagesApi.create({
+      await messageResource.create({
         sender: 'guide',
         senderId: Number(guideId),
         receiver: receiverType,
@@ -421,11 +405,10 @@ export default function GuideTravelersPage() {
       });
 
       if (suggestionData?.createdItinerary) {
-        setItineraries((prev) => [...prev, suggestionData.createdItinerary]);
+        itineraryResource.upsert(suggestionData.createdItinerary);
       } else {
         try {
-          const fresh = await itinerariesApi.getByTrip(currentTrip.tripId);
-          setItineraries(Array.isArray(fresh) ? fresh : fresh?.data || []);
+          await itineraryResource.refresh({ tripId: currentTrip.tripId });
         } catch {}
       }
 

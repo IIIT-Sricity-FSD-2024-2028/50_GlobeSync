@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import { dashboardApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import SummaryCard from '../../components/common/SummaryCard';
 import StatusBadge from '../../components/common/StatusBadge';
 
@@ -25,54 +25,12 @@ import StatusBadge from '../../components/common/StatusBadge';
 export default function TravelerDashboardPage() {
   const { user } = useSession();
 
-  // Dashboard Data State
-  const [dashboardData, setDashboardData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
   const travelerId = Number(user?.travelerId || user?.traveler_id || user?.id);
-
-  // Load dashboard metrics from backend
-  const loadDashboard = async (signal) => {
-    if (!travelerId) {
-      setLoading(false);
-      setError('No authenticated traveler ID found. Please log in.');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Calls GET /dashboard/traveler/:travelerId
-      const data = await dashboardApi.getTraveler(travelerId, { signal });
-      if (!signal?.aborted) {
-        setDashboardData(data);
-      }
-    } catch (err) {
-      if (!err.isCancelled && !signal?.aborted) {
-        console.error('[TravelerDashboardPage] Failed to load dashboard:', err);
-        setError(err.message || 'Failed to load traveler dashboard records from backend.');
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    loadDashboard(controller.signal);
-
-    return () => {
-      controller.abort();
-    };
-  }, [travelerId]);
-
-  const handleRefresh = () => {
-    loadDashboard();
-  };
+  const dashboardResource = useResource('travelerDashboard', { travelerId }, { load: Boolean(travelerId) });
+  const dashboardData = dashboardResource.items[0] || null;
+  const loading = dashboardResource.status === 'loading';
+  const error = dashboardResource.error;
+  const handleRefresh = () => dashboardResource.refresh();
 
   return (
     <div className="traveler-dashboard-page" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -184,7 +142,7 @@ export default function TravelerDashboardPage() {
           <div style={{ fontSize: '36px', marginBottom: '8px' }}>⚠️</div>
           <h4 style={{ fontSize: '17px', fontWeight: 800 }}>Failed to load dashboard metrics</h4>
           <p style={{ fontSize: '14px', margin: '8px 0 16px' }}>{error}</p>
-          <button type="button" onClick={() => loadDashboard()} className="btn btn-primary">
+          <button type="button" onClick={handleRefresh} className="btn btn-primary">
             Retry Connection ↺
           </button>
         </div>

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { passengersApi } from '../../services/api';
 
 /**
  * PassengerFormModal: Controlled form modal for creating or editing saved co-traveler passengers.
@@ -105,8 +104,7 @@ export default function PassengerFormModal({
           gender: formData.gender,
         };
 
-        const updated = await passengersApi.update(editingPassenger.passId, payload);
-        onSave(updated, true);
+        await onSave(payload, true, passengerId);
       } else {
         // Calls POST /passengers (ownership verified by RolesGuard)
         const payload = {
@@ -116,8 +114,7 @@ export default function PassengerFormModal({
           travelerId: Number(travelerId),
         };
 
-        const created = await passengersApi.create(payload);
-        onSave(created, false);
+        await onSave(payload, false, null);
       }
       onClose();
     } catch (err) {

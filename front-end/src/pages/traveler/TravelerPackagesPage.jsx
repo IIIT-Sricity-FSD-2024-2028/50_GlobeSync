@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { packagesApi, ApiError } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import PackageFilter from '../../components/packages/PackageFilter';
 import PackageList from '../../components/packages/PackageList';
 import Modal from '../../components/common/Modal';
@@ -8,9 +8,8 @@ import { resolvePackageImage } from '../../components/packages/PackageCard';
 
 export default function TravelerPackagesPage() {
   // 1. Core data loading state
-  const [packages, setPackages] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { items: packages, status, error, refresh } = useResource('packages');
+  const loading = status === 'loading' || status === 'idle';
 
   // 2. Controlled filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,37 +20,6 @@ export default function TravelerPackagesPage() {
   // 3. Selection state for detail modal & planning
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [plannedPackageNotice, setPlannedPackageNotice] = useState(null);
-
-  // 4. Data loading effect with AbortController cleanup
-  const loadPackages = async (signal) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await packagesApi.getAll({ signal });
-      if (!signal?.aborted) {
-        setPackages(Array.isArray(data) ? data : []);
-      }
-    } catch (err) {
-      // Don't set error state if request was cancelled during component unmount
-      if (!err.isCancelled && !signal?.aborted) {
-        setError(err.message || 'Failed to connect to backend package service.');
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    loadPackages(controller.signal);
-
-    // Cleanup: cancel pending request when component unmounts
-    return () => {
-      controller.abort();
-    };
-  }, []);
 
   // 5. CALCULATE filtered list DURING RENDERING (No duplicate state or sync effects)
   const filteredPackages = packages
@@ -175,7 +143,7 @@ export default function TravelerPackagesPage() {
         error={error}
         onSelectPackage={handleSelectPackage}
         onPlanTrip={handlePlanTrip}
-        onRetry={() => loadPackages()}
+        onRetry={() => refresh()}
         onClearFilters={handleResetFilters}
       />
 

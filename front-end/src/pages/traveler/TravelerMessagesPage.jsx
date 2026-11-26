@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { messagesApi, guidesApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import ConversationList from '../../components/messages/ConversationList';
 import MessageThread from '../../components/messages/MessageThread';
 import MessageInput from '../../components/messages/MessageInput';
@@ -19,84 +19,26 @@ export default function TravelerMessagesPage() {
   const { user } = useSession();
   const travelerId = Number(user?.travelerId || user?.traveler_id || user?.id);
 
-  const [rawMessages, setRawMessages] = useState([]);
-  const [guides, setGuides] = useState([]);
   const [activeConvId, setActiveConvId] = useState(null);
   const [drafts, setDrafts] = useState({});
   const [sendErrors, setSendErrors] = useState({});
-  const [loading, setLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
-  const [error, setError] = useState(null);
   const [guidesWarning, setGuidesWarning] = useState(null);
-
-  const loadData = async (signal) => {
-    if (!travelerId) {
-      setLoading(false);
-      setError('No authenticated traveler session found. Please log in.');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setGuidesWarning(null);
-
-    try {
-      const [messagesRes, guidesRes] = await Promise.allSettled([
-        messagesApi.getByUser('traveler', travelerId, { signal }),
-        guidesApi.getAll({ signal }),
-      ]);
-
-      if (signal?.aborted) return;
-
-      // 1. Primary Required: Messages
-      if (messagesRes.status === 'fulfilled') {
-        setRawMessages(Array.isArray(messagesRes.value) ? messagesRes.value : []);
-      } else if (!messagesRes.reason?.isCancelled) {
-        setError(messagesRes.reason?.message || 'Failed to load messages from backend.');
-      }
-
-      // 2. Secondary Optional: Guide directory for contact names
-      if (guidesRes.status === 'fulfilled') {
-        setGuides(Array.isArray(guidesRes.value) ? guidesRes.value : []);
-        setGuidesWarning(null);
-      } else if (!guidesRes.reason?.isCancelled) {
-        setGuides([]);
-        if (messagesRes.status === 'fulfilled') {
-          setGuidesWarning(
-            'Tour guide directory is temporarily unavailable. Guide conversations will show numeric IDs instead of full names.'
-          );
-        }
-      }
-    } catch (err) {
-      if (!err.isCancelled && !signal?.aborted) {
-        console.error('[TravelerMessagesPage] Error loading messages:', err);
-        setError(err.message || 'Failed to load messages from backend.');
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
-  };
+  const messageResource = useResource('messages', { userType: 'traveler', userId: travelerId }, { load: Boolean(travelerId) });
+  const guideResource = useResource('guides');
+  const rawMessages = messageResource.items;
+  const guides = guideResource.items;
+  const loading = messageResource.status === 'loading';
+  const error = messageResource.error;
 
   const retryGuides = async () => {
     try {
-      const data = await guidesApi.getAll();
-      setGuides(Array.isArray(data) ? data : []);
+      await guideResource.refresh();
       setGuidesWarning(null);
     } catch (err) {
       console.warn('[MessagesPage] Retry guides failed:', err);
     }
   };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    loadData(controller.signal);
-
-    return () => {
-      controller.abort();
-    };
-  }, [travelerId]);
 
   // Build conversational roster
   const conversationsMap = {};
@@ -212,10 +154,7 @@ export default function TravelerMessagesPage() {
     };
 
     try {
-      const createdMessage = await messagesApi.create(payload);
-
-      // Immutable state update: Append message immediately
-      setRawMessages((prev) => [...prev, createdMessage]);
+      await messageResource.create(payload);
 
       // Clear draft ONLY for target conversation upon confirmed successful send
       setDrafts((prev) => ({ ...prev, [targetConvId]: '' }));
@@ -255,7 +194,7 @@ export default function TravelerMessagesPage() {
 
         <button
           type="button"
-          onClick={() => loadData()}
+          onClick={() => messageResource.refresh()}
           className="btn btn-secondary"
           style={{ padding: '8px 16px', fontSize: '13px', fontWeight: 600, borderRadius: '8px' }}
           disabled={loading}
@@ -282,7 +221,7 @@ export default function TravelerMessagesPage() {
           <span>⚠️ {error}</span>
           <button
             type="button"
-            onClick={() => loadData()}
+            onClick={() => messageResource.refresh()}
             className="btn btn-secondary"
             style={{ padding: '4px 12px', fontSize: '12px' }}
           >

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { tripsApi, expensesApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import ExpenseStats from '../../components/expenses/ExpenseStats';
 import ExpenseList from '../../components/expenses/ExpenseList';
 import ExpenseFormModal from '../../components/expenses/ExpenseFormModal';
@@ -18,11 +18,6 @@ import Toast from '../../components/common/Toast';
 export default function TravelerExpensesPage() {
   const { user, role } = useSession();
 
-  const [trips, setTrips] = useState([]);
-  const [expenses, setExpenses] = useState([]);
-  const [budgetGauges, setBudgetGauges] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [partialError, setPartialError] = useState(null);
 
   // Search filter state
@@ -46,105 +41,52 @@ export default function TravelerExpensesPage() {
   };
 
   const travelerId = Number(user?.travelerId || user?.traveler_id || user?.id);
+  const tripResource = useResource('trips', { scope: 'getByTraveler', id: travelerId }, { load: false });
+  const expenseResource = useResource('expenses', undefined, { load: false });
+  const trips = tripResource.items;
+  const expenses = expenseResource.items;
+  const budgetGauges = expenseResource.meta.budgetGauges || [];
+  const loading = Boolean(expenseResource.meta.loading) || tripResource.status === 'loading';
+  const error = tripResource.error || expenseResource.meta.error;
 
   // Load all trips and expenses for this traveler with honest feedback and partial results handling
-  const loadData = async (signal) => {
+  const loadData = async () => {
     if (!travelerId) {
-      setLoading(false);
-      setError('No authenticated traveler ID found. Please log in.');
+      expenseResource.setMeta({ loading: false, error: 'No authenticated traveler ID found. Please log in.' });
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    expenseResource.setMeta({ loading: true, error: null, budgetGauges: [] });
     setPartialError(null);
 
     try {
-      // 1. Fetch traveler's trips (Required)
-      const tripsData = await tripsApi.getByTraveler(travelerId, { signal });
-      if (signal?.aborted) return;
-
-      const loadedTrips = Array.isArray(tripsData) ? tripsData : [];
-      setTrips(loadedTrips);
+      const loadedTrips = await tripResource.refresh();
 
       if (loadedTrips.length === 0) {
-        setExpenses([]);
+        expenseResource.replaceAll([]);
         setPartialError(null);
         return;
       }
 
-      // 2. Fetch expenses per trip without silent catch(() => []) fallbacks
-      const results = await Promise.allSettled(
-        loadedTrips.map((t) =>
-          expensesApi.getByTrip(t.tripId || t.id, { signal })
-        )
-      );
-
-      if (signal?.aborted) return;
-
-      const successfulExpenses = [];
-      const failedTrips = [];
-
-      results.forEach((res, index) => {
-        if (res.status === 'fulfilled') {
-          if (Array.isArray(res.value)) {
-            successfulExpenses.push(...res.value);
-          }
-        } else if (!res.reason?.isCancelled) {
-          failedTrips.push(loadedTrips[index]);
-        }
-      });
-
-      if (failedTrips.length === loadedTrips.length && loadedTrips.length > 0) {
-        // Required data failed completely
-        setError('Failed to load expense records for your trips. Please check your backend connection.');
-        setExpenses([]);
-        setBudgetGauges([]);
-        setPartialError(null);
-      } else if (failedTrips.length > 0) {
-        // Partial results: Display loaded expenses with prominent incomplete warning
-        setExpenses(successfulExpenses);
-        setPartialError({
-          failedCount: failedTrips.length,
-          failedTrips,
-          message: `Expenses could not be loaded for ${failedTrips.length} of your trips (${failedTrips.map((t) => t.destination || `#${t.tripId}`).join(', ')}). The totals and breakdowns below are incomplete.`,
-        });
-      } else {
-        // Full success
-        setExpenses(successfulExpenses);
-        setPartialError(null);
-      }
-
-      // 3. Fetch real budget gauges per trip (real expenses vs real budget)
-      const gaugeResults = await Promise.allSettled(
-        loadedTrips.map((t) => expensesApi.getBudgetGauge(t.tripId || t.id, { signal }))
-      );
-      const gauges = [];
-      gaugeResults.forEach((res) => {
-        if (res.status === 'fulfilled' && res.value) {
-          gauges.push(res.value);
-        }
-      });
-      setBudgetGauges(gauges);
+      const tripIds = loadedTrips.map((trip) => trip.tripId || trip.id);
+      const [loadedExpenses, gauges] = await Promise.all([
+        expenseResource.loadByTrips([tripIds]),
+        expenseResource.loadBudgetGauges([tripIds]),
+      ]);
+      expenseResource.replaceAll(loadedExpenses);
+      expenseResource.setMeta({ budgetGauges: gauges });
     } catch (err) {
-      if (!err.isCancelled && !signal?.aborted) {
+      if (!err.isCancelled) {
         console.error('[TravelerExpensesPage] Failed to load expense data:', err);
-        setError(err.message || 'Failed to load expense records from backend.');
+        expenseResource.setMeta({ error: err.message || 'Failed to load expense records from backend.' });
       }
     } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
+      expenseResource.setMeta({ loading: false });
     }
   };
 
   useEffect(() => {
-    const controller = new AbortController();
-    loadData(controller.signal);
-
-    return () => {
-      controller.abort();
-    };
+    loadData();
   }, [travelerId]);
 
   // Derived filter during render
@@ -173,14 +115,13 @@ export default function TravelerExpensesPage() {
   };
 
   // Immutable update upon successful backend response
-  const handleSaveExpense = (savedExpense, isEdit) => {
+  const handleSaveExpense = async (payload, isEdit, expenseId) => {
+    const savedExpense = isEdit
+      ? await expenseResource.update(expenseId, payload)
+      : await expenseResource.create(payload);
     if (isEdit) {
-      setExpenses((prev) =>
-        prev.map((e) => (e.expenseId === savedExpense.expenseId ? savedExpense : e))
-      );
       setActionMessage(`Expense #${savedExpense.expenseId} updated successfully!`);
     } else {
-      setExpenses((prev) => [savedExpense, ...prev]);
       setActionMessage(`New expense ("${savedExpense.description}") logged successfully!`);
     }
 
@@ -197,10 +138,7 @@ export default function TravelerExpensesPage() {
     if (!confirmDelete) return;
 
     try {
-      // Calls DELETE /expenses/:id
-      await expensesApi.delete(expense.expenseId);
-
-      setExpenses((prev) => prev.filter((e) => e.expenseId !== expense.expenseId));
+      await expenseResource.remove(expense.expenseId);
       setActionMessage(`Expense #${expense.expenseId} deleted.`);
       setTimeout(() => setActionMessage(null), 4000);
     } catch (err) {
@@ -311,7 +249,7 @@ export default function TravelerExpensesPage() {
           <div style={{ fontSize: '36px', marginBottom: '8px' }}>⚠️</div>
           <h4 style={{ fontSize: '17px', fontWeight: 800 }}>Failed to load expenses</h4>
           <p style={{ fontSize: '14px', margin: '8px 0 16px' }}>{error}</p>
-          <button type="button" onClick={() => loadData()} className="btn btn-primary">
+          <button type="button" onClick={loadData} className="btn btn-primary">
             Retry Connection ↺
           </button>
         </div>
@@ -346,7 +284,7 @@ export default function TravelerExpensesPage() {
               </div>
               <button
                 type="button"
-                onClick={() => loadData()}
+                onClick={loadData}
                 className="btn btn-secondary"
                 style={{ padding: '6px 14px', fontSize: '12px', borderColor: '#d97706', color: '#b45309' }}
               >

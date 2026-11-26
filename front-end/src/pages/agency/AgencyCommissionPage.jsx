@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { agencyApi, agenciesApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import SummaryCard from '../../components/common/SummaryCard';
 import StatusBadge from '../../components/common/StatusBadge';
 
@@ -15,45 +15,18 @@ export default function AgencyCommissionPage() {
   const { user } = useSession();
   const agencyId = Number(user?.agencyId || user?.agency_id || user?.id || 1);
 
-  const [agencyProfile, setAgencyProfile] = useState(null);
-  const [commissions, setCommissions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const commissionResource = useResource('agencyCommissions');
+  const agencyResource = useResource('agencies', { scope: 'getById', id: agencyId }, { load: Boolean(agencyId) });
+  const agencyProfile = agencyResource.items[0] || null;
+  const commissions = commissionResource.items;
+  const loading = commissionResource.status === 'loading' || agencyResource.status === 'loading';
+  const error = commissionResource.error || agencyResource.error;
+  const loadData = () => Promise.all([commissionResource.refresh(), agencyResource.refresh()]);
 
   // Filter tabs: 'ALL', 'PENDING', 'EARNED', 'CANCELLED'
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const loadData = async (signal) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [commData, profData] = await Promise.all([
-        agencyApi.getCommissions({ signal }),
-        agenciesApi.getById(agencyId, { signal }).catch(() => null),
-      ]);
-
-      if (!signal?.aborted) {
-        setCommissions(Array.isArray(commData) ? commData : []);
-        setAgencyProfile(profData);
-      }
-    } catch (err) {
-      if (!signal?.aborted) {
-        console.error('Failed to load agency commission data:', err);
-        setError(err.message || 'Failed to load commission statement.');
-      }
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    if (agencyId) {
-      loadData(controller.signal);
-    }
-    return () => controller.abort();
-  }, [agencyId]);
 
   // Contract commission rate
   const contractedRate = useMemo(() => {
@@ -352,8 +325,7 @@ export default function AgencyCommissionPage() {
           <button
             type="button"
             onClick={() => {
-              const controller = new AbortController();
-              loadData(controller.signal);
+              loadData();
             }}
             style={{
               padding: '8px 14px',
@@ -391,8 +363,7 @@ export default function AgencyCommissionPage() {
             <button
               type="button"
               onClick={() => {
-                const controller = new AbortController();
-                loadData(controller.signal);
+                loadData();
               }}
               style={{
                 padding: '8px 18px',

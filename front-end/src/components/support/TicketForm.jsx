@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { supportTicketsApi, uploadsApi, API_BASE_URL } from '../../services/api';
+import { uploadsApi, API_BASE_URL } from '../../services/api';
 
 /**
  * TicketForm: Controlled form for creating a new support ticket.
@@ -9,6 +9,7 @@ export default function TicketForm({
   bookings = [],
   initialContext = null,
   onTicketCreated,
+  onSubmitTicket,
 }) {
   const [formData, setFormData] = useState({
     category: initialContext?.category || 'Booking Issue',
@@ -145,7 +146,7 @@ export default function TicketForm({
     };
 
     try {
-      const createdTicket = await supportTicketsApi.create(payload);
+      const createdTicket = await onSubmitTicket(payload);
       
       // Reset form state after successful submission
       setFormData({

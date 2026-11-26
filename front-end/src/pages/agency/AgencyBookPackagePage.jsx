@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import { packagesApi, passengersApi, tripsApi, bookingsApi, paymentsApi } from '../../services/api';
+import { paymentsApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import {
   getBookingDateBounds,
   calculatePackageEndDate,
@@ -25,10 +26,14 @@ export default function AgencyBookPackagePage() {
   const agencyId = Number(user?.agencyId || user?.agency_id || user?.id || 1);
   const commissionRate = Number(user?.commissionRate ?? 1.5);
 
-  const [packages, setPackages] = useState([]);
-  const [passengers, setPassengers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const packageResource = useResource('packages');
+  const passengerResource = useResource('passengers', { scope: 'getByAgency', id: agencyId }, { load: Boolean(agencyId) });
+  const tripResource = useResource('trips', undefined, { load: false });
+  const bookingResource = useResource('bookings', undefined, { load: false });
+  const packages = packageResource.items;
+  const passengers = passengerResource.items;
+  const loading = packageResource.status === 'loading' || passengerResource.status === 'loading';
+  const error = packageResource.error || passengerResource.error;
 
   // Form Fields
   const [selectedPkgId, setSelectedPkgId] = useState(initialPackageId ? String(initialPackageId) : '');
@@ -49,44 +54,11 @@ export default function AgencyBookPackagePage() {
   const { minStartDate: tomorrowStr, maxHorizonDate } = getBookingDateBounds();
 
   useEffect(() => {
-    const controller = new AbortController();
-    const loadResources = async (signal) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const [pkgsRes, passRes] = await Promise.allSettled([
-          packagesApi.getAll({ signal }),
-          passengersApi.getByAgency(agencyId, { signal }),
-        ]);
-
-        if (signal?.aborted) return;
-
-        if (pkgsRes.status === 'fulfilled' && Array.isArray(pkgsRes.value)) {
-          setPackages(pkgsRes.value);
-          if (!selectedPkgId && pkgsRes.value.length > 0) {
-            setSelectedPkgId(String(pkgsRes.value[0].packageId || pkgsRes.value[0].id));
-          }
-        }
-        if (passRes.status === 'fulfilled' && Array.isArray(passRes.value)) {
-          setPassengers(passRes.value);
-          if (!selectedPassId && passRes.value.length > 0) {
-            setSelectedPassId(String(passRes.value[0].passId || passRes.value[0].id));
-          }
-        }
-      } catch (err) {
-        if (!signal?.aborted) {
-          setError(err.message || 'Failed to load booking resources.');
-        }
-      } finally {
-        if (!signal?.aborted) setLoading(false);
-      }
-    };
-
-    if (agencyId) {
-      loadResources(controller.signal);
-    }
-    return () => controller.abort();
-  }, [agencyId]);
+    if (!selectedPkgId && packages.length > 0) setSelectedPkgId(String(packages[0].packageId || packages[0].id));
+  }, [packages, selectedPkgId]);
+  useEffect(() => {
+    if (!selectedPassId && passengers.length > 0) setSelectedPassId(String(passengers[0].passId || passengers[0].id));
+  }, [passengers, selectedPassId]);
 
   // Selected package details
   const selectedPackage = useMemo(() => {
@@ -178,7 +150,7 @@ export default function AgencyBookPackagePage() {
         },
       };
 
-      const trip = await tripsApi.create(tripPayload);
+      const trip = await tripResource.create(tripPayload);
       const tripId = Number(trip.tripId || trip.id);
 
       // 2. Create client booking record
@@ -198,7 +170,7 @@ export default function AgencyBookPackagePage() {
         insuranceAmount: pricing.insuranceAmount,
       };
 
-      const booking = await bookingsApi.create(bookingPayload);
+      const booking = await bookingResource.create(bookingPayload);
 
       // 3. Record corporate payment ledger transaction
       const bId = Number(booking.bookingId || booking.id);

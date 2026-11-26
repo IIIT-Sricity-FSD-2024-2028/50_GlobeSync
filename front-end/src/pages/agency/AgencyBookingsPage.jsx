@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import { bookingsApi, tripsApi, agencyApi, paymentsApi } from '../../services/api';
+import { tripsApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import SummaryCard from '../../components/common/SummaryCard';
 import StatusBadge from '../../components/common/StatusBadge';
 import BookingDetailModal from '../../components/agency/BookingDetailModal';
@@ -20,29 +21,16 @@ export default function AgencyBookingsPage() {
   const [searchParams] = useSearchParams();
   const initialTripId = searchParams.get('tripId');
   const agencyId = Number(user?.agencyId || user?.agency_id || user?.id || 1);
-  const [commissionRate, setCommissionRate] = useState(Number(user?.commissionRate ?? 1.5));
-
-  useEffect(() => {
-    let mounted = true;
-    agencyApi.getProfile()
-      .then((prof) => {
-        if (mounted && prof?.commissionRate != null) {
-          setCommissionRate(Number(prof.commissionRate));
-        }
-      })
-      .catch((err) => {
-        console.warn('Could not load agency profile commission rate:', err);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const [bookings, setBookings] = useState([]);
-  const [trips, setTrips] = useState([]);
-  const [payments, setPayments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const agencyResource = useResource('agencies', { scope: 'getById', id: agencyId }, { load: Boolean(agencyId) });
+  const bookingResource = useResource('bookings', { scope: 'getByAgency', id: agencyId }, { load: Boolean(agencyId) });
+  const tripResource = useResource('trips', { scope: 'getByAgency', id: agencyId }, { load: Boolean(agencyId) });
+  const paymentResource = useResource('payments', { scope: 'getByAgency', id: agencyId }, { load: Boolean(agencyId) });
+  const commissionRate = Number(agencyResource.items[0]?.commissionRate ?? user?.commissionRate ?? 1.5);
+  const bookings = bookingResource.items;
+  const trips = tripResource.items;
+  const payments = paymentResource.items;
+  const loading = bookingResource.status === 'loading';
+  const error = bookingResource.error || tripResource.error || paymentResource.error || agencyResource.error;
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('All');
@@ -72,43 +60,12 @@ export default function AgencyBookingsPage() {
     }
   };
 
-  const loadBookings = async (signal) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [data, tripsData, paymentsData] = await Promise.all([
-        bookingsApi.getByAgency(agencyId, { signal }),
-        tripsApi.getByAgency(agencyId, { signal }).catch(() => []),
-        paymentsApi.getByAgency(agencyId, { signal }).catch(() => []),
-      ]);
-      if (!signal?.aborted) {
-        const bList = Array.isArray(data) ? data : [];
-        setBookings(bList);
-        setTrips(Array.isArray(tripsData) ? tripsData : []);
-        setPayments(Array.isArray(paymentsData) ? paymentsData : []);
-
-        if (initialTripId) {
-          const match = bList.find((b) => String(b.tripId) === String(initialTripId));
-          if (match) setSelectedBooking(match);
-        }
-      }
-    } catch (err) {
-      if (!signal?.aborted) {
-        console.error('Failed to load agency bookings:', err);
-        setError(err.message || 'Failed to load bookings from backend.');
-      }
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    if (agencyId) {
-      loadBookings(controller.signal);
-    }
-    return () => controller.abort();
-  }, [agencyId]);
+  const loadBookings = () => Promise.all([
+    bookingResource.refresh(),
+    tripResource.refresh(),
+    paymentResource.refresh(),
+    agencyResource.refresh(),
+  ]);
 
   const filteredBookings = useMemo(() => {
     return bookings.filter((b) => {

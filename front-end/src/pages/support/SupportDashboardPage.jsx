@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import { dashboardApi, supportTicketsApi, travelersApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import SummaryCard from '../../components/common/SummaryCard';
 import StatusBadge from '../../components/common/StatusBadge';
 import SupportTicketDetailModal from '../../components/support/SupportTicketDetailModal';
@@ -19,17 +19,14 @@ export default function SupportDashboardPage() {
   const navigate = useNavigate();
   const careId = user?.careId || user?.care_id || user?.id || 1;
 
-  const [metrics, setMetrics] = useState({
-    totalTickets: 0,
-    openTickets: 0,
-    resolvedTickets: 0,
-    refundRequests: 0,
-    pendingRefunds: 0,
-  });
-  const [tickets, setTickets] = useState([]);
-  const [travelers, setTravelers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const dashboardResource = useResource('supportDashboard');
+  const ticketResource = useResource('supportTickets');
+  const travelerResource = useResource('travelers');
+  const metrics = dashboardResource.items[0] || {};
+  const tickets = ticketResource.items;
+  const travelers = travelerResource.items;
+  const loading = dashboardResource.status === 'loading' || ticketResource.status === 'loading';
+  const error = dashboardResource.error || ticketResource.error;
 
   // Agent online status toggle
   const [isOnline, setIsOnline] = useState(() => {
@@ -55,68 +52,23 @@ export default function SupportDashboardPage() {
     });
   };
 
-  const loadDashboardData = async (signal) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [dashRes, ticketsRes, travelersRes] = await Promise.allSettled([
-        dashboardApi.getSupport({ signal }),
-        supportTicketsApi.getAll({ signal }),
-        travelersApi.getAll({ signal }),
-      ]);
-
-      if (signal?.aborted) return;
-
-      if (dashRes.status === 'fulfilled' && dashRes.value) {
-        setMetrics(dashRes.value);
-      }
-      if (ticketsRes.status === 'fulfilled' && Array.isArray(ticketsRes.value)) {
-        setTickets(ticketsRes.value);
-      }
-      if (travelersRes.status === 'fulfilled' && Array.isArray(travelersRes.value)) {
-        setTravelers(travelersRes.value);
-      }
-    } catch (err) {
-      if (!signal?.aborted) {
-        console.error('Failed to load support dashboard:', err);
-        setError(err.message || 'Failed to load support metrics from server');
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    loadDashboardData(controller.signal);
-    return () => controller.abort();
-  }, []);
+  const loadDashboardData = () => Promise.all([
+    dashboardResource.refresh(), ticketResource.refresh(), travelerResource.refresh(),
+  ]);
 
   const handleStatusUpdate = async (ticketId, newStatus) => {
-    await supportTicketsApi.updateStatus(ticketId, newStatus);
+    await ticketResource.updateStatus([ticketId, newStatus]);
     showToast(`Ticket #${ticketId} updated to ${newStatus}! ✓`);
     // Refresh tickets and metrics
-    const [dashRes, ticketsRes] = await Promise.all([
-      dashboardApi.getSupport(),
-      supportTicketsApi.getAll(),
-    ]);
-    if (dashRes) setMetrics(dashRes);
-    if (ticketsRes) setTickets(ticketsRes);
+    await loadDashboardData();
     // Update selected ticket in place if open
     setSelectedTicket((prev) => (prev && prev.ticketId === ticketId ? { ...prev, status: newStatus } : prev));
   };
 
   const handleCreateTicket = async (ticketData) => {
-    await supportTicketsApi.create(ticketData);
+    await ticketResource.create(ticketData);
     showToast('Support ticket successfully logged! ✓');
-    const [dashRes, ticketsRes] = await Promise.all([
-      dashboardApi.getSupport(),
-      supportTicketsApi.getAll(),
-    ]);
-    if (dashRes) setMetrics(dashRes);
-    if (ticketsRes) setTickets(ticketsRes);
+    await loadDashboardData();
   };
 
   // Recent 5 tickets reversed

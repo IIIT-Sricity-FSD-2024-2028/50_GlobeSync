@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { tripsApi, travelersApi, agenciesApi, reviewsApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import GuideCompletedTripCard from '../../components/guide/GuideCompletedTripCard';
 import { getAgencyDisplayName, getTravelerDisplayName } from '../../components/guide/guideStateHelpers';
 import './guide.css';
@@ -22,10 +22,14 @@ export default function GuideCompletedTripsPage() {
   const { user } = useSession();
   const guideId = user?.guideId ?? user?.id;
 
-  const [trips, setTrips] = useState([]);
+  const tripResource = useResource('trips', { scope: 'getByGuide', id: guideId }, { load: Boolean(guideId) });
+  const travelerResource = useResource('travelers');
+  const agencyResource = useResource('agencies', { scope: 'getLookup' }, { load: false });
+  const reviewResource = useResource('reviews', { scope: 'getByGuide', id: guideId }, { load: Boolean(guideId) });
+  const trips = tripResource.items;
   const [reviewsMap, setReviewsMap] = useState(new Map());
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState(null);
+  const isLoading = tripResource.status === 'loading';
+  const errorMessage = tripResource.error;
   const [secondaryWarnings, setSecondaryWarnings] = useState([]);
 
   // Search, filter & sort controls
@@ -36,33 +40,29 @@ export default function GuideCompletedTripsPage() {
   // Fetch completed trips, travelers, agencies, and reviews
   const fetchCompletedData = async (signal) => {
     if (!guideId) {
-      setIsLoading(false);
-      setErrorMessage('No active guide ID found in current session.');
       return;
     }
 
-    setIsLoading(true);
-    setErrorMessage(null);
     setSecondaryWarnings([]);
 
     try {
       const warnings = [];
 
       const [tripsData, travelersData, agenciesData, reviewsData] = await Promise.all([
-        tripsApi.getByGuide(guideId, { signal }),
-        travelersApi.getAll({ signal }).catch((err) => {
+        tripResource.refresh(),
+        travelerResource.refresh().catch((err) => {
           if (err.isCancelled || signal?.aborted) throw err;
           console.warn('[GuideCompletedTrips] Could not fetch travelers:', err);
           warnings.push('Traveler directory could not be reached; traveler client names are displayed with fallback IDs.');
           return [];
         }),
-        agenciesApi.getLookup({ signal }).catch((err) => {
+        agencyResource.refresh().catch((err) => {
           if (err.isCancelled || signal?.aborted) throw err;
           console.warn('[GuideCompletedTrips] Could not fetch agencies:', err);
           warnings.push('Agency directory could not be reached; partner agency business names are displayed with fallback IDs.');
           return [];
         }),
-        reviewsApi.getAll({ signal }).catch((err) => {
+        reviewResource.refresh().catch((err) => {
           if (err.isCancelled || signal?.aborted) throw err;
           console.warn('[GuideCompletedTrips] Could not fetch reviews:', err);
           warnings.push('Client tour reviews could not be retrieved.');
@@ -119,23 +119,16 @@ export default function GuideCompletedTripsPage() {
         };
       });
 
-      setTrips(enriched);
+      tripResource.replaceAll(enriched);
     } catch (err) {
       if (err.isCancelled) return;
       console.error('[GuideCompletedTrips] Failed to load completed trips:', err);
-      setErrorMessage(err.message || 'Failed to load completed trips.');
-    } finally {
-      setIsLoading(false);
+      console.error(err);
     }
   };
 
   useEffect(() => {
-    const controller = new AbortController();
-    fetchCompletedData(controller.signal);
-
-    return () => {
-      controller.abort();
-    };
+    fetchCompletedData();
   }, [guideId]);
 
   // Overall Verified Summary Metrics

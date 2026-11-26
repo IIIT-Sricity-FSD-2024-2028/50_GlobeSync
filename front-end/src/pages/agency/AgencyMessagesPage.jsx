@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { messagesApi, guidesApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import { useRealtimeEvent } from '../../context/RealtimeContext';
 
 /**
@@ -13,14 +13,16 @@ export default function AgencyMessagesPage() {
   const { user } = useSession();
   const agencyId = Number(user?.agencyId || user?.agency_id || user?.id || 1);
 
-  const [rawMessages, setRawMessages] = useState([]);
-  const [guides, setGuides] = useState([]);
+  const messageResource = useResource('messages', { userType: 'agency', userId: agencyId }, { load: Boolean(agencyId) });
+  const guideResource = useResource('guides');
+  const rawMessages = messageResource.items;
+  const guides = guideResource.items;
   const [activeConvId, setActiveConvId] = useState(null);
   const [draftText, setDraftText] = useState('');
   const [sendError, setSendError] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
-  const [error, setError] = useState(null);
+  const loading = messageResource.status === 'loading';
+  const error = messageResource.error;
 
   // Subscribe to live incoming messages
   useRealtimeEvent('message.created', (event) => {
@@ -30,58 +32,16 @@ export default function AgencyMessagesPage() {
       (newMsg.sender === 'agency' && Number(newMsg.senderId) === agencyId) ||
       (newMsg.receiver === 'agency' && Number(newMsg.receiverId) === agencyId);
     if (isForMe) {
-      setRawMessages((prev) => {
+      messageResource.replaceAll([...rawMessages, newMsg].filter((m, index, all) => {
         const id = newMsg.messageId || newMsg.id;
-        if (id && prev.some((m) => (m.messageId || m.id) === id)) return prev;
-        return [...prev, newMsg];
-      });
+        return !id || index === all.findIndex((item) => (item.messageId || item.id) === id);
+      }));
     }
   });
 
   const chatBottomRef = useRef(null);
 
-  const loadData = async (signal) => {
-    if (!agencyId) {
-      setLoading(false);
-      setError('No agency partner session found.');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const [messagesRes, guidesRes] = await Promise.allSettled([
-        messagesApi.getByUser('agency', agencyId, { signal }),
-        guidesApi.getAll({ signal }),
-      ]);
-
-      if (signal?.aborted) return;
-
-      if (messagesRes.status === 'fulfilled') {
-        setRawMessages(Array.isArray(messagesRes.value) ? messagesRes.value : []);
-      } else if (!messagesRes.reason?.isCancelled) {
-        setError(messagesRes.reason?.message || 'Failed to load messages from backend.');
-      }
-
-      if (guidesRes.status === 'fulfilled') {
-        setGuides(Array.isArray(guidesRes.value) ? guidesRes.value : []);
-      }
-    } catch (err) {
-      if (!err.isCancelled && !signal?.aborted) {
-        console.error('[AgencyMessagesPage] Error loading messages:', err);
-        setError(err.message || 'Failed to load messages.');
-      }
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    loadData(controller.signal);
-    return () => controller.abort();
-  }, [agencyId]);
+  const loadData = () => Promise.all([messageResource.refresh(), guideResource.refresh()]);
 
   // Build conversational roster
   const conversationsMap = {};
@@ -185,8 +145,7 @@ export default function AgencyMessagesPage() {
     };
 
     try {
-      const created = await messagesApi.create(payload);
-      setRawMessages((prev) => [...prev, created]);
+      await messageResource.create(payload);
       setDraftText('');
     } catch (err) {
       console.error('[AgencyMessagesPage] Send failed:', err);

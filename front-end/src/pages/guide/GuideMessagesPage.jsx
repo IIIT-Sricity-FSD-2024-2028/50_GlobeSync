@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { messagesApi, tripsApi, travelersApi, agenciesApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import GuideConversationList from '../../components/guide/GuideConversationList';
 import GuideConversationThread from '../../components/guide/GuideConversationThread';
 import GuideMessageInput from '../../components/guide/GuideMessageInput';
@@ -45,6 +45,10 @@ function makeConvKey(typeA, idA, typeB, idB) {
 export default function GuideMessagesPage() {
   const { user } = useSession();
   const guideId = user?.guideId ?? user?.id;
+  const messageResource = useResource('messages', { userType: 'guide', userId: guideId }, { load: Boolean(guideId) });
+  const tripResource = useResource('trips', { scope: 'getByGuide', id: guideId }, { load: Boolean(guideId) });
+  const travelerResource = useResource('travelers');
+  const agencyResource = useResource('agencies', { scope: 'getLookup' }, { load: false });
 
   // ------------------------------------------------------------------
   // Primary data state
@@ -114,13 +118,14 @@ export default function GuideMessagesPage() {
     try {
       // Parallel: all guide messages + guide trips
       const [allMessages, trips] = await Promise.all([
-        messagesApi.getByUser('guide', guideId, { signal: controller.signal }),
-        tripsApi.getByGuide(guideId, { signal: controller.signal }).catch(() => []),
+        messageResource.refresh(),
+        tripResource.refresh(),
       ]);
 
       if (controller.signal.aborted) return;
 
       setGuideTrips(trips);
+      messageResource.replaceAll(allMessages);
 
       // ------------------------------------------------------------------
       // Collect unique other-party (type, id) pairs from actual messages
@@ -206,7 +211,7 @@ export default function GuideMessagesPage() {
       // Fetch travelers if needed
       if (travelerIds.length > 0) {
         try {
-          const travelers = await travelersApi.getAll({ signal: controller.signal });
+          const travelers = await travelerResource.refresh();
           if (!controller.signal.aborted) {
             const list = Array.isArray(travelers) ? travelers : travelers?.value || [];
             for (const t of list) {
@@ -224,7 +229,7 @@ export default function GuideMessagesPage() {
       // Fetch agencies if needed (using businessName)
       if (agencyIds.length > 0) {
         try {
-          const agencies = await agenciesApi.getLookup({ signal: controller.signal });
+          const agencies = await agencyResource.refresh();
           if (!controller.signal.aborted) {
             const list = Array.isArray(agencies) ? agencies : agencies?.value || [];
             for (const a of list) {
@@ -310,13 +315,7 @@ export default function GuideMessagesPage() {
       try {
         // The conversation endpoint is bidirectional — either participant
         // can be listed as sender/receiver; the service handles both directions.
-        const res = await messagesApi.getConversation(
-          'guide',
-          guideId,
-          contact.type,
-          contact.id,
-          { signal: controller.signal },
-        );
+        const res = await messageResource.getConversation(['guide', guideId, contact.type, contact.id]);
 
         if (controller.signal.aborted) return;
 
@@ -384,7 +383,7 @@ export default function GuideMessagesPage() {
         content: draft.trim(),
       };
 
-      const sent = await messagesApi.create(payload);
+      const sent = await messageResource.create(payload);
 
       // Only clear draft if we are still in the same conversation
       if (activeSendKey === selectedConvKey) {

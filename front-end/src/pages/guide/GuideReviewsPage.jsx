@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { reviewsApi, tripsApi, travelersApi, guidesApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import './guide.css';
 
 /**
@@ -20,14 +20,19 @@ export default function GuideReviewsPage() {
   const { user } = useSession();
   const guideId = user?.guideId ?? user?.id;
 
-  const [reviews, setReviews] = useState([]);
+  const reviewResource = useResource('reviews', { scope: 'getByGuide', id: guideId }, { load: Boolean(guideId) });
+  const guideResource = useResource('guides', { scope: 'getById', id: guideId }, { load: Boolean(guideId) });
+  const travelerResource = useResource('travelers');
+  const tripResource = useResource('trips', { scope: 'getByGuide', id: guideId }, { load: Boolean(guideId) });
+  const reviewActions = useResource('reviews', undefined, { load: false });
+  const reviews = reviewResource.items;
   const [tripsMap, setTripsMap] = useState(new Map());
   const [travelersMap, setTravelersMap] = useState(new Map());
-  const [guideProfile, setGuideProfile] = useState(null);
+  const guideProfile = guideResource.items[0] || null;
   // Real aggregated stats from backend (never faked)
   const [apiStats, setApiStats] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState(null);
+  const isLoading = reviewResource.status === 'loading';
+  const errorMessage = reviewResource.error || guideResource.error;
 
   // Search & Filter controls
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,8 +56,6 @@ export default function GuideReviewsPage() {
 
   const loadReviewsData = async () => {
     if (!guideId) {
-      setIsLoading(false);
-      setErrorMessage('No active guide session identified.');
       return;
     }
 
@@ -60,27 +63,21 @@ export default function GuideReviewsPage() {
     const controller = new AbortController();
     abortRef.current = controller;
 
-    setIsLoading(true);
-    setErrorMessage(null);
 
     try {
       const [reviewsData, tripsData, travelersData, guideData, statsData] = await Promise.all([
-        reviewsApi.getByGuide(guideId, { signal: controller.signal }).catch(async () => {
-          // Fallback to filtering all reviews if guide route is cached/proxied
-          const all = await reviewsApi.getAll({ signal: controller.signal });
-          return all.filter((r) => Number(r.guideId) === Number(guideId));
-        }),
-        tripsApi.getByGuide(guideId, { signal: controller.signal }).catch(() => []),
-        travelersApi.getAll({ signal: controller.signal }).catch(() => []),
-        guidesApi.getById(guideId, { signal: controller.signal }).catch(() => null),
+        reviewResource.refresh(),
+        tripResource.refresh(),
+        travelerResource.refresh(),
+        guideResource.refresh().catch(() => null),
         // Fetch real aggregated stats — returns { guideId, count, avg, starBreakdown, recommendPercentage }
-        reviewsApi.getGuideStats(guideId, { signal: controller.signal }).catch(() => null),
+        reviewResource.getGuideStats([guideId]).catch(() => null),
       ]);
 
       if (controller.signal.aborted) return;
 
       const rawReviews = Array.isArray(reviewsData) ? reviewsData : [];
-      setReviews(rawReviews);
+      reviewResource.replaceAll(rawReviews);
 
       // Store real server-computed stats (may be null if endpoint not yet reachable)
       setApiStats(statsData || null);
@@ -100,12 +97,10 @@ export default function GuideReviewsPage() {
       });
       setTravelersMap(trMap);
 
-      if (guideData) setGuideProfile(guideData);
+      // Guide profile is maintained by the guide resource slice.
     } catch (err) {
       if (err.isCancelled || controller.signal.aborted) return;
-      setErrorMessage(err.message || 'Failed to load traveler reviews. Please check backend connection.');
-    } finally {
-      if (!controller.signal.aborted) setIsLoading(false);
+      console.error(err);
     }
   };
 
@@ -200,7 +195,7 @@ export default function GuideReviewsPage() {
   const handleSaveReply = async (reviewId) => {
     if (!replyText.trim()) return;
     try {
-      await reviewsApi.respond(reviewId, { response: replyText.trim() });
+      await reviewActions.respond([reviewId, { response: replyText.trim() }]);
     } catch (err) {
       // Backend not reachable or feature not yet live; fall back to localStorage
       console.warn('[GuideReviewsPage] Reply API failed, falling back to localStorage:', err);

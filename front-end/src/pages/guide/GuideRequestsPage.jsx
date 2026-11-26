@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSession } from '../../context/SessionContext';
 import { useRealtimeEvent } from '../../context/RealtimeContext';
-import { tripsApi, travelersApi, agenciesApi, messagesApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import GuideRequestList from '../../components/guide/GuideRequestList';
 import {
   isGuideAccepted,
@@ -37,9 +37,13 @@ export default function GuideRequestsPage() {
   const guideId = user?.guideId ?? user?.id;
 
   // Primary data state
-  const [trips, setTrips] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [fetchError, setFetchError] = useState(null);
+  const tripResource = useResource('trips', { scope: 'getByGuide', id: guideId }, { load: Boolean(guideId) });
+  const messageResource = useResource('messages', undefined, { load: false });
+  const travelerResource = useResource('travelers');
+  const agencyResource = useResource('agencies', { scope: 'getLookup' }, { load: false });
+  const trips = tripResource.items;
+  const isLoading = tripResource.status === 'loading';
+  const fetchError = tripResource.error;
   const [secondaryWarnings, setSecondaryWarnings] = useState([]);
 
   // Filter & Search & Sort state
@@ -81,20 +85,20 @@ export default function GuideRequestsPage() {
 
       // Concurrently fetch guide trips, travelers, and agencies lookup
       const [tripsData, travelersData, agenciesData, myReassignments] = await Promise.all([
-        tripsApi.getByGuide(guideId, { signal }),
-        travelersApi.getAll({ signal }).catch((err) => {
+        tripResource.refresh(),
+        travelerResource.refresh().catch((err) => {
           if (err.isCancelled || signal?.aborted) throw err;
           console.warn('[GuideRequestsPage] Could not fetch travelers list:', err);
           warnings.push('Traveler directory could not be reached; traveler client names are displayed with fallback IDs.');
           return [];
         }),
-        agenciesApi.getLookup({ signal }).catch((err) => {
+        agencyResource.refresh().catch((err) => {
           if (err.isCancelled || signal?.aborted) throw err;
           console.warn('[GuideRequestsPage] Could not fetch agencies lookup:', err);
           warnings.push('Agency directory could not be reached; partner agency business names are displayed with fallback IDs.');
           return [];
         }),
-        tripsApi.getMyReassignments({ signal }).catch(() => []),
+        tripResource.getMyReassignments().catch(() => []),
       ]);
 
       const pendingOffers = Array.isArray(myReassignments)
@@ -143,35 +147,23 @@ export default function GuideRequestsPage() {
         };
       });
 
-      setTrips(enrichedTrips);
+      tripResource.replaceAll(enrichedTrips);
     } catch (err) {
       if (err.isCancelled) return;
       console.error('[GuideRequestsPage] Failed to fetch requests:', err);
-      setFetchError(err.message || 'Failed to load trip requests.');
-    } finally {
-      setIsLoading(false);
+      console.error(err);
     }
   };
 
   // Mount effect
   useEffect(() => {
-    const controller = new AbortController();
-    fetchRequestsData(controller.signal);
-
-    return () => {
-      controller.abort();
-    };
+    fetchRequestsData();
   }, [guideId]);
 
   // Realtime updates without full page reload
   useRealtimeEvent('guide_request.created', (event) => {
     if (event?.trip) {
-      setTrips((prev) => {
-        if (prev.some((t) => t.tripId === event.trip.tripId)) {
-          return prev.map((t) => (t.tripId === event.trip.tripId ? { ...t, ...event.trip } : t));
-        }
-        return [{ ...event.trip, requestorName: 'New Client Request' }, ...prev];
-      });
+      tripResource.upsert({ ...event.trip, requestorName: 'New Client Request' });
       setFeedback({
         type: 'success',
         message: `⚡ Live Update: New trip request received for ${event.destination || event.trip.destination}!`,
@@ -181,17 +173,13 @@ export default function GuideRequestsPage() {
 
   useRealtimeEvent('guide_request.accepted', (event) => {
     if (event?.tripId) {
-      setTrips((prev) =>
-        prev.map((t) => (t.tripId === event.tripId ? { ...t, guideStatus: 'Accepted' } : t)),
-      );
+      tripResource.upsert({ tripId: event.tripId, guideStatus: 'Accepted' });
     }
   });
 
   useRealtimeEvent('guide_request.declined', (event) => {
     if (event?.tripId) {
-      setTrips((prev) =>
-        prev.map((t) => (t.tripId === event.tripId ? { ...t, guideStatus: 'Declined' } : t)),
-      );
+      tripResource.upsert({ tripId: event.tripId, guideStatus: 'Declined' });
     }
   });
 
@@ -273,15 +261,13 @@ export default function GuideRequestsPage() {
 
     try {
       // 1. Perform backend trip update with guideStatus extension + optional reason
-      await tripsApi.update(tripId, {
+      await tripResource.update(tripId, {
         guideStatus: 'Accepted',
         ...(reason?.trim() ? { guideDecisionReason: reason.trim() } : {}),
       });
 
       // Update state locally immediately
-      setTrips((prev) =>
-        prev.map((t) => (t.tripId === tripId ? { ...t, guideStatus: 'Accepted', guideDecisionReason: reason?.trim() || undefined } : t))
-      );
+      tripResource.upsert({ tripId, guideStatus: 'Accepted', guideDecisionReason: reason?.trim() || undefined });
 
       // 2. Decoupled notification attempt
       setActionLoading((prev) => ({ ...prev, [tripId]: 'notifying' }));
@@ -294,7 +280,7 @@ export default function GuideRequestsPage() {
       };
 
       try {
-        await messagesApi.create(notificationPayload);
+        await messageResource.create(notificationPayload);
         // Clear any previous notification error for this trip
         setNotificationErrors((prev) => {
           const copy = { ...prev };
@@ -352,19 +338,13 @@ export default function GuideRequestsPage() {
 
     try {
       // 1. Perform backend trip update to mark guideStatus as Declined with optional reason
-      await tripsApi.update(tripId, {
+      await tripResource.update(tripId, {
         guideStatus: 'Declined',
         ...(reason?.trim() ? { guideDecisionReason: reason.trim() } : {}),
       });
 
       // Update state locally immediately
-      setTrips((prev) =>
-        prev.map((t) =>
-          t.tripId === tripId
-            ? { ...t, guideStatus: 'Declined', guideDecisionReason: reason?.trim() || undefined }
-            : t
-        )
-      );
+      tripResource.upsert({ tripId, guideStatus: 'Declined', guideDecisionReason: reason?.trim() || undefined });
 
       // 2. Decoupled notification attempt
       setActionLoading((prev) => ({ ...prev, [tripId]: 'notifying' }));
@@ -377,7 +357,7 @@ export default function GuideRequestsPage() {
       };
 
       try {
-        await messagesApi.create(notificationPayload);
+        await messageResource.create(notificationPayload);
         // Clear any previous notification error for this trip
         setNotificationErrors((prev) => {
           const copy = { ...prev };
@@ -427,8 +407,8 @@ export default function GuideRequestsPage() {
     setActionLoading((prev) => ({ ...prev, [tripId]: 'notifying' }));
 
     try {
-      // ONLY calls messagesApi.create - DOES NOT touch or re-run trip update logic
-      await messagesApi.create(errorRecord.payload);
+      // Only creates the notification through the Redux message resource.
+      await messageResource.create(errorRecord.payload);
 
       // Remove from notificationErrors on success
       setNotificationErrors((prev) => {
@@ -466,10 +446,10 @@ export default function GuideRequestsPage() {
   const handleRespondReassignment = async (requestId, accept, notes) => {
     setReassignBusy(true);
     try {
-      await tripsApi.respondGuideAssignment(requestId, {
+      await tripResource.respondGuideAssignment([requestId, {
         decision: accept ? 'ACCEPT' : 'DECLINE',
         reason: notes,
-      });
+      }]);
       setFeedback({
         type: 'success',
         message: accept ? 'Reassignment offer accepted!' : 'Reassignment offer declined.',

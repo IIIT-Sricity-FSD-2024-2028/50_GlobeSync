@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from '../../context/SessionContext';
 import { useRealtimeEvent } from '../../context/RealtimeContext';
-import { bookingsApi, tripsApi, reviewsApi } from '../../services/api';
+import { reviewsApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import BookingList from '../../components/bookings/BookingList';
 import BookingStats from '../../components/bookings/BookingStats';
 import PaymentModal from '../../components/bookings/PaymentModal';
@@ -23,10 +24,12 @@ export default function TravelerBookingsPage() {
   const travelerId = Number(user?.travelerId || user?.traveler_id || user?.id);
 
   // 1. Primary Data State
-  const [bookings, setBookings] = useState([]);
-  const [trips, setTrips] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const bookingResource = useResource('bookings', { scope: 'getByTraveler', id: travelerId }, { load: Boolean(travelerId) });
+  const tripResource = useResource('trips', { scope: 'getByTraveler', id: travelerId }, { load: Boolean(travelerId) });
+  const bookings = bookingResource.items;
+  const trips = tripResource.items;
+  const loading = bookingResource.status === 'loading' || tripResource.status === 'loading';
+  const error = bookingResource.error || tripResource.error;
 
   // 2. Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -64,37 +67,17 @@ export default function TravelerBookingsPage() {
   // Data Loading: Distinguishes required bookings from optional trip context
   const loadData = async (signal) => {
     if (!travelerId) {
-      setLoading(false);
-      setError('No authenticated traveler ID found. Please log in.');
       return;
     }
 
-    setLoading(true);
-    setError(null);
-
     try {
       const [bookingsRes, tripsRes, reviewsRes] = await Promise.allSettled([
-        bookingsApi.getByTraveler(travelerId, { signal }),
-        tripsApi.getByTraveler(travelerId, { signal }),
+        bookingResource.refresh(),
+        tripResource.refresh(),
         reviewsApi.getAll({ signal }),
       ]);
 
       if (signal?.aborted) return;
-
-      // 1. Required: Bookings
-      if (bookingsRes.status === 'fulfilled') {
-        setBookings(Array.isArray(bookingsRes.value) ? bookingsRes.value : []);
-      } else if (!bookingsRes.reason?.isCancelled) {
-        console.error('[TravelerBookingsPage] Failed to load bookings:', bookingsRes.reason);
-        setError(bookingsRes.reason?.message || 'Failed to load booking records from backend.');
-      }
-
-      // 2. Optional: Trip context for displaying destination names
-      if (tripsRes.status === 'fulfilled') {
-        setTrips(Array.isArray(tripsRes.value) ? tripsRes.value : []);
-      } else {
-        setTrips([]);
-      }
 
       // 3. Existing Reviews: track reviewed bookings to prevent double-reviewing
       if (reviewsRes.status === 'fulfilled' && Array.isArray(reviewsRes.value)) {
@@ -104,11 +87,6 @@ export default function TravelerBookingsPage() {
     } catch (err) {
       if (!err.isCancelled && !signal?.aborted) {
         console.error('[TravelerBookingsPage] Unexpected error loading bookings:', err);
-        setError(err.message || 'Failed to load booking records from backend.');
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
       }
     }
   };
@@ -125,13 +103,11 @@ export default function TravelerBookingsPage() {
   // Realtime updates without full page reload
   useRealtimeEvent('booking.status_changed', (event) => {
     if (event?.bookingId) {
-      setBookings((prev) =>
-        prev.map((b) =>
+      bookingResource.replaceAll(bookings.map((b) =>
           (b.bookingId === event.bookingId || b.id === event.bookingId)
             ? { ...b, status: event.status }
             : b,
-        ),
-      );
+        ))
       showToast(`⚡ Live Update: Booking #${event.bookingId} is now ${event.status}`, 'success');
     }
   });
@@ -171,13 +147,11 @@ export default function TravelerBookingsPage() {
 
   const handlePaymentSuccess = (updatedBooking, paymentRecord, meta = {}) => {
     // Immutable update replacing confirmed booking
-    setBookings((prev) =>
-      prev.map((b) =>
+    bookingResource.replaceAll(bookings.map((b) =>
         (b.bookingId || b.id) === (updatedBooking.bookingId || updatedBooking.id)
           ? updatedBooking
           : b
-      )
-    );
+      ));
 
     const isRec = Boolean(meta?.isRecovered);
     const amountStr = Number(paymentRecord?.amount || updatedBooking.amount).toLocaleString('en-IN');
@@ -212,16 +186,7 @@ export default function TravelerBookingsPage() {
     if (!partialTripRecovery) return;
     const { tripId } = partialTripRecovery;
     try {
-      const currentTrip = await tripsApi.getById(tripId);
-      // Respect finite state machine: Planning -> Pending -> Confirmed
-      if (currentTrip.status === 'Planning') {
-        await tripsApi.updateStatus(tripId, 'Pending');
-      }
-      await tripsApi.updateStatus(tripId, 'Confirmed');
-
-      setTrips((prev) =>
-        prev.map((t) => (t.tripId === tripId ? { ...t, status: 'Confirmed' } : t))
-      );
+      await tripResource.updateStatus([tripId, 'Confirmed']);
       setPartialTripRecovery(null);
       setActionMessage(`Trip #${tripId} status confirmed successfully!`);
       setTimeout(() => setActionMessage(null), 4000);
@@ -244,15 +209,13 @@ export default function TravelerBookingsPage() {
     try {
       // Cancellation always goes through the server policy (12-hour rule, refund tiers).
       // A failure is shown to the traveler instead of being bypassed with a status edit.
-      await bookingsApi.cancel(bookingId, cancellationReason);
+      await bookingResource.cancel([bookingId, cancellationReason]);
 
-      setBookings((prev) =>
-        prev.map((b) =>
+      bookingResource.replaceAll(bookings.map((b) =>
           (b.bookingId || b.id) === bookingId
             ? { ...b, status: 'Cancelled', cancellationReason }
             : b
-        )
-      );
+        ));
 
       setCancellingBooking(null);
       showToast(`Booking BK00${bookingId} cancelled successfully.`);

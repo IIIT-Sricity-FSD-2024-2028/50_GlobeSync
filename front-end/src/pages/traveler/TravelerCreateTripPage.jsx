@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import { packagesApi, guidesApi, tripsApi, bookingsApi, apiPost } from '../../services/api';
+import { guidesApi, tripsApi, bookingsApi, apiPost } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import TripForm from '../../components/trips/TripForm';
 import TripCreationSuccessView from '../../components/trips/TripCreationSuccessView';
 import TripSubmissionRecoveryBanner from '../../components/trips/TripSubmissionRecoveryBanner';
@@ -59,10 +60,12 @@ export default function TravelerCreateTripPage() {
   const [errors, setErrors] = useState({});
 
   // 4. Remote Catalog Data
-  const [packages, setPackages] = useState([]);
-  const [guides, setGuides] = useState([]);
-  const [loadingData, setLoadingData] = useState(true);
-  const [catalogError, setCatalogError] = useState(null);
+  const packageResource = useResource('packages');
+  const guideResource = useResource('guides');
+  const packages = packageResource.items;
+  const guides = guideResource.items;
+  const loadingData = packageResource.status === 'loading' || guideResource.status === 'loading';
+  const catalogError = packageResource.error;
   const [guidesWarning, setGuidesWarning] = useState(null);
 
   // 5. Submission Progress & Persistent Session Recovery
@@ -129,24 +132,14 @@ export default function TravelerCreateTripPage() {
     } catch {}
   };
 
-  // Load packages and guides with AbortController cleanup and honest error handling
-  const loadCatalog = async (signal) => {
-    setLoadingData(true);
-    setCatalogError(null);
-    setGuidesWarning(null);
-
+  /* Catalog loading is owned by Redux resources above. */
+  const loadCatalog = async () => {
     try {
-      const [pkgsResult, guidesResult] = await Promise.allSettled([
-        packagesApi.getAll({ signal }),
-        guidesApi.getAll({ signal }),
-      ]);
-
-      if (signal?.aborted) return;
+      const [loadedPackages] = await Promise.all([packageResource.refresh(), guideResource.refresh()]);
 
       // 1. Process Packages (Required for package mode)
-      if (pkgsResult.status === 'fulfilled') {
-        const pkgs = Array.isArray(pkgsResult.value) ? pkgsResult.value : [];
-        setPackages(pkgs);
+      if (loadedPackages.length > 0) {
+        const pkgs = loadedPackages;
 
         // Pre-populate package if specified in URL query
         const paramPkgId = searchParams.get('packageId');
@@ -156,38 +149,22 @@ export default function TravelerCreateTripPage() {
             handleSelectPackage(matched);
           }
         }
-      } else if (!pkgsResult.reason?.isCancelled) {
-        setCatalogError(pkgsResult.reason?.message || 'Failed to connect to package catalog service.');
       }
 
       // 2. Process Guides (Optional: planning can continue without a guide)
-      if (guidesResult.status === 'fulfilled') {
-        setGuides(Array.isArray(guidesResult.value) ? guidesResult.value : []);
-        setGuidesWarning(null);
-      } else if (!guidesResult.reason?.isCancelled) {
-        setGuides([]);
-        if (pkgsResult.status === 'fulfilled') {
-          setGuidesWarning(
-            'Certified tour guide directory is temporarily unavailable. You can still plan your trip without a guide assignment.'
-          );
-        }
-      }
+      setGuidesWarning(null);
     } catch (err) {
-      if (!err.isCancelled && !signal?.aborted) {
+      if (!err.isCancelled) {
         console.error('[CreateTripPage] Catalog fetch error:', err);
-        setCatalogError(err.message || 'Failed to connect to catalog services.');
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoadingData(false);
+        // Redux owns the resource error; retain a page-level message for this wizard.
+        console.error('[CreateTripPage] Catalog fetch error:', err);
       }
     }
   };
 
   const retryGuides = async () => {
     try {
-      const data = await guidesApi.getAll();
-      setGuides(Array.isArray(data) ? data : []);
+      await guideResource.refresh();
       setGuidesWarning(null);
     } catch (err) {
       console.warn('[CreateTripPage] Retry guides failed:', err);
@@ -216,7 +193,7 @@ export default function TravelerCreateTripPage() {
       })
       .then((list) => {
         if (!Array.isArray(list)) return;
-        setGuides(list);
+        guideResource.replaceAll(list);
         if (formData.guideId) {
           const chosen = list.find((g) => Number(g.guideId) === Number(formData.guideId));
           if (chosen && chosen.isAvailableForDates === false) {
