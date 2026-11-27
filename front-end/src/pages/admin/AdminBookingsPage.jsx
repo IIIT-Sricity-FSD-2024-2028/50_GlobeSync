@@ -1,97 +1,58 @@
-import React, { useState, useMemo } from 'react';
-import {
-  bookingsApi,
-  tripsApi,
-  travelersApi,
-  agenciesApi,
-  paymentsApi,
-} from '../../services/api';
+import React, { useEffect, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchAdminBookings } from '../../store/admin-bookings/admin-bookings-actions';
+import { adminBookingsActions } from '../../store/admin-bookings/admin-bookings-slice';
 import StatusBadge from '../../components/common/StatusBadge';
 import {
   AdminPage,
   AdminTable,
   Filters,
   bookingStatuses,
-  matches,
   money,
   ownerLabel,
-  useAdminData,
 } from '../../components/admin/AdminUI';
 import BookingInspectionModal from '../../components/admin/BookingInspectionModal';
 
-/**
- * AdminBookingsPage
- * Primary route: /admin/bookings
- *
- * Operational Governance:
- * 1. Read-Only Inspection:
- *    - Admin monitors booking records, inspection details, traveler/guide information,
- *      associated trips, authorized payment info, and refund statuses.
- * 2. Prohibited Direct Mutations:
- *    - Admin cannot directly modify booking details, amounts, change booking/payment status,
- *      or delete booking records.
- * 3. Composite Loader Resilience:
- *    - Uses Promise.allSettled so secondary failures (e.g. auxiliary lookups) do not crash the page.
- */
-
-const loadBookingsData = async (options) => {
-  const [bookingsRes, tripsRes, travelersRes, agenciesRes, paymentsRes] = await Promise.allSettled([
-    bookingsApi.getAll(options),
-    tripsApi.getAll(options),
-    travelersApi.getAll(options),
-    agenciesApi.getAll(options),
-    paymentsApi.getAll(options),
-  ]);
-
-  const bookings = bookingsRes.status === 'fulfilled' && Array.isArray(bookingsRes.value) ? bookingsRes.value : [];
-  const trips = tripsRes.status === 'fulfilled' && Array.isArray(tripsRes.value) ? tripsRes.value : [];
-  const travelers =
-    travelersRes.status === 'fulfilled'
-      ? Array.isArray(travelersRes.value)
-        ? travelersRes.value
-        : travelersRes.value?.value || []
-      : [];
-  const agencies =
-    agenciesRes.status === 'fulfilled'
-      ? Array.isArray(agenciesRes.value)
-        ? agenciesRes.value
-        : agenciesRes.value?.value || []
-      : [];
-  const payments = paymentsRes.status === 'fulfilled' && Array.isArray(paymentsRes.value) ? paymentsRes.value : [];
-
-  return { bookings, trips, travelers, agencies, payments };
-};
-
 export default function AdminBookingsPage() {
-  const resource = useAdminData(loadBookingsData);
+  const dispatch = useDispatch();
 
-  // Filters state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const bookings = useSelector((state) => state.adminBookings.bookings);
+  const relatedTrips = useSelector((state) => state.adminBookings.relatedTrips);
+  const relatedTravelers = useSelector((state) => state.adminBookings.relatedTravelers);
+  const relatedAgencies = useSelector((state) => state.adminBookings.relatedAgencies);
+  const relatedPayments = useSelector((state) => state.adminBookings.relatedPayments);
+  const selectedBookingId = useSelector((state) => state.adminBookings.selectedBookingId);
+  const search = useSelector((state) => state.adminBookings.search);
+  const statusFilter = useSelector((state) => state.adminBookings.statusFilter);
+  const loading = useSelector((state) => state.adminBookings.loading);
+  const error = useSelector((state) => state.adminBookings.error);
 
-  // Selected booking for detail modal
-  const [selectedBooking, setSelectedBooking] = useState(null);
+  useEffect(() => {
+    dispatch(fetchAdminBookings());
+  }, [dispatch]);
 
-  // ─── Entity Resolvers ──────────────────────────────────────────────────────
-  const d = resource.data;
+  const selectedBooking = useMemo(() => {
+    if (!selectedBookingId) return null;
+    return bookings.find((b) => b.bookingId === selectedBookingId) || null;
+  }, [bookings, selectedBookingId]);
 
+  // Entity Resolvers
   const resolveOwnerName = (row) =>
-    ownerLabel(row, d?.travelers || [], d?.agencies || []);
+    ownerLabel(row, relatedTravelers || [], relatedAgencies || []);
 
   const resolveDestination = (row) => {
-    const trip = (d?.trips || []).find((t) => t.tripId === row.tripId);
+    const trip = (relatedTrips || []).find((t) => t.tripId === row.tripId);
     return trip?.destination || `Trip #${row.tripId}`;
   };
 
   const resolvePaymentsForBooking = (booking) => {
     if (!booking) return [];
-    return (d?.payments || []).filter((p) => Number(p.bookingId) === Number(booking.bookingId));
+    return (relatedPayments || []).filter((p) => Number(p.bookingId) === Number(booking.bookingId));
   };
 
   const resolvePayment = (booking) => {
     const list = resolvePaymentsForBooking(booking);
     if (list.length === 0) return null;
-    // Prefer authoritative Paid payment over pending/failed attempts
     return list.find((p) => String(p.status).toLowerCase() === 'paid') || list[list.length - 1];
   };
 
@@ -106,56 +67,41 @@ export default function AdminBookingsPage() {
 
   const resolveAgency = (booking) => {
     if (!booking?.agencyId) return null;
-    return (d?.agencies || []).find((a) => Number(a.agencyId) === Number(booking.agencyId)) || null;
+    return (relatedAgencies || []).find((a) => Number(a.agencyId) === Number(booking.agencyId)) || null;
   };
 
   const resolveTrip = (booking) => {
     if (!booking?.tripId) return null;
-    return (d?.trips || []).find((t) => Number(t.tripId) === Number(booking.tripId)) || null;
+    return (relatedTrips || []).find((t) => Number(t.tripId) === Number(booking.tripId)) || null;
   };
 
-  // ─── Memoized Filtered Bookings ────────────────────────────────────────────
   const filteredBookings = useMemo(() => {
-    const rawBookings = d?.bookings || [];
-    return rawBookings.filter((booking) => {
-      // 1. Status Filter
-      if (statusFilter && booking.status !== statusFilter) {
-        return false;
-      }
-
-      // 2. Search Query Match
-      if (searchQuery.trim()) {
+    const list = Array.isArray(bookings) ? bookings : [];
+    return list.filter((booking) => {
+      if (statusFilter && booking.status !== statusFilter) return false;
+      if (search.trim()) {
         const dest = resolveDestination(booking);
         const owner = resolveOwnerName(booking);
-        const payment = resolvePayment(booking);
-        return matches(
-          [
-            booking.bookingId,
-            booking.service,
-            booking.type,
-            booking.status,
-            dest,
-            owner,
-            payment?.status || 'Unrecorded',
-          ],
-          searchQuery
+        const q = search.toLowerCase();
+        return (
+          String(booking.bookingId ?? '').toLowerCase().includes(q) ||
+          (booking.service ?? '').toLowerCase().includes(q) ||
+          dest.toLowerCase().includes(q) ||
+          owner.toLowerCase().includes(q)
         );
       }
-
       return true;
     });
-  }, [d?.bookings, statusFilter, searchQuery, d?.trips, d?.travelers, d?.agencies, d?.payments]);
+  }, [bookings, search, statusFilter, relatedTrips, relatedTravelers, relatedAgencies]);
 
-  // ─── Modal Handlers ────────────────────────────────────────────────────────
-  const handleSelectBooking = (booking) => {
-    setSelectedBooking(booking);
+  const resource = {
+    loading,
+    busy: loading,
+    load: () => dispatch(fetchAdminBookings()),
+    error,
+    data: bookings,
   };
 
-  const handleCloseModal = () => {
-    setSelectedBooking(null);
-  };
-
-  // ─── Table Columns Definition ──────────────────────────────────────────────
   const columns = [
     {
       label: 'ID',
@@ -216,8 +162,8 @@ export default function AdminBookingsPage() {
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            onClick={() => handleSelectBooking(b)}
-            disabled={resource.busy}
+            onClick={() => dispatch(adminBookingsActions.setSelectedBookingId(b.bookingId))}
+            disabled={loading}
             title="Inspect booking financials, payment records, and refund status"
           >
             Inspect
@@ -229,18 +175,15 @@ export default function AdminBookingsPage() {
 
   return (
     <AdminPage title="Bookings" resource={resource}>
-      {resource.data && (
+      {bookings && (
         <>
-          {/* Filters Bar: Search & Status Dropdown */}
           <Filters
-            query={searchQuery}
-            setQuery={setSearchQuery}
+            query={search}
+            setQuery={(val) => dispatch(adminBookingsActions.setSearch(val))}
             status={statusFilter}
-            setStatus={setStatusFilter}
+            setStatus={(val) => dispatch(adminBookingsActions.setStatusFilter(val))}
             statuses={bookingStatuses}
           />
-
-          {/* Paginated Bookings Table */}
           <AdminTable
             rowKey="bookingId"
             rows={filteredBookings}
@@ -249,7 +192,6 @@ export default function AdminBookingsPage() {
         </>
       )}
 
-      {/* Controlled Read-Only Booking Inspection Modal */}
       <BookingInspectionModal
         isOpen={Boolean(selectedBooking)}
         booking={selectedBooking}
@@ -259,7 +201,7 @@ export default function AdminBookingsPage() {
         agency={resolveAgency(selectedBooking)}
         destinationName={selectedBooking ? resolveDestination(selectedBooking) : 'Unknown Trip'}
         ownerName={selectedBooking ? resolveOwnerName(selectedBooking) : 'Unassigned'}
-        onClose={handleCloseModal}
+        onClose={() => dispatch(adminBookingsActions.clearSelectedBooking())}
       />
     </AdminPage>
   );

@@ -64,6 +64,10 @@ export const matches = (values, query) =>
 /**
  * useAdminData
  *
+ * @deprecated All Admin pages have been migrated to the centralized Redux Toolkit architecture
+ * (see src/store/admin/*). This hook is retained strictly for backward compatibility with external
+ * or legacy references.
+ *
  * Centralizes the data-lifecycle pattern for admin pages:
  * - Mount / dependency data fetching with AbortController signal
  * - Explicit distinction between mutation failure vs subsequent refresh failure

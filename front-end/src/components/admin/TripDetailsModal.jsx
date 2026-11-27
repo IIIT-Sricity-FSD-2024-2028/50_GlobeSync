@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { AdminDialog, Details, money } from './AdminUI';
 import StatusBadge from '../common/StatusBadge';
-import { bookingsApi, tripsApi } from '../../services/api';
+import { fetchAdminTripDetails } from '../../store/admin-trips/admin-trips-actions';
+import { adminTripsActions } from '../../store/admin-trips/admin-trips-slice';
 
 export default function TripDetailsModal({
   isOpen,
@@ -12,31 +14,19 @@ export default function TripDetailsModal({
   onClose,
   onRequestReassign,
 }) {
-  const [associatedBookings, setAssociatedBookings] = useState([]);
-  const [reassignmentHistory, setReassignmentHistory] = useState([]);
-  const [loadingExtras, setLoadingExtras] = useState(false);
+  const dispatch = useDispatch();
+  const associatedBookings = useSelector((state) => state.adminTrips.selectedTripBookings);
+  const reassignmentHistory = useSelector((state) => state.adminTrips.reassignmentHistory);
+  const loadingExtras = useSelector((state) => state.adminTrips.detailsLoading);
 
   useEffect(() => {
     if (isOpen && trip?.tripId) {
-      setLoadingExtras(true);
-      Promise.allSettled([
-        bookingsApi.getAll(),
-        tripsApi.getReassignments ? tripsApi.getReassignments(trip.tripId) : Promise.resolve([]),
-      ]).then(([bookingsRes, reassignRes]) => {
-        if (bookingsRes.status === 'fulfilled' && Array.isArray(bookingsRes.value)) {
-          setAssociatedBookings(bookingsRes.value.filter((b) => b.tripId === trip.tripId));
-        } else {
-          setAssociatedBookings([]);
-        }
-        if (reassignRes.status === 'fulfilled' && Array.isArray(reassignRes.value)) {
-          setReassignmentHistory(reassignRes.value);
-        } else {
-          setReassignmentHistory([]);
-        }
-        setLoadingExtras(false);
-      });
+      dispatch(fetchAdminTripDetails(trip.tripId));
     }
-  }, [isOpen, trip?.tripId]);
+    return () => {
+      dispatch(adminTripsActions.clearTripDetails());
+    };
+  }, [dispatch, isOpen, trip?.tripId]);
 
   if (!isOpen || !trip) return null;
 

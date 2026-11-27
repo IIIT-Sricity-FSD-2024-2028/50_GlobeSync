@@ -1,5 +1,12 @@
-import React, { useState, useMemo } from 'react';
-import { packagesApi } from '../../services/api';
+import React, { useEffect, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  fetchAdminPackages,
+  createAdminPackage,
+  updateAdminPackage,
+  archiveAdminPackage,
+} from '../../store/admin-packages/admin-packages-actions';
+import { adminPackagesActions } from '../../store/admin-packages/admin-packages-slice';
 import { resolvePackageImage } from '../../components/packages/PackageCard';
 import {
   AdminPage,
@@ -7,140 +14,106 @@ import {
   Filters,
   AdminDialog,
   FormActions,
-  matches,
   money,
-  useAdminData,
 } from '../../components/admin/AdminUI';
 import PackageFormDialog from '../../components/admin/PackageFormDialog';
 
-/**
- * AdminPackagesPage
- * Primary route: /admin/packages
- *
- * Operational Authority & Governance:
- * 1. Independent Operational Authority:
- *    - Admin creates, edits, publishes, and archives packages independently.
- * 2. Mandatory Super Admin Notifications:
- *    - Every successful administrative creation, update, and archival automatically generates
- *      an informational audit notification to Super Admin.
- * 3. Controlled Archival:
- *    - Package removal uses controlled archival with a mandatory reason, preventing new bookings
- *      while preserving historical bookings and financial records.
- */
 export default function AdminPackagesPage() {
-  const resource = useAdminData(packagesApi.getAll);
+  const dispatch = useDispatch();
 
-  // Search & Filter state
-  const [searchQuery, setSearchQuery] = useState('');
+  const packages = useSelector((state) => state.adminPackages.packages);
+  const selectedPackageId = useSelector((state) => state.adminPackages.selectedPackageId);
+  const search = useSelector((state) => state.adminPackages.search);
+  const modal = useSelector((state) => state.adminPackages.modal);
+  const archiveReason = useSelector((state) => state.adminPackages.archiveReason);
+  const loading = useSelector((state) => state.adminPackages.loading);
+  const error = useSelector((state) => state.adminPackages.error);
 
-  // Form modal state
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingPackage, setEditingPackage] = useState(null);
-  const [formError, setFormError] = useState(null);
+  useEffect(() => {
+    dispatch(fetchAdminPackages());
+  }, [dispatch]);
 
-  // Archive modal state
-  const [archivingPackage, setArchivingPackage] = useState(null);
-  const [archiveReason, setArchiveReason] = useState('');
-  const [archiveError, setArchiveError] = useState(null);
-
-  // ─── Filtered Packages List ────────────────────────────────────────────────
   const filteredPackages = useMemo(() => {
-    const rawList = Array.isArray(resource.data) ? resource.data : [];
-    if (!searchQuery.trim()) return rawList;
-
-    return rawList.filter((pkg) =>
-      matches([pkg.packageId, pkg.name, pkg.destinations, pkg.highlights, pkg.status], searchQuery)
+    const list = Array.isArray(packages) ? packages : [];
+    if (!search.trim()) return list;
+    const q = search.toLowerCase();
+    return list.filter((pkg) =>
+      (pkg.name ?? '').toLowerCase().includes(q) ||
+      (pkg.destinations ?? '').toLowerCase().includes(q) ||
+      String(pkg.packageId ?? '').includes(q)
     );
-  }, [resource.data, searchQuery]);
+  }, [packages, search]);
 
-  // ─── Action Handlers ───────────────────────────────────────────────────────
+  const editingPackage = selectedPackageId
+    ? packages.find((p) => p.packageId === selectedPackageId) || null
+    : null;
+
+  const archivingPackage = modal.archiveOpen && selectedPackageId
+    ? packages.find((p) => p.packageId === selectedPackageId) || null
+    : null;
+
   const handleOpenCreate = () => {
-    setEditingPackage(null);
-    setFormError(null);
-    setIsFormOpen(true);
+    dispatch(adminPackagesActions.openCreateModal());
   };
 
   const handleOpenEdit = (pkg) => {
-    setEditingPackage(pkg);
-    setFormError(null);
-    setIsFormOpen(true);
+    dispatch(adminPackagesActions.openEditModal(pkg.packageId));
   };
 
   const handleCloseForm = () => {
-    if (resource.busy) return;
-    setIsFormOpen(false);
-    setEditingPackage(null);
-    setFormError(null);
+    if (loading) return;
+    dispatch(adminPackagesActions.closeModal());
   };
 
   const handleSavePackage = async (formData) => {
-    setFormError(null);
-
-    const isUpdate = Boolean(editingPackage && editingPackage.packageId);
-    const operation = () =>
-      isUpdate
-        ? packagesApi.update(editingPackage.packageId, formData)
-        : packagesApi.create(formData);
-
-    const successMessage = isUpdate
-      ? `Package "${formData.name}" updated successfully (Super Admin notified).`
-      : `New package "${formData.name}" created successfully (Super Admin notified).`;
-
-    const succeeded = await resource.run(
-      operation,
-      successMessage,
-      () => {
-        setIsFormOpen(false);
-        setEditingPackage(null);
+    try {
+      if (editingPackage && editingPackage.packageId) {
+        await dispatch(updateAdminPackage(editingPackage.packageId, formData));
+      } else {
+        await dispatch(createAdminPackage(formData));
       }
-    );
-
-    if (!succeeded && resource.error) {
-      setFormError(resource.error);
+      dispatch(adminPackagesActions.closeModal());
+    } catch {
+      // Error is stored in state.adminPackages.error
     }
   };
 
   const handleOpenArchive = (pkg) => {
-    setArchivingPackage(pkg);
-    setArchiveReason('');
-    setArchiveError(null);
+    dispatch(adminPackagesActions.openArchiveModal(pkg.packageId));
   };
 
   const handleCloseArchive = () => {
-    if (resource.busy) return;
-    setArchivingPackage(null);
-    setArchiveReason('');
-    setArchiveError(null);
+    if (loading) return;
+    dispatch(adminPackagesActions.closeModal());
   };
 
   const handleConfirmArchive = async (e) => {
     e.preventDefault();
     if (!archivingPackage) return;
     if (!archiveReason.trim()) {
-      setArchiveError('A mandatory reason is required to archive this package.');
+      dispatch(adminPackagesActions.setError('A mandatory reason is required to archive this package.'));
       return;
     }
 
-    const packageId = archivingPackage.packageId;
-    const packageName = archivingPackage.name;
-
-    const succeeded = await resource.run(
-      () => packagesApi.archive(packageId, archiveReason.trim()),
-      `Package "${packageName}" (#${packageId}) archived successfully. Super Admin has been notified, and new bookings are blocked while historical records remain intact.`,
-      () => {
-        setArchivingPackage(null);
-      }
-    );
-
-    if (!succeeded && resource.error) {
-      setArchiveError(resource.error);
+    try {
+      await dispatch(archiveAdminPackage(archivingPackage.packageId, archiveReason.trim()));
+      dispatch(adminPackagesActions.closeModal());
+    } catch {
+      // Error stored in state.adminPackages.error
     }
   };
 
-  // ─── Table Columns Definition ──────────────────────────────────────────────
+  const resource = {
+    loading,
+    busy: loading,
+    load: () => dispatch(fetchAdminPackages()),
+    error,
+    data: packages,
+  };
+
   const columns = [
     {
-      label: 'Image',
+      label: 'Cover',
       render: (pkg) => (
         <img
           className="admin-package-image"
@@ -232,22 +205,19 @@ export default function AdminPackagesPage() {
         <button
           type="button"
           className="btn btn-primary"
-          disabled={resource.busy || resource.loading}
+          disabled={loading}
           onClick={handleOpenCreate}
         >
           ➕ Create Package
         </button>
       }
     >
-      {resource.data && (
+      {packages && (
         <>
-          {/* Search Bar */}
           <Filters
-            query={searchQuery}
-            setQuery={setSearchQuery}
+            query={search}
+            setQuery={(val) => dispatch(adminPackagesActions.setSearch(val))}
           />
-
-          {/* Paginated Packages Table */}
           <AdminTable
             rowKey="packageId"
             rows={filteredPackages}
@@ -256,22 +226,20 @@ export default function AdminPackagesPage() {
         </>
       )}
 
-      {/* Controlled Create/Edit Package Dialog */}
       <PackageFormDialog
-        isOpen={isFormOpen}
+        isOpen={modal.createOpen || modal.editOpen}
         packageData={editingPackage}
-        isBusy={resource.busy}
-        error={formError || (isFormOpen ? resource.error : null)}
+        isBusy={loading}
+        error={error}
         onClose={handleCloseForm}
         onSubmit={handleSavePackage}
       />
 
-      {/* Controlled Archival Dialog */}
       {archivingPackage && (
         <AdminDialog
           title={`Archive Package "${archivingPackage.name}"?`}
-          busy={resource.busy}
-          dialogError={archiveError}
+          busy={loading}
+          error={error}
           onClose={handleCloseArchive}
         >
           <form onSubmit={handleConfirmArchive}>
@@ -287,16 +255,13 @@ export default function AdminPackagesPage() {
                 rows={3}
                 placeholder="Explain the reason for archival (e.g. End of seasonal tour, revised itinerary)..."
                 value={archiveReason}
-                disabled={resource.busy}
-                onChange={(e) => {
-                  setArchiveReason(e.target.value);
-                  if (archiveError) setArchiveError(null);
-                }}
+                disabled={loading}
+                onChange={(e) => dispatch(adminPackagesActions.setArchiveReason(e.target.value))}
                 style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
               />
             </div>
             <FormActions
-              busy={resource.busy}
+              busy={loading}
               onCancel={handleCloseArchive}
               submitLabel="Confirm Archival"
             />

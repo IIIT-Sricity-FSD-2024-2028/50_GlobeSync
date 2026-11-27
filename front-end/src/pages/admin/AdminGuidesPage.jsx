@@ -1,5 +1,13 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { guidesApi, approvalsApi } from '../../services/api';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  fetchAdminGuides,
+  createAdminGuide,
+  updateAdminGuide,
+  verifyAdminGuide,
+  requestAdminGuideDeactivation,
+} from '../../store/admin-guides/admin-guides-actions';
+import { adminGuidesActions } from '../../store/admin-guides/admin-guides-slice';
 import {
   AdminPage,
   AdminTable,
@@ -8,9 +16,7 @@ import {
   Field,
   FormActions,
   Details,
-  matches,
   money,
-  useAdminData,
 } from '../../components/admin/AdminUI';
 
 const INITIAL_GUIDE_FORM = {
@@ -25,11 +31,6 @@ const INITIAL_GUIDE_FORM = {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/**
- * GuideFormModal
- *
- * Controlled modal dialog for creating and updating tour guides.
- */
 function GuideFormModal({
   isOpen,
   guide,
@@ -254,125 +255,131 @@ function GuideFormModal({
   );
 }
 
-/**
- * AdminGuidesPage
- * Primary route: /admin/guides
- *
- * Provides a dedicated administrator interface for managing certified tour guides
- * using permitted backend endpoints (GET, POST, PUT, DELETE /guides).
- */
 export default function AdminGuidesPage() {
-  const resource = useAdminData(guidesApi.getAll);
+  const dispatch = useDispatch();
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingGuide, setEditingGuide] = useState(null);
-  const [viewingGuide, setViewingGuide] = useState(null);
-  const [verifyingGuide, setVerifyingGuide] = useState(null);
-  const [deactivatingGuide, setDeactivatingGuide] = useState(null);
-  const [deactivationReason, setDeactivationReason] = useState('');
+  const guides = useSelector((state) => state.adminGuides.guides);
+  const selectedGuideId = useSelector((state) => state.adminGuides.selectedGuideId);
+  const verifyingGuideId = useSelector((state) => state.adminGuides.verifyingGuideId);
+  const search = useSelector((state) => state.adminGuides.search);
+  const deactivationReason = useSelector((state) => state.adminGuides.deactivationReason);
+  const verificationForm = useSelector((state) => state.adminGuides.verificationForm);
+  const modal = useSelector((state) => state.adminGuides.modal);
+  const loading = useSelector((state) => state.adminGuides.loading);
+  const error = useSelector((state) => state.adminGuides.error);
 
-  // Guide Verification form state
-  const [verifyProofUrl, setVerifyProofUrl] = useState('');
-  const [verifyExpYears, setVerifyExpYears] = useState('3');
-  const [verifyRateMinor, setVerifyRateMinor] = useState('250000');
+  useEffect(() => {
+    dispatch(fetchAdminGuides());
+  }, [dispatch]);
+
+  const selectedGuide = useMemo(() => {
+    if (!selectedGuideId) return null;
+    return guides.find((g) => g.guideId === selectedGuideId) || null;
+  }, [guides, selectedGuideId]);
+
+  const verifyingGuide = useMemo(() => {
+    if (!verifyingGuideId) return null;
+    return guides.find((g) => g.guideId === verifyingGuideId) || null;
+  }, [guides, verifyingGuideId]);
 
   const filteredGuides = useMemo(() => {
-    const raw = resource.data || [];
-    return raw.filter((guide) => {
-      const langs = Array.isArray(guide.languages) ? guide.languages.join(' ') : '';
-      return matches(
-        [guide.guideId, guide.name, guide.email, guide.contact, langs],
-        searchQuery
-      );
-    });
-  }, [resource.data, searchQuery]);
+    const list = Array.isArray(guides) ? guides : [];
+    if (!search.trim()) return list;
+    const q = search.toLowerCase();
+    return list.filter((guide) =>
+      (guide.name ?? '').toLowerCase().includes(q) ||
+      (guide.email ?? '').toLowerCase().includes(q) ||
+      (guide.contact ?? '').toLowerCase().includes(q) ||
+      String(guide.guideId ?? '').includes(q)
+    );
+  }, [guides, search]);
 
   const handleOpenCreate = () => {
-    setEditingGuide(null);
-    setIsFormOpen(true);
+    dispatch(adminGuidesActions.openFormModal(null));
   };
 
   const handleOpenEdit = (guide) => {
-    setEditingGuide(guide);
-    setIsFormOpen(true);
+    dispatch(adminGuidesActions.openFormModal(guide.guideId));
   };
 
   const handleCloseForm = () => {
-    setIsFormOpen(false);
-    setEditingGuide(null);
+    dispatch(adminGuidesActions.closeFormModal());
   };
 
-  const handleSaveGuide = (payload) => {
-    const isEdit = Boolean(editingGuide && editingGuide.guideId);
-    const action = isEdit
-      ? () => guidesApi.update(editingGuide.guideId, payload)
-      : () => guidesApi.create(payload);
-
-    resource.run(
-      action,
-      isEdit ? `Guide ${payload.name} updated.` : `Guide ${payload.name} registered successfully.`,
-      () => handleCloseForm()
-    );
+  const handleSaveGuide = async (payload) => {
+    try {
+      if (selectedGuide && selectedGuide.guideId) {
+        await dispatch(updateAdminGuide(selectedGuide.guideId, payload));
+      } else {
+        await dispatch(createAdminGuide(payload));
+      }
+    } catch {
+      // Error handled in Redux state
+    }
   };
 
   const handleOpenVerify = (guide) => {
-    setVerifyingGuide(guide);
-    setVerifyProofUrl(guide.proofUrl || '');
-    setVerifyExpYears(guide.verifiedExperienceYears != null ? String(guide.verifiedExperienceYears) : String(guide.experience || '3'));
-    setVerifyRateMinor(guide.adminSetRateMinor != null ? String(guide.adminSetRateMinor) : String((guide.pricePerTrip || 2500) * 100));
+    dispatch(adminGuidesActions.openVerifyModal(guide.guideId));
+    dispatch(
+      adminGuidesActions.setVerificationForm({
+        proofUrl: guide.proofUrl || '',
+        expYears:
+          guide.verifiedExperienceYears != null
+            ? String(guide.verifiedExperienceYears)
+            : String(guide.experience || '3'),
+        rateMinor:
+          guide.adminSetRateMinor != null
+            ? String(guide.adminSetRateMinor)
+            : String((guide.pricePerTrip || 2500) * 100),
+      })
+    );
   };
 
   const handleCloseVerify = () => {
-    setVerifyingGuide(null);
+    dispatch(adminGuidesActions.closeVerifyModal());
   };
 
-  const handleConfirmVerify = () => {
+  const handleConfirmVerify = async () => {
     if (!verifyingGuide) return;
-    const exp = parseInt(verifyExpYears, 10);
-    const rateMinor = parseInt(verifyRateMinor, 10);
+    const exp = parseInt(verificationForm.expYears, 10);
+    const rateMinor = parseInt(verificationForm.rateMinor, 10);
 
-    resource.run(
-      () =>
-        guidesApi.update(verifyingGuide.guideId, {
-          verificationStatus: 'VERIFIED',
-          proofUrl: verifyProofUrl.trim(),
+    try {
+      await dispatch(
+        verifyAdminGuide(verifyingGuide.guideId, {
+          proofUrl: verificationForm.proofUrl.trim(),
           verifiedExperienceYears: Number.isNaN(exp) ? 0 : exp,
           adminSetRateMinor: Number.isNaN(rateMinor) ? 0 : rateMinor,
-        }),
-      `Guide ${verifyingGuide.name} verified successfully.`,
-      () => handleCloseVerify()
-    );
+        })
+      );
+    } catch {
+      // Error handled in Redux state
+    }
   };
 
   const handleOpenDeactivate = (guide) => {
-    setDeactivatingGuide(guide);
-    setDeactivationReason('');
+    dispatch(adminGuidesActions.openDeactivateModal(guide.guideId));
   };
 
   const handleCloseDeactivate = () => {
-    setDeactivatingGuide(null);
-    setDeactivationReason('');
+    dispatch(adminGuidesActions.closeDeactivateModal());
   };
 
-  const handleConfirmDeactivateRequest = () => {
-    if (!deactivatingGuide || !deactivationReason.trim()) return;
+  const handleConfirmDeactivateRequest = async () => {
+    if (!selectedGuide || !deactivationReason.trim()) return;
+    try {
+      await dispatch(requestAdminGuideDeactivation(selectedGuide.guideId, deactivationReason.trim()));
+    } catch {
+      // Error handled in Redux state
+    }
+  };
 
-    resource.run(
-      () =>
-        approvalsApi.create({
-          type: 'GUIDE_DEACTIVATION',
-          entityType: 'guide',
-          entityId: deactivatingGuide.guideId,
-          proposedValues: {
-            status: 'DEACTIVATED',
-            deactivationReason: deactivationReason.trim(),
-          },
-          reason: `Permanent guide deactivation requested by Admin: ${deactivationReason.trim()}`,
-        }),
-      `Submitted deactivation approval request for ${deactivatingGuide.name} to Super Admin.`,
-      () => handleCloseDeactivate()
-    );
+  const resource = {
+    loading,
+    busy: loading,
+    load: () => dispatch(fetchAdminGuides()),
+    error,
+    data: guides,
   };
 
   const columns = [
@@ -439,7 +446,7 @@ export default function AdminGuidesPage() {
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            onClick={() => setViewingGuide(g)}
+            onClick={() => dispatch(adminGuidesActions.openViewModal(g.guideId))}
             title="Inspect guide profile"
           >
             View
@@ -448,7 +455,7 @@ export default function AdminGuidesPage() {
             type="button"
             className="btn btn-secondary btn-sm"
             onClick={() => handleOpenVerify(g)}
-            disabled={resource.busy}
+            disabled={loading}
             title="Verify credentials and set locked rate"
           >
             Verify
@@ -457,7 +464,7 @@ export default function AdminGuidesPage() {
             type="button"
             className="btn btn-secondary btn-sm"
             onClick={() => handleOpenEdit(g)}
-            disabled={resource.busy}
+            disabled={loading}
             title="Edit contact and profile details"
           >
             Edit
@@ -466,7 +473,7 @@ export default function AdminGuidesPage() {
             type="button"
             className="btn btn-secondary btn-sm"
             onClick={() => handleOpenDeactivate(g)}
-            disabled={resource.busy}
+            disabled={loading}
             title="Request permanent deactivation via Super Admin"
             style={{ color: '#dc2626' }}
           >
@@ -485,18 +492,18 @@ export default function AdminGuidesPage() {
         <button
           type="button"
           className="btn btn-primary"
-          disabled={resource.busy}
+          disabled={loading}
           onClick={handleOpenCreate}
         >
           Register Guide
         </button>
       }
     >
-      {resource.data && (
+      {guides && (
         <>
           <Filters
-            query={searchQuery}
-            setQuery={setSearchQuery}
+            query={search}
+            setQuery={(val) => dispatch(adminGuidesActions.setSearch(val))}
             statuses={[]}
           />
           <AdminTable
@@ -507,50 +514,47 @@ export default function AdminGuidesPage() {
         </>
       )}
 
-      {/* View Details Dialog */}
-      {viewingGuide && (
+      {modal.viewOpen && selectedGuide && (
         <AdminDialog
-          title={`Guide Profile: ${viewingGuide.name}`}
-          onClose={() => setViewingGuide(null)}
+          title={`Guide Profile: ${selectedGuide.name}`}
+          onClose={() => dispatch(adminGuidesActions.closeViewModal())}
           busy={false}
         >
           <Details
             entries={[
-              ['Guide ID', `#${viewingGuide.guideId}`],
-              ['Name', viewingGuide.name],
-              ['Email', viewingGuide.email],
-              ['Contact', viewingGuide.contact || 'N/A'],
+              ['Guide ID', `#${selectedGuide.guideId}`],
+              ['Name', selectedGuide.name],
+              ['Email', selectedGuide.email],
+              ['Contact', selectedGuide.contact || 'N/A'],
               [
                 'Languages',
-                Array.isArray(viewingGuide.languages)
-                  ? viewingGuide.languages.join(', ')
+                Array.isArray(selectedGuide.languages)
+                  ? selectedGuide.languages.join(', ')
                   : 'English',
               ],
-              ['Experience', `${viewingGuide.experience || 0} years`],
-              ['Fee Per Trip', money(viewingGuide.pricePerTrip)],
-              ['Rating', `★ ${viewingGuide.rating || '5.0'}`],
+              ['Experience', `${selectedGuide.experience || 0} years`],
+              ['Fee Per Trip', money(selectedGuide.pricePerTrip)],
+              ['Rating', `★ ${selectedGuide.rating || '5.0'}`],
             ]}
           />
         </AdminDialog>
       )}
 
-      {/* Create / Edit Form Modal */}
       <GuideFormModal
-        isOpen={isFormOpen}
-        guide={editingGuide}
-        busy={resource.busy}
-        dialogError={resource.error}
+        isOpen={modal.formOpen}
+        guide={selectedGuide}
+        busy={loading}
+        dialogError={error}
         onClose={handleCloseForm}
         onSave={handleSaveGuide}
       />
 
-      {/* Guide Credentials Verification Dialog (Category A / B) */}
-      {verifyingGuide && (
+      {modal.verifyOpen && verifyingGuide && (
         <AdminDialog
           title={`Verify Guide Credentials: ${verifyingGuide.name}`}
           onClose={handleCloseVerify}
-          busy={resource.busy}
-          error={resource.error}
+          busy={loading}
+          error={error}
         >
           <div style={{ marginBottom: '1rem', fontSize: '0.9rem', color: '#64748b' }}>
             <p style={{ margin: '0 0 0.5rem 0' }}>
@@ -567,10 +571,12 @@ export default function AdminGuidesPage() {
               id="verify-proof-url"
               label="Credential / License Verification URL"
               type="url"
-              value={verifyProofUrl}
-              onChange={(e) => setVerifyProofUrl(e.target.value)}
+              value={verificationForm.proofUrl}
+              onChange={(e) =>
+                dispatch(adminGuidesActions.setVerificationForm({ proofUrl: e.target.value }))
+              }
               placeholder="https://tourism.gov.in/guides/license-789"
-              disabled={resource.busy}
+              disabled={loading}
               helperText="Official license or badge verification link."
             />
             <Field
@@ -579,9 +585,11 @@ export default function AdminGuidesPage() {
               type="number"
               min="0"
               max="50"
-              value={verifyExpYears}
-              onChange={(e) => setVerifyExpYears(e.target.value)}
-              disabled={resource.busy}
+              value={verificationForm.expYears}
+              onChange={(e) =>
+                dispatch(adminGuidesActions.setVerificationForm({ expYears: e.target.value }))
+              }
+              disabled={loading}
               helperText="Verified experience level across industry expeditions."
             />
             <Field
@@ -590,13 +598,15 @@ export default function AdminGuidesPage() {
               type="number"
               min="10000"
               step="1000"
-              value={verifyRateMinor}
-              onChange={(e) => setVerifyRateMinor(e.target.value)}
-              disabled={resource.busy}
+              value={verificationForm.rateMinor}
+              onChange={(e) =>
+                dispatch(adminGuidesActions.setVerificationForm({ rateMinor: e.target.value }))
+              }
+              disabled={loading}
               helperText="e.g. 250000 minor units = INR 2,500 daily fee."
             />
             <FormActions
-              busy={resource.busy}
+              busy={loading}
               onCancel={handleCloseVerify}
               submitLabel="Confirm & Lock Verification"
             />
@@ -604,13 +614,12 @@ export default function AdminGuidesPage() {
         </AdminDialog>
       )}
 
-      {/* Deactivation Approval Request Dialog (Category C) */}
-      {deactivatingGuide && (
+      {modal.deactivateOpen && selectedGuide && (
         <AdminDialog
-          title={`Request Guide Deactivation: ${deactivatingGuide.name}`}
+          title={`Request Guide Deactivation: ${selectedGuide.name}`}
           onClose={handleCloseDeactivate}
-          busy={resource.busy}
-          error={resource.error}
+          busy={loading}
+          error={error}
         >
           <div style={{ marginBottom: '1rem', fontSize: '0.9rem', color: '#64748b' }}>
             <p style={{ margin: '0 0 0.5rem 0' }}>
@@ -628,13 +637,13 @@ export default function AdminGuidesPage() {
               label="Reason for Deactivation Request (Required)"
               type="text"
               value={deactivationReason}
-              onChange={(e) => setDeactivationReason(e.target.value)}
+              onChange={(e) => dispatch(adminGuidesActions.setDeactivationReason(e.target.value))}
               placeholder="e.g. Multiple traveler complaints, license revocation"
-              disabled={resource.busy}
+              disabled={loading}
               helperText="Rationale will be reviewed by Super Admin with impact analysis."
             />
             <FormActions
-              busy={resource.busy}
+              busy={loading}
               onCancel={handleCloseDeactivate}
               submitLabel="Submit Request to Super Admin"
             />

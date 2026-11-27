@@ -1,11 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import {
-  dashboardApi,
-  tripsApi,
-  bookingsApi,
-  reviewsApi,
-  revenueApi,
-} from '../../services/api';
+import React, { useEffect, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchAdminReports } from '../../store/admin-reports/admin-reports-actions';
+import { adminReportsActions } from '../../store/admin-reports/admin-reports-slice';
 import StatusBadge from '../../components/common/StatusBadge';
 import {
   AdminPage,
@@ -13,106 +9,14 @@ import {
   Filters,
   Metrics,
   money,
-  matches,
-  useAdminData,
 } from '../../components/admin/AdminUI';
 
-/**
- * Composite data loader for administrative reporting.
- *
- * Pedagogical Architecture:
- * - Employs Promise.allSettled to ensure that transient failures in secondary
- *   endpoints (e.g. revenue breakdown or review aggregations) do not hide the entire report.
- * - Explicitly tracks and returns partialFailures so the UI can notify the administrator
- *   without presenting broken or silently blank metrics.
- */
-const loadReportsData = async (options) => {
-  const results = await Promise.allSettled([
-    dashboardApi.getAdmin(options),
-    tripsApi.getAll(options),
-    bookingsApi.getAll(options),
-    reviewsApi.getAll(options),
-    revenueApi.getOverview(options),
-    revenueApi.getBreakdown(options),
-    revenueApi.getTransactions(options),
-    revenueApi.getConfig(options),
-  ]);
-
-  const [
-    dashboardRes,
-    tripsRes,
-    bookingsRes,
-    reviewsRes,
-    overviewRes,
-    breakdownRes,
-    transactionsRes,
-    configRes,
-  ] = results;
-
-  const partialFailures = [];
-  if (dashboardRes.status === 'rejected') partialFailures.push('Dashboard metrics');
-  if (tripsRes.status === 'rejected') partialFailures.push('Trips records');
-  if (bookingsRes.status === 'rejected') partialFailures.push('Bookings records');
-  if (reviewsRes.status === 'rejected') partialFailures.push('Reviews');
-  if (overviewRes.status === 'rejected') partialFailures.push('Revenue overview');
-  if (breakdownRes.status === 'rejected') partialFailures.push('Revenue category breakdown');
-  if (transactionsRes.status === 'rejected') partialFailures.push('Transactions');
-  if (configRes.status === 'rejected') partialFailures.push('Revenue configuration');
-
-  return {
-    dashboard:
-      dashboardRes.status === 'fulfilled'
-        ? dashboardRes.value
-        : { totalTrips: 0, totalBookings: 0, totalRevenue: 0 },
-    trips:
-      tripsRes.status === 'fulfilled' && Array.isArray(tripsRes.value)
-        ? tripsRes.value
-        : [],
-    bookings:
-      bookingsRes.status === 'fulfilled' && Array.isArray(bookingsRes.value)
-        ? bookingsRes.value
-        : [],
-    reviews:
-      reviewsRes.status === 'fulfilled' && Array.isArray(reviewsRes.value)
-        ? reviewsRes.value
-        : [],
-    overview:
-      overviewRes.status === 'fulfilled'
-        ? overviewRes.value
-        : {
-            totalRevenue: 0,
-            thisMonthRevenue: 0,
-            thisYearRevenue: 0,
-            pendingRevenue: 0,
-            settledRevenue: 0,
-            grossBookingValue: 0,
-            totalPayouts: 0,
-          },
-    breakdown:
-      breakdownRes.status === 'fulfilled' ? breakdownRes.value : {},
-    transactions:
-      transactionsRes.status === 'fulfilled' && Array.isArray(transactionsRes.value)
-        ? transactionsRes.value
-        : [],
-    config:
-      configRes.status === 'fulfilled' && Array.isArray(configRes.value)
-        ? configRes.value
-        : [],
-    partialFailures,
-  };
-};
-
-/**
- * RFC 4180-compliant CSV serializer with formula injection sanitization.
- */
 function sanitizeCsvValue(val) {
   if (val == null) return '';
   let str = String(val);
-  // Formula injection mitigation (OWASP recommendation): prefix initial =, +, -, @
   if (/^[=+\-@]/.test(str)) {
     str = `'${str}`;
   }
-  // Wrap in quotes and escape internal quotes if special characters exist
   if (/[",\r\n]/.test(str)) {
     str = `"${str.replace(/"/g, '""')}"`;
   }
@@ -130,7 +34,6 @@ function downloadCsv(filename, columns, rows) {
       .join(',')
   );
 
-  // Prepend UTF-8 BOM so Excel and spreadsheet editors decode INR symbols properly
   const csvBlob = new Blob(['\uFEFF' + [headerLine, ...rowLines].join('\r\n')], {
     type: 'text/csv;charset=utf-8;',
   });
@@ -145,10 +48,7 @@ function downloadCsv(filename, columns, rows) {
   URL.revokeObjectURL(downloadUrl);
 }
 
-/**
- * Status distribution bar renderer.
- */
-function Distribution({ title, rows }) {
+function Distribution({ title, rows = [] }) {
   const counts = rows.reduce(
     (all, row) => ({ ...all, [row.status]: (all[row.status] || 0) + 1 }),
     {}
@@ -179,36 +79,46 @@ function Distribution({ title, rows }) {
 }
 
 export default function AdminReportsPage() {
-  const resource = useAdminData(loadReportsData);
-  const [transactionQuery, setTransactionQuery] = useState('');
-  const [transactionStatus, setTransactionStatus] = useState('');
+  const dispatch = useDispatch();
 
-  const d = resource.data;
+  const dashboard = useSelector((state) => state.adminReports.dashboard);
+  const overview = useSelector((state) => state.adminReports.overview);
+  const breakdown = useSelector((state) => state.adminReports.breakdown);
+  const transactions = useSelector((state) => state.adminReports.transactions);
+  const config = useSelector((state) => state.adminReports.config);
+  const trips = useSelector((state) => state.adminReports.trips);
+  const bookings = useSelector((state) => state.adminReports.bookings);
+  const reviews = useSelector((state) => state.adminReports.reviews);
+  const partialFailures = useSelector((state) => state.adminReports.partialFailures);
+  const transactionSearch = useSelector((state) => state.adminReports.transactionSearch);
+  const transactionStatus = useSelector((state) => state.adminReports.transactionStatus);
+  const exportStatus = useSelector((state) => state.adminReports.exportStatus);
+  const loading = useSelector((state) => state.adminReports.loading);
+  const error = useSelector((state) => state.adminReports.error);
 
-  // Filtered transactions for the report table
+  useEffect(() => {
+    dispatch(fetchAdminReports());
+  }, [dispatch]);
+
   const filteredTransactions = useMemo(() => {
-    if (!d?.transactions) return [];
-    return d.transactions.filter((t) => {
-      const matchesStatus = !transactionStatus || t.status === transactionStatus;
-      const matchesSearch = matches(
-        [
-          t.transaction_id,
-          t.revenue_type,
-          t.booking_reference,
-          t.agency_id,
-          t.guide_id,
-          t.gross_amount,
-          t.revenue_amount,
-        ],
-        transactionQuery
-      );
-      return matchesStatus && matchesSearch;
+    if (!transactions) return [];
+    return transactions.filter((t) => {
+      if (transactionStatus !== 'all' && t.status !== transactionStatus) return false;
+      if (transactionSearch.trim()) {
+        const q = transactionSearch.toLowerCase();
+        return (
+          String(t.transaction_id ?? '').toLowerCase().includes(q) ||
+          (t.revenue_type ?? '').toLowerCase().includes(q) ||
+          (t.booking_reference ?? '').toLowerCase().includes(q)
+        );
+      }
+      return true;
     });
-  }, [d?.transactions, transactionStatus, transactionQuery]);
+  }, [transactions, transactionStatus, transactionSearch]);
 
-  // Export handlers
   const handleExportTransactions = () => {
-    if (!d?.transactions) return;
+    if (!transactions?.length) return;
+    dispatch(adminReportsActions.setExportStatus('exporting'));
     const exportColumns = [
       { label: 'Transaction ID', key: 'transaction_id' },
       { label: 'Revenue Type', key: 'revenue_type' },
@@ -227,10 +137,12 @@ export default function AdminReportsPage() {
       { label: 'Created At', key: 'created_at' },
     ];
     downloadCsv('globesync_transactions_report.csv', exportColumns, filteredTransactions);
+    dispatch(adminReportsActions.setExportStatus('idle'));
   };
 
   const handleExportTripsSummary = () => {
-    if (!d?.trips) return;
+    if (!trips?.length) return;
+    dispatch(adminReportsActions.setExportStatus('exporting'));
     const exportColumns = [
       { label: 'Trip ID', key: 'tripId' },
       { label: 'Destination', key: 'destination' },
@@ -243,11 +155,18 @@ export default function AdminReportsPage() {
       { label: 'End Date', key: 'endDate' },
       { label: 'Trip Lifecycle Status', key: 'status' },
     ];
-    downloadCsv('globesync_trips_summary.csv', exportColumns, d.trips);
+    downloadCsv('globesync_trips_summary.csv', exportColumns, trips);
+    dispatch(adminReportsActions.setExportStatus('idle'));
   };
 
-  const handlePrintReport = () => {
-    window.print();
+  const hasData = Boolean(dashboard || overview || transactions?.length);
+
+  const resource = {
+    loading,
+    busy: loading || exportStatus === 'exporting',
+    load: () => dispatch(fetchAdminReports()),
+    error,
+    data: hasData ? true : null,
   };
 
   return (
@@ -260,7 +179,7 @@ export default function AdminReportsPage() {
             type="button"
             className="btn btn-secondary"
             onClick={handleExportTransactions}
-            disabled={resource.busy || !d?.transactions?.length}
+            disabled={resource.busy || !transactions?.length}
             title="Download CSV export of financial transactions"
           >
             Export Transactions CSV
@@ -269,7 +188,7 @@ export default function AdminReportsPage() {
             type="button"
             className="btn btn-secondary"
             onClick={handleExportTripsSummary}
-            disabled={resource.busy || !d?.trips?.length}
+            disabled={resource.busy || !trips?.length}
             title="Download CSV export of all trips"
           >
             Export Trips CSV
@@ -277,7 +196,7 @@ export default function AdminReportsPage() {
           <button
             type="button"
             className="btn btn-primary"
-            onClick={handlePrintReport}
+            onClick={() => window.print()}
             disabled={resource.busy}
             title="Open printable report layout"
           >
@@ -286,9 +205,8 @@ export default function AdminReportsPage() {
         </div>
       }
     >
-      {d && (
+      {hasData && (
         <>
-          {/* Print View Header (visible only when printing) */}
           <div className="admin-print-header" style={{ display: 'none' }}>
             <h1>GlobeSync Platform Operations & Financial Statement</h1>
             <p>
@@ -296,16 +214,13 @@ export default function AdminReportsPage() {
             </p>
           </div>
 
-          {/* Partial Load Warning Banner */}
-          {d.partialFailures.length > 0 && (
+          {partialFailures?.length > 0 && (
             <div className="admin-warning-banner" role="alert">
               <strong>⚠️ Partial Data Notice:</strong> The following datasets could not be
-              retrieved: {d.partialFailures.join(', ')}. Displaying all available records and
-              summaries.
+              retrieved: {partialFailures.join(', ')}. Displaying all available records and summaries.
             </div>
           )}
 
-          {/* Core Metrics: Financial Volume vs. Platform Commission Revenue */}
           <section style={{ marginBottom: '2.5rem' }}>
             <h2 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
               Financial Volume & Platform Commission
@@ -317,32 +232,30 @@ export default function AdminReportsPage() {
 
             <Metrics
               items={[
-                ['Gross Booking Value (GBV)', money(d.overview.grossBookingValue)],
-                ['Platform Earned Revenue', money(d.overview.totalRevenue)],
-                ['Settled Revenue', money(d.overview.settledRevenue)],
-                ['Pending Settlement', money(d.overview.pendingRevenue)],
-                ['Partner Payouts', money(d.overview.totalPayouts)],
-                ['Month-to-Date Revenue', money(d.overview.thisMonthRevenue)],
-                ['Year-to-Date Revenue', money(d.overview.thisYearRevenue)],
-                ['Total Trips', d.dashboard.totalTrips],
-                ['Total Bookings', d.dashboard.totalBookings],
-                ['Verified Reviews', d.reviews.length],
+                ['Gross Booking Value (GBV)', money(overview?.grossBookingValue || 0)],
+                ['Platform Earned Revenue', money(overview?.totalRevenue || 0)],
+                ['Settled Revenue', money(overview?.settledRevenue || 0)],
+                ['Pending Settlement', money(overview?.pendingRevenue || 0)],
+                ['Partner Payouts', money(overview?.totalPayouts || 0)],
+                ['Month-to-Date Revenue', money(overview?.thisMonthRevenue || 0)],
+                ['Year-to-Date Revenue', money(overview?.thisYearRevenue || 0)],
+                ['Total Trips', dashboard?.totalTrips || 0],
+                ['Total Bookings', dashboard?.totalBookings || 0],
+                ['Verified Reviews', reviews?.length || 0],
               ]}
             />
           </section>
 
-          {/* Operational Distribution Charts */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-            <Distribution title="Trip Lifecycle Distribution" rows={d.trips} />
-            <Distribution title="Booking Operational Distribution" rows={d.bookings} />
+            <Distribution title="Trip Lifecycle Distribution" rows={trips || []} />
+            <Distribution title="Booking Operational Distribution" rows={bookings || []} />
           </div>
 
-          {/* Revenue by Category Breakdown */}
           <section style={{ marginTop: '2rem', marginBottom: '2.5rem' }}>
             <h2>Earned Revenue by Category</h2>
             <AdminTable
               rowKey="category"
-              rows={Object.entries(d.breakdown).map(([category, amount]) => ({
+              rows={Object.entries(breakdown || {}).map(([category, amount]) => ({
                 category,
                 amount,
               }))}
@@ -356,7 +269,6 @@ export default function AdminReportsPage() {
             />
           </section>
 
-          {/* Transactions Detail with Filter & Export */}
           <section style={{ marginTop: '2.5rem', marginBottom: '2.5rem' }}>
             <div
               style={{
@@ -377,11 +289,11 @@ export default function AdminReportsPage() {
             </div>
 
             <Filters
-              query={transactionQuery}
-              setQuery={setTransactionQuery}
+              query={transactionSearch}
+              setQuery={(val) => dispatch(adminReportsActions.setTransactionSearch(val))}
               status={transactionStatus}
-              setStatus={setTransactionStatus}
-              statuses={[...new Set(d.transactions.map((t) => t.status).filter(Boolean))]}
+              setStatus={(val) => dispatch(adminReportsActions.setTransactionStatus(val))}
+              statuses={[...new Set((transactions || []).map((t) => t.status).filter(Boolean))]}
             />
 
             <AdminTable
@@ -419,12 +331,11 @@ export default function AdminReportsPage() {
             />
           </section>
 
-          {/* Revenue Configuration Parameters */}
           <section style={{ marginTop: '2.5rem' }}>
             <h2>Platform Revenue Rules & Parameters</h2>
             <AdminTable
               rowKey="key_name"
-              rows={d.config}
+              rows={config || []}
               columns={[
                 { label: 'Parameter Key', key: 'key_name' },
                 { label: 'Configured Value', key: 'value_number' },

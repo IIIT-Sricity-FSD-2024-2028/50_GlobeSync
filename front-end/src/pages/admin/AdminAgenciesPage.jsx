@@ -1,5 +1,14 @@
-import React, { useState, useMemo } from 'react';
-import { agenciesApi, approvalsApi } from '../../services/api';
+import React, { useEffect, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  fetchAdminAgencies,
+  fetchAdminAgencyById,
+  createAdminAgency,
+  updateAdminAgency,
+  updateAdminAgencyStatus,
+  requestAdminAgencyDeactivation,
+} from '../../store/admin-agencies/admin-agencies-actions';
+import { adminAgenciesActions } from '../../store/admin-agencies/admin-agencies-slice';
 import StatusBadge from '../../components/common/StatusBadge';
 import {
   AdminPage,
@@ -9,182 +18,124 @@ import {
   Field,
   FormActions,
   agencyStatuses,
-  matches,
-  useAdminData,
 } from '../../components/admin/AdminUI';
 import AgencyFormModal from '../../components/admin/AgencyFormModal';
 import AgencyStatusModal from '../../components/admin/AgencyStatusModal';
 import AgencyDetailsModal from '../../components/admin/AgencyDetailsModal';
 
-/**
- * AdminAgenciesPage
- *
- * Primary administrative coordinator for managing partner travel agencies.
- *
- * Pedagogical Architecture:
- * 1. Page / Coordinator Separation:
- *    - The page coordinates table presentation, search filters, modal visibility, and API orchestration.
- *    - Individual form presentation, input state, and field validations are delegated to dedicated
- *      controlled components: `AgencyFormModal`, `AgencyStatusModal`, and `AgencyDetailsModal`.
- * 2. Explicit, Named Handlers:
- *    - Replaces anonymous inline callbacks with named handlers (`handleOpenCreate`, `handleSaveAgency`,
- *      `handleUpdateStatus`, `handleConfirmDelete`, etc.) making state ownership unambiguous for students.
- * 3. In-Dialog Error Propagation:
- *    - When an API mutation fails, the resulting error is passed into the open modal dialog
- *      (`dialogError={resource.error}`) so the administrator sees actionable feedback inside the dialog.
- * 4. Safe Deletion & Historical Integrity:
- *    - Warns the user of the backend policy preventing unsafe removal of agencies with associated packages/trips.
- */
 export default function AdminAgenciesPage() {
-  // ─── API Resource State ───────────────────────────────────────────────────
-  const resource = useAdminData(agenciesApi.getAll);
+  const dispatch = useDispatch();
 
-  // ─── Search & Filter State ────────────────────────────────────────────────
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('');
+  const agencies = useSelector((state) => state.adminAgencies.agencies);
+  const selectedAgencyId = useSelector((state) => state.adminAgencies.selectedAgencyId);
+  const detailedAgency = useSelector((state) => state.adminAgencies.detailedAgency);
+  const search = useSelector((state) => state.adminAgencies.search);
+  const statusFilter = useSelector((state) => state.adminAgencies.statusFilter);
+  const deactivationReason = useSelector((state) => state.adminAgencies.deactivationReason);
+  const modal = useSelector((state) => state.adminAgencies.modal);
+  const loading = useSelector((state) => state.adminAgencies.loading);
+  const error = useSelector((state) => state.adminAgencies.error);
 
-  // ─── Modal Dialog States ──────────────────────────────────────────────────
-  // Agency under creation (editingAgency === null) or edit (editingAgency === record)
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingAgency, setEditingAgency] = useState(null);
+  useEffect(() => {
+    dispatch(fetchAdminAgencies());
+  }, [dispatch]);
 
-  // Agency under status & commission review
-  const [isStatusOpen, setIsStatusOpen] = useState(false);
-  const [statusAgency, setStatusAgency] = useState(null);
+  const selectedAgency = useMemo(() => {
+    if (!selectedAgencyId) return null;
+    return agencies.find((a) => a.agencyId === selectedAgencyId) || null;
+  }, [agencies, selectedAgencyId]);
 
-  // Agency under deactivation / approval request
-  const [deactivatingAgency, setDeactivatingAgency] = useState(null);
-  const [deactivationReason, setDeactivationReason] = useState('');
-
-  // Agency under detailed inspection
-  const [viewingAgency, setViewingAgency] = useState(null);
-
-  // ─── Filtered Table Rows ──────────────────────────────────────────────────
   const filteredAgencies = useMemo(() => {
-    if (!resource.data) return [];
-    return resource.data.filter((agency) => {
-      const matchesStatus = !selectedStatus || agency.status === selectedStatus;
-      const matchesSearch = matches(
-        [agency.agencyId, agency.businessName, agency.contactEmail, agency.contactPhone],
-        searchQuery
-      );
-      return matchesStatus && matchesSearch;
+    const list = Array.isArray(agencies) ? agencies : [];
+    return list.filter((agency) => {
+      if (statusFilter && agency.status !== statusFilter) return false;
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        return (
+          String(agency.agencyId ?? '').toLowerCase().includes(q) ||
+          (agency.businessName ?? '').toLowerCase().includes(q) ||
+          (agency.contactEmail ?? '').toLowerCase().includes(q) ||
+          (agency.contactPhone ?? '').toLowerCase().includes(q)
+        );
+      }
+      return true;
     });
-  }, [resource.data, selectedStatus, searchQuery]);
+  }, [agencies, search, statusFilter]);
 
-  // ─── Create & Edit Agency Handlers ────────────────────────────────────────
   const handleOpenCreate = () => {
-    setEditingAgency(null);
-    setIsFormOpen(true);
+    dispatch(adminAgenciesActions.openFormModal(null));
   };
 
   const handleOpenEdit = (agency) => {
-    setEditingAgency(agency);
-    setIsFormOpen(true);
+    dispatch(adminAgenciesActions.openFormModal(agency.agencyId));
   };
 
   const handleCloseForm = () => {
-    setIsFormOpen(false);
-    setEditingAgency(null);
+    dispatch(adminAgenciesActions.closeFormModal());
   };
 
-  const handleSaveAgency = (payload) => {
-    const isEditMode = Boolean(editingAgency && editingAgency.agencyId);
-    const action = isEditMode
-      ? () => agenciesApi.update(editingAgency.agencyId, payload)
-      : () => agenciesApi.create(payload);
-
-    const successMessage = isEditMode
-      ? `Agency "${payload.businessName}" updated successfully.`
-      : `Agency "${payload.businessName}" registered successfully.`;
-
-    resource.run(action, successMessage, () => {
-      handleCloseForm();
-    });
+  const handleSaveAgency = async (payload) => {
+    try {
+      if (selectedAgency && selectedAgency.agencyId) {
+        await dispatch(updateAdminAgency(selectedAgency.agencyId, payload));
+      } else {
+        await dispatch(createAdminAgency(payload));
+      }
+    } catch {
+      // Error handled in Redux state
+    }
   };
 
-  // ─── Status & Commission Review Handlers ───────────────────────────────────
   const handleOpenStatus = (agency) => {
-    setStatusAgency(agency);
-    setIsStatusOpen(true);
+    dispatch(adminAgenciesActions.openStatusModal(agency.agencyId));
   };
 
   const handleCloseStatus = () => {
-    setIsStatusOpen(false);
-    setStatusAgency(null);
+    dispatch(adminAgenciesActions.closeStatusModal());
   };
 
-  const handleUpdateStatus = (payload) => {
-    if (!statusAgency) return;
-
-    resource.run(
-      () => agenciesApi.updateStatus(statusAgency.agencyId, payload),
-      `Updated status for ${statusAgency.businessName}.`,
-      () => {
-        handleCloseStatus();
-      }
-    );
+  const handleUpdateStatus = async (payload) => {
+    if (!selectedAgency) return;
+    try {
+      await dispatch(updateAdminAgencyStatus(selectedAgency.agencyId, payload));
+    } catch {
+      // Error handled in Redux state
+    }
   };
 
-  // ─── Inspection Handlers ──────────────────────────────────────────────────
   const handleViewDetails = (agency) => {
-    resource.run(
-      () => agenciesApi.getById(agency.agencyId),
-      'Agency profile details loaded.',
-      (detailedAgency) => {
-        setViewingAgency(detailedAgency);
-      }
-    );
+    dispatch(fetchAdminAgencyById(agency.agencyId));
   };
 
   const handleCloseDetails = () => {
-    setViewingAgency(null);
-  };
-
-  // ─── Super Admin Approval Handlers (Category C) ───────────────────────────
-  const handleRequestSuperAdminApproval = (approvalPayload) => {
-    resource.run(
-      () => approvalsApi.create(approvalPayload),
-      'Approval request submitted to Super Admin successfully.',
-      () => {
-        handleCloseStatus();
-      }
-    );
+    dispatch(adminAgenciesActions.closeDetailsModal());
   };
 
   const handleOpenDeactivate = (agency) => {
-    setDeactivatingAgency(agency);
-    setDeactivationReason('');
+    dispatch(adminAgenciesActions.openDeactivateModal(agency.agencyId));
   };
 
   const handleCloseDeactivate = () => {
-    setDeactivatingAgency(null);
-    setDeactivationReason('');
+    dispatch(adminAgenciesActions.closeDeactivateModal());
   };
 
-  const handleConfirmDeactivateRequest = () => {
-    if (!deactivatingAgency || !deactivationReason.trim()) return;
-
-    resource.run(
-      () =>
-        approvalsApi.create({
-          type: 'AGENCY_STATUS_COMMISSION',
-          entityType: 'agency',
-          entityId: deactivatingAgency.agencyId,
-          proposedValues: {
-            status: 'rejected',
-            statusReason: deactivationReason.trim(),
-          },
-          reason: `Permanent deactivation requested by Admin: ${deactivationReason.trim()}`,
-        }),
-      `Submitted deactivation approval request for ${deactivatingAgency.businessName}.`,
-      () => {
-        handleCloseDeactivate();
-      }
-    );
+  const handleConfirmDeactivateRequest = async () => {
+    if (!selectedAgency || !deactivationReason.trim()) return;
+    try {
+      await dispatch(requestAdminAgencyDeactivation(selectedAgency.agencyId, deactivationReason.trim()));
+    } catch {
+      // Error handled in Redux state
+    }
   };
 
-  // ─── Table Column Definitions ─────────────────────────────────────────────
+  const resource = {
+    loading,
+    busy: loading,
+    load: () => dispatch(fetchAdminAgencies()),
+    error,
+    data: agencies,
+  };
+
   const tableColumns = [
     { label: 'ID', key: 'agencyId' },
     { label: 'Business Name', key: 'businessName' },
@@ -209,7 +160,7 @@ export default function AdminAgenciesPage() {
               type="button"
               className="btn btn-secondary btn-sm"
               onClick={() => handleViewDetails(agency)}
-              disabled={resource.busy}
+              disabled={loading}
               title={st === 'pending' ? 'Inspect application & documents' : 'Inspect agency profile'}
             >
               {st === 'pending' ? 'View Application' : 'View'}
@@ -220,7 +171,7 @@ export default function AdminAgenciesPage() {
                 type="button"
                 className="btn btn-primary btn-sm"
                 onClick={() => handleOpenStatus(agency)}
-                disabled={resource.busy}
+                disabled={loading}
                 title="Independently approve or reject this agency application"
               >
                 Approve / Reject
@@ -233,7 +184,7 @@ export default function AdminAgenciesPage() {
                   type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={() => handleOpenEdit(agency)}
-                  disabled={resource.busy}
+                  disabled={loading}
                   title="Edit permitted ordinary agency contact info"
                 >
                   Edit
@@ -242,7 +193,7 @@ export default function AdminAgenciesPage() {
                   type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={() => handleOpenStatus(agency)}
-                  disabled={resource.busy}
+                  disabled={loading}
                   title="Manage commission rate or temporarily suspend"
                 >
                   Suspend / Rate
@@ -251,7 +202,7 @@ export default function AdminAgenciesPage() {
                   type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={() => handleOpenDeactivate(agency)}
-                  disabled={resource.busy}
+                  disabled={loading}
                   title="Request permanent deactivation via Super Admin (Category C)"
                   style={{ color: '#dc2626' }}
                 >
@@ -265,7 +216,7 @@ export default function AdminAgenciesPage() {
                 type="button"
                 className="btn btn-secondary btn-sm"
                 onClick={() => handleOpenStatus(agency)}
-                disabled={resource.busy}
+                disabled={loading}
                 title="Re-open or review resubmitted application"
               >
                 Review Decision
@@ -278,7 +229,7 @@ export default function AdminAgenciesPage() {
                   type="button"
                   className="btn btn-primary btn-sm"
                   onClick={() => handleOpenStatus(agency)}
-                  disabled={resource.busy}
+                  disabled={loading}
                   title="Restore suspended agency account"
                 >
                   Restore / Review
@@ -287,7 +238,7 @@ export default function AdminAgenciesPage() {
                   type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={() => handleOpenDeactivate(agency)}
-                  disabled={resource.busy}
+                  disabled={loading}
                   title="Request permanent deactivation via Super Admin (Category C)"
                   style={{ color: '#dc2626' }}
                 >
@@ -309,20 +260,20 @@ export default function AdminAgenciesPage() {
         <button
           type="button"
           className="btn btn-primary"
-          disabled={resource.busy}
+          disabled={loading}
           onClick={handleOpenCreate}
         >
           Create agency
         </button>
       }
     >
-      {resource.data && (
+      {agencies && (
         <>
           <Filters
-            query={searchQuery}
-            setQuery={setSearchQuery}
-            status={selectedStatus}
-            setStatus={setSelectedStatus}
+            query={search}
+            setQuery={(val) => dispatch(adminAgenciesActions.setSearch(val))}
+            status={statusFilter}
+            setStatus={(val) => dispatch(adminAgenciesActions.setStatusFilter(val))}
             statuses={agencyStatuses}
           />
           <AdminTable
@@ -333,42 +284,38 @@ export default function AdminAgenciesPage() {
         </>
       )}
 
-      {/* Read-only profile inspection modal */}
       <AgencyDetailsModal
-        isOpen={Boolean(viewingAgency)}
-        agency={viewingAgency}
+        isOpen={modal.detailsOpen && Boolean(detailedAgency)}
+        agency={detailedAgency}
         onClose={handleCloseDetails}
         onReviewStatus={handleOpenStatus}
       />
 
-      {/* Create / Edit Agency controlled form modal */}
       <AgencyFormModal
-        isOpen={isFormOpen}
-        agency={editingAgency}
-        busy={resource.busy}
-        dialogError={resource.error}
+        isOpen={modal.formOpen}
+        agency={selectedAgency}
+        busy={loading}
+        dialogError={error}
         onClose={handleCloseForm}
         onSave={handleSaveAgency}
       />
 
-      {/* Status & Commission rate configuration modal */}
       <AgencyStatusModal
-        isOpen={isStatusOpen}
-        agency={statusAgency}
-        busy={resource.busy}
-        dialogError={resource.error}
+        isOpen={modal.statusOpen}
+        agency={selectedAgency}
+        busy={loading}
+        dialogError={error}
         onClose={handleCloseStatus}
         onUpdate={handleUpdateStatus}
-        onRequestSuperAdminApproval={handleRequestSuperAdminApproval}
+        onRequestSuperAdminApproval={(p) => dispatch(requestAdminAgencyDeactivation(selectedAgency.agencyId, p?.reason || 'Status review'))}
       />
 
-      {/* High-Risk Permanent Deactivation Request Dialog (Category C) */}
-      {deactivatingAgency && (
+      {modal.deactivateOpen && selectedAgency && (
         <AdminDialog
-          title={`Request Deactivation: ${deactivatingAgency.businessName}`}
+          title={`Request Deactivation: ${selectedAgency.businessName}`}
           onClose={handleCloseDeactivate}
-          busy={resource.busy}
-          error={resource.error}
+          busy={loading}
+          error={error}
         >
           <div style={{ marginBottom: '1rem', fontSize: '0.9rem', color: '#64748b' }}>
             <p style={{ margin: '0 0 0.5rem 0' }}>
@@ -389,13 +336,13 @@ export default function AdminAgenciesPage() {
               label="Deactivation Justification (Required)"
               type="text"
               value={deactivationReason}
-              onChange={(e) => setDeactivationReason(e.target.value)}
+              onChange={(e) => dispatch(adminAgenciesActions.setDeactivationReason(e.target.value))}
               placeholder="e.g. Contract breach, non-compliance with passenger safety standards"
-              disabled={resource.busy}
+              disabled={loading}
               helperText="Provide detailed legal/operational rationale for Super Admin review."
             />
             <FormActions
-              busy={resource.busy}
+              busy={loading}
               onCancel={handleCloseDeactivate}
               submitLabel="Submit Deactivation Request"
             />

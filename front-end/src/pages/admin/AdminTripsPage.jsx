@@ -1,152 +1,103 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import {
-  tripsApi,
-  travelersApi,
-  agenciesApi,
-  guidesApi,
-  packagesApi,
-} from '../../services/api';
+  fetchAdminTrips,
+  requestAdminGuideReassignment,
+} from '../../store/admin-trips/admin-trips-actions';
+import { adminTripsActions } from '../../store/admin-trips/admin-trips-slice';
 import StatusBadge from '../../components/common/StatusBadge';
 import {
   AdminPage,
   AdminTable,
   Filters,
   tripStatuses,
-  matches,
   money,
   ownerLabel,
-  useAdminData,
 } from '../../components/admin/AdminUI';
 import TripDetailsModal from '../../components/admin/TripDetailsModal';
 import GuideReassignmentModal from '../../components/admin/GuideReassignmentModal';
 
-/**
- * AdminTripsPage
- * Primary route: /admin/trips
- *
- * Platform Operations & Governance:
- * 1. Operational Oversight:
- *    - Admin monitors trips, searches/filters, and inspects full trip details, traveler info,
- *      associated bookings, and itinerary progression without directly owning or mutating traveler agreements.
- * 2. Contractual Integrity & Prohibited Direct Mutations:
- *    - Admin cannot directly modify traveler destination, origin, dates, budget, or force lifecycle statuses.
- *    - Admin cannot delete traveler trips.
- * 3. Consent-Based Guide Reassignment:
- *    - Admin initiates replacement guide proposals with mandatory justification.
- *    - Reassignment requires Traveler Consent followed by Replacement Guide acceptance before execution.
- * 4. Resilient Composite Loader:
- *    - Uses Promise.allSettled to ensure that auxiliary endpoint failures do not crash the primary management portal.
- */
-
-const loadTripsData = async (options) => {
-  const [tripsRes, travelersRes, agenciesRes, guidesRes, packagesRes] = await Promise.allSettled([
-    tripsApi.getAll(options),
-    travelersApi.getAll(options),
-    agenciesApi.getAll(options),
-    guidesApi.getAll(options),
-    packagesApi.getAll(options),
-  ]);
-
-  const trips = tripsRes.status === 'fulfilled' && Array.isArray(tripsRes.value) ? tripsRes.value : [];
-  const travelers =
-    travelersRes.status === 'fulfilled'
-      ? Array.isArray(travelersRes.value)
-        ? travelersRes.value
-        : travelersRes.value?.value || []
-      : [];
-  const agencies =
-    agenciesRes.status === 'fulfilled'
-      ? Array.isArray(agenciesRes.value)
-        ? agenciesRes.value
-        : agenciesRes.value?.value || []
-      : [];
-  const guides = guidesRes.status === 'fulfilled' && Array.isArray(guidesRes.value) ? guidesRes.value : [];
-  const packages = packagesRes.status === 'fulfilled' && Array.isArray(packagesRes.value) ? packagesRes.value : [];
-
-  return { trips, travelers, agencies, guides, packages };
-};
-
 export default function AdminTripsPage() {
-  const resource = useAdminData(loadTripsData);
+  const dispatch = useDispatch();
 
-  // Filters state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const trips = useSelector((state) => state.adminTrips.trips);
+  const relatedTravelers = useSelector((state) => state.adminTrips.relatedTravelers);
+  const relatedAgencies = useSelector((state) => state.adminTrips.relatedAgencies);
+  const relatedGuides = useSelector((state) => state.adminTrips.relatedGuides);
+  const relatedPackages = useSelector((state) => state.adminTrips.relatedPackages);
+  const selectedTripId = useSelector((state) => state.adminTrips.selectedTripId);
+  const reassigningTripId = useSelector((state) => state.adminTrips.reassigningTripId);
+  const search = useSelector((state) => state.adminTrips.search);
+  const statusFilter = useSelector((state) => state.adminTrips.statusFilter);
+  const loading = useSelector((state) => state.adminTrips.loading);
+  const error = useSelector((state) => state.adminTrips.error);
 
-  // Modals state
-  const [inspectingTrip, setInspectingTrip] = useState(null);
-  const [reassigningTrip, setReassigningTrip] = useState(null);
+  useEffect(() => {
+    dispatch(fetchAdminTrips());
+  }, [dispatch]);
 
-  // ─── Entity Name Resolvers ─────────────────────────────────────────────────
-  const d = resource.data;
+  const inspectingTrip = useMemo(() => {
+    if (!selectedTripId) return null;
+    return trips.find((t) => t.tripId === selectedTripId) || null;
+  }, [trips, selectedTripId]);
 
+  const reassigningTrip = useMemo(() => {
+    if (!reassigningTripId) return null;
+    return trips.find((t) => t.tripId === reassigningTripId) || null;
+  }, [trips, reassigningTripId]);
+
+  // Resolvers
   const resolveOwnerName = (row) =>
-    ownerLabel(row, d?.travelers || [], d?.agencies || []);
+    ownerLabel(row, relatedTravelers || [], relatedAgencies || []);
 
   const resolveGuideName = (row) => {
     if (row.guideId == null) return 'Unassigned';
-    const guide = (d?.guides || []).find((g) => g.guideId === row.guideId);
+    const guide = (relatedGuides || []).find((g) => g.guideId === row.guideId);
     return guide?.name || `Guide #${row.guideId}`;
   };
 
   const resolvePackageName = (row) => {
     if (row.packageId == null) return 'Custom trip';
-    const pkg = (d?.packages || []).find((p) => p.packageId === row.packageId);
+    const pkg = (relatedPackages || []).find((p) => p.packageId === row.packageId);
     return pkg?.name || `Package #${row.packageId}`;
   };
 
-  // ─── Memoized Filtered Trips ───────────────────────────────────────────────
   const filteredTrips = useMemo(() => {
-    const rawTrips = d?.trips || [];
-    return rawTrips.filter((trip) => {
-      // 1. Status Filter
-      if (statusFilter && trip.status !== statusFilter) {
-        return false;
-      }
-
-      // 2. Search Query Match
-      if (searchQuery.trim()) {
+    const list = Array.isArray(trips) ? trips : [];
+    return list.filter((trip) => {
+      if (statusFilter && trip.status !== statusFilter) return false;
+      if (search.trim()) {
         const owner = resolveOwnerName(trip);
         const guide = resolveGuideName(trip);
-        return matches(
-          [trip.tripId, trip.destination, owner, guide, trip.guideStatus, trip.budget],
-          searchQuery
+        const q = search.toLowerCase();
+        return (
+          String(trip.tripId ?? '').toLowerCase().includes(q) ||
+          (trip.destination ?? '').toLowerCase().includes(q) ||
+          owner.toLowerCase().includes(q) ||
+          guide.toLowerCase().includes(q)
         );
       }
-
       return true;
     });
-  }, [d?.trips, statusFilter, searchQuery, d?.travelers, d?.agencies, d?.guides]);
+  }, [trips, search, statusFilter, relatedTravelers, relatedAgencies, relatedGuides]);
 
-  // ─── Action Handlers ───────────────────────────────────────────────────────
-  const handleOpenInspect = (trip) => {
-    setInspectingTrip(trip);
-  };
-
-  const handleCloseInspect = () => {
-    setInspectingTrip(null);
-  };
-
-  const handleOpenReassign = (trip) => {
-    setReassigningTrip(trip);
-  };
-
-  const handleCloseReassign = () => {
-    setReassigningTrip(null);
-  };
-
-  const handleSubmitReassignment = (payload) => {
+  const handleSubmitReassignment = async (payload) => {
     if (!reassigningTrip) return;
-    resource.run(
-      () => tripsApi.requestReassignment(reassigningTrip.tripId, payload),
-      `Guide reassignment request submitted for trip #${reassigningTrip.tripId}. Consent request dispatched to traveler.`,
-      () => {
-        setReassigningTrip(null);
-      }
-    );
+    try {
+      await dispatch(requestAdminGuideReassignment(reassigningTrip.tripId, payload));
+    } catch {
+      // Handled in state
+    }
   };
 
-  // ─── Table Columns Definition ──────────────────────────────────────────────
+  const resource = {
+    loading,
+    busy: loading,
+    load: () => dispatch(fetchAdminTrips()),
+    error,
+    data: trips,
+  };
+
   const columns = [
     {
       label: 'ID',
@@ -215,8 +166,8 @@ export default function AdminTripsPage() {
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              onClick={() => handleOpenInspect(t)}
-              disabled={resource.busy}
+              onClick={() => dispatch(adminTripsActions.setSelectedTripId(t.tripId))}
+              disabled={loading}
               title="Inspect comprehensive trip details, bookings, and assignment history"
             >
               Inspect
@@ -225,8 +176,8 @@ export default function AdminTripsPage() {
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
-                onClick={() => handleOpenReassign(t)}
-                disabled={resource.busy}
+                onClick={() => dispatch(adminTripsActions.setReassigningTripId(t.tripId))}
+                disabled={loading}
                 title="Initiate consent-based guide reassignment request"
               >
                 Reassign Guide
@@ -240,18 +191,15 @@ export default function AdminTripsPage() {
 
   return (
     <AdminPage title="Trips Oversight" resource={resource}>
-      {resource.data && (
+      {trips && (
         <>
-          {/* Filters Bar: Search & Status Dropdown */}
           <Filters
-            query={searchQuery}
-            setQuery={setSearchQuery}
+            query={search}
+            setQuery={(val) => dispatch(adminTripsActions.setSearch(val))}
             status={statusFilter}
-            setStatus={setStatusFilter}
+            setStatus={(val) => dispatch(adminTripsActions.setStatusFilter(val))}
             statuses={tripStatuses}
           />
-
-          {/* Paginated Trips Table */}
           <AdminTable
             rowKey="tripId"
             rows={filteredTrips}
@@ -260,25 +208,23 @@ export default function AdminTripsPage() {
         </>
       )}
 
-      {/* Comprehensive Trip Inspection Modal */}
       <TripDetailsModal
         isOpen={Boolean(inspectingTrip)}
         trip={inspectingTrip}
         ownerName={inspectingTrip ? resolveOwnerName(inspectingTrip) : 'Unassigned'}
         guideName={inspectingTrip ? resolveGuideName(inspectingTrip) : 'Unassigned'}
         packageName={inspectingTrip ? resolvePackageName(inspectingTrip) : 'Custom trip'}
-        onClose={handleCloseInspect}
-        onRequestReassign={handleOpenReassign}
+        onClose={() => dispatch(adminTripsActions.clearSelectedTrip())}
+        onRequestReassign={(t) => dispatch(adminTripsActions.setReassigningTripId(t.tripId))}
       />
 
-      {/* Consent-Based Guide Reassignment Request Modal */}
       <GuideReassignmentModal
         isOpen={Boolean(reassigningTrip)}
         trip={reassigningTrip}
-        guides={d?.guides || []}
-        busy={resource.busy}
-        dialogError={resource.error}
-        onClose={handleCloseReassign}
+        guides={relatedGuides || []}
+        busy={loading}
+        dialogError={error}
+        onClose={() => dispatch(adminTripsActions.clearReassigningTrip())}
         onSubmit={handleSubmitReassignment}
       />
     </AdminPage>

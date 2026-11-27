@@ -1,5 +1,17 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authSlice from './auth/auth-slice';
+
+// --- Admin Actor Slices (Professor's Pattern) ---
+import adminDashboardSlice from './admin-dashboard/admin-dashboard-slice';
+import adminPackagesSlice from './admin-packages/admin-packages-slice';
+import adminBookingsSlice from './admin-bookings/admin-bookings-slice';
+import adminTripsSlice from './admin-trips/admin-trips-slice';
+import adminAgenciesSlice from './admin-agencies/admin-agencies-slice';
+import adminGuidesSlice from './admin-guides/admin-guides-slice';
+import adminReviewsSlice from './admin-reviews/admin-reviews-slice';
+import adminReportsSlice from './admin-reports/admin-reports-slice';
+import adminProfileSlice from './admin-profile/admin-profile-slice';
+import adminUiSlice from './admin-ui/admin-ui-slice';
 import travelerDashboardSlice from './travelerDashboard/travelerDashboard-slice';
 import travelerTripsSlice from './travelerTrips/travelerTrips-slice';
 import travelerBookingsSlice from './travelerBookings/travelerBookings-slice';
@@ -42,6 +54,17 @@ import {
 const store = configureStore({
   reducer: {
     auth: authSlice.reducer,
+    // --- Admin Actor ---
+    adminDashboard: adminDashboardSlice.reducer,
+    adminPackages: adminPackagesSlice.reducer,
+    adminBookings: adminBookingsSlice.reducer,
+    adminTrips: adminTripsSlice.reducer,
+    adminAgencies: adminAgenciesSlice.reducer,
+    adminGuides: adminGuidesSlice.reducer,
+    adminReviews: adminReviewsSlice.reducer,
+    adminReports: adminReportsSlice.reducer,
+    adminProfile: adminProfileSlice.reducer,
+    adminUi: adminUiSlice.reducer,
     travelerDashboard: travelerDashboardSlice.reducer,
     travelerTrips: travelerTripsSlice.reducer,
     travelerBookings: travelerBookingsSlice.reducer,
