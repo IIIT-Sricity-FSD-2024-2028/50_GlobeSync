@@ -160,6 +160,20 @@ export default function GuideRequestsPage() {
     fetchRequestsData();
   }, [guideId]);
 
+  // Realtime delivery is best-effort. Keep the guide request queue fresh when
+  // the tab regains focus and while the page remains open.
+  useEffect(() => {
+    if (!guideId) return undefined;
+    const refreshTrips = () => tripResource.refresh().catch(() => {});
+    const handleFocus = () => refreshTrips();
+    const intervalId = window.setInterval(refreshTrips, 15000);
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [guideId, tripResource.refresh]);
+
   // Realtime updates without full page reload
   useRealtimeEvent('guide_request.created', (event) => {
     if (event?.trip) {

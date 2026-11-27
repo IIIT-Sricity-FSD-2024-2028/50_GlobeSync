@@ -175,7 +175,10 @@ export class TripsService {
   findByGuide(guideId: number): Trip[];
   findByGuide(guideId: number, query: PaginationQueryDto): Trip[] | PaginatedResult<Trip>;
   findByGuide(guideId: number, query?: PaginationQueryDto): any {
-    const list = trips.filter((t) => t.guideId === guideId);
+    // Normalize both sides because requests can arrive from clients that
+    // serialize numeric IDs as strings before DTO transformation.
+    const normalizedGuideId = Number(guideId);
+    const list = trips.filter((t) => Number(t.guideId) === normalizedGuideId);
     return paginateCollection(list, query, ['destination', 'title', 'origin']);
   }
 
