@@ -1,0 +1,633 @@
+[
+  {
+    "id": "WA-1",
+    "desc": "admin creates package",
+    "pass": true,
+    "detail": {
+      "packageId": 11,
+      "name": "Audit Package 1795453624522",
+      "destinations": "Hampi",
+      "budget": 18000,
+      "duration": 4,
+      "description": "Audit test package",
+      "highlights": "Ruins",
+      "image": "/destinations/goa.png",
+      "isFeatured": false,
+      "status": "published"
+    }
+  },
+  {
+    "id": "WA-2",
+    "desc": "traveler sees the new package",
+    "pass": true,
+    "detail": 11
+  },
+  {
+    "id": "WA-3",
+    "desc": "traveler plans trip on the package with a guide",
+    "pass": true,
+    "detail": {
+      "tripId": 1,
+      "origin": "New Delhi, India",
+      "destination": "Hampi",
+      "startDate": "2026-12-13",
+      "endDate": "2026-12-17",
+      "budget": 30000,
+      "travelerId": 1,
+      "guideId": 1,
+      "packageId": 11,
+      "status": "Pending",
+      "travelersCount": 2,
+      "guideStatus": "Pending"
+    }
+  },
+  {
+    "id": "WA-4",
+    "desc": "traveler books hotel (HELD)",
+    "pass": true,
+    "detail": {
+      "bookingId": 1,
+      "bookingDate": "2026-11-23",
+      "status": "HELD",
+      "tripId": 1,
+      "travelerId": 1,
+      "service": "Hampi Heritage Hotel",
+      "type": "Hotel",
+      "amount": 12000,
+      "total_minor": 1200000,
+      "departureAtUtc": "2026-12-12T18:30:00.000Z",
+      "departure_at_utc": "2026-12-12T18:30:00.000Z",
+      "departureTimezone": "UTC",
+      "departure_timezone": "UTC",
+      "policySnapshot": {
+        "cancellationPenaltyPercent": 35,
+        "defaultRefundPercent": 65,
+        "hasCancellationProtection": false,
+        "protectedFirstTierRefundPercent": 90,
+        "protectedSecondTierRefundPercent": 50,
+        "leadTimeHoursRequired": 24,
+        "tier1CutoffHours": 72,
+        "tier2CutoffHours": 12,
+        "snapshottedAtUtc": "2026-11-23T17:07:04.541Z"
+      },
+      "policy_snapshot": {
+        "cancellationPenaltyPercent": 35,
+        "defaultRefundPercent": 65,
+        "hasCancellationProtection": false,
+        "protectedFirstTierRefundPercent": 90,
+        "protectedSecondTierRefundPercent": 50,
+        "leadTimeHoursRequired": 24,
+        "tier1CutoffHours": 72,
+        "tier2CutoffHours": 12,
+        "snapshottedAtUtc": "2026-11-23T17:07:04.541Z"
+      },
+      "holdExpiresAtUtc": "2026-11-23T17:22:04.541Z",
+      "heldAt": "2026-11-23T17:07:04.541Z"
+    }
+  },
+  {
+    "id": "WA-5",
+    "desc": "admin sees the booking",
+    "pass": true,
+    "detail": 1
+  },
+  {
+    "id": "WA-6",
+    "desc": "guide sees the assignment request",
+    "pass": true,
+    "detail": 1
+  },
+  {
+    "id": "WA-7",
+    "desc": "guide received a notification for the request",
+    "pass": true,
+    "detail": {
+      "notifications": [
+        {
+          "id": 1,
+          "user_id": 1,
+          "user_role": "guide",
+          "title": "New Trip Guide Request",
+          "body": "You have a new guide assignment request for trip #1 to Hampi.",
+          "is_read": false,
+          "type": "guide_request",
+          "metadata": {
+            "tripId": 1
+          },
+          "created_at": "2026-11-23T17:07:04.535Z"
+        }
+      ],
+      "unreadCount": 1
+    }
+  },
+  {
+    "id": "WA-8",
+    "desc": "traveler does NOT receive the guide's notification",
+    "pass": true,
+    "detail": [
+      "booking_held"
+    ]
+  },
+  {
+    "id": "WA-9",
+    "desc": "underpayment rejected",
+    "pass": true,
+    "detail": {
+      "statusCode": 400,
+      "error": "Bad Request",
+      "message": "Payment amount ₹11,999 does not match the amount due for booking #1 (₹12,000).",
+      "timestamp": "2026-11-23T17:07:04.562Z",
+      "path": "/payments",
+      "method": "POST",
+      "correlationId": "bd711f9a-9417-4e47-bafa-5e6c61259145"
+    }
+  },
+  {
+    "id": "WA-10",
+    "desc": "traveler cannot self-declare cash payment",
+    "pass": true,
+    "detail": {
+      "statusCode": 400,
+      "error": "Bad Request",
+      "message": "Cash payments can only be recorded by GlobeSync staff or the partner agency.",
+      "timestamp": "2026-11-23T17:07:04.564Z",
+      "path": "/payments",
+      "method": "POST",
+      "correlationId": "69009a6e-adb0-4fef-b63c-709bf9392dda"
+    }
+  },
+  {
+    "id": "WA-11",
+    "desc": "exact payment accepted",
+    "pass": true,
+    "detail": {
+      "paymentId": 1,
+      "amount": 12000,
+      "paymentDate": "2026-11-23",
+      "method": "UPI",
+      "status": "Paid",
+      "bookingId": 1
+    }
+  },
+  {
+    "id": "WA-12",
+    "desc": "duplicate payment rejected",
+    "pass": true,
+    "detail": {
+      "statusCode": 400,
+      "error": "Bad Request",
+      "message": "Payment for Booking #1 has already been recorded (Payment #1). Duplicate payment rejected.",
+      "timestamp": "2026-11-23T17:07:04.570Z",
+      "path": "/payments",
+      "method": "POST",
+      "correlationId": "758b5c86-00b0-493b-a11b-5b48cf0fe0ac"
+    }
+  },
+  {
+    "id": "WA-13",
+    "desc": "booking CONFIRMED after payment (persisted)",
+    "pass": true,
+    "detail": "CONFIRMED"
+  },
+  {
+    "id": "WA-14",
+    "desc": "trip auto-confirmed by server once fully paid",
+    "pass": true,
+    "detail": "Confirmed"
+  },
+  {
+    "id": "WA-15",
+    "desc": "admin sees trip Confirmed",
+    "pass": true,
+    "detail": "Confirmed"
+  },
+  {
+    "id": "WD-1",
+    "desc": "guide cannot start before accepting",
+    "pass": true,
+    "detail": {
+      "statusCode": 400,
+      "error": "Bad Request",
+      "message": "Accept the trip request before starting or completing it.",
+      "timestamp": "2026-11-23T17:07:04.577Z",
+      "path": "/trips/1/status",
+      "method": "PATCH",
+      "correlationId": "aac17243-07e4-466e-84fb-93a2cccb9b1c"
+    }
+  },
+  {
+    "id": "WD-2",
+    "desc": "guide accepts",
+    "pass": true,
+    "detail": {
+      "tripId": 1,
+      "origin": "New Delhi, India",
+      "destination": "Hampi",
+      "startDate": "2026-12-13",
+      "endDate": "2026-12-17",
+      "budget": 30000,
+      "travelerId": 1,
+      "guideId": 1,
+      "packageId": 11,
+      "status": "Confirmed",
+      "travelersCount": 2,
+      "guideStatus": "Accepted"
+    }
+  },
+  {
+    "id": "WD-3",
+    "desc": "guide cannot flip an accepted request to declined",
+    "pass": true,
+    "detail": {
+      "statusCode": 400,
+      "error": "Bad Request",
+      "message": "This request was already accepted and cannot be changed.",
+      "timestamp": "2026-11-23T17:07:04.582Z",
+      "path": "/trips/1",
+      "method": "PUT",
+      "correlationId": "af377f54-ab27-4b32-88df-67dc1a02ce8b"
+    }
+  },
+  {
+    "id": "WD-4",
+    "desc": "traveler notified of acceptance",
+    "pass": true,
+    "detail": [
+      "guide_accepted",
+      "booking_held"
+    ]
+  },
+  {
+    "id": "WD-5",
+    "desc": "traveler cannot complete trip",
+    "pass": true,
+    "detail": {
+      "statusCode": 400,
+      "error": "Bad Request",
+      "message": "Invalid status transition from 'Confirmed' to 'Completed'. Allowed transitions from 'Confirmed': [Active, Cancelled].",
+      "timestamp": "2026-11-23T17:07:04.586Z",
+      "path": "/trips/1/status",
+      "method": "PATCH",
+      "correlationId": "4e92b764-c3c3-4877-8a26-38486f09973f"
+    }
+  },
+  {
+    "id": "WD-6",
+    "desc": "guide starts trip",
+    "pass": true,
+    "detail": {
+      "tripId": 1,
+      "origin": "New Delhi, India",
+      "destination": "Hampi",
+      "startDate": "2026-12-13",
+      "endDate": "2026-12-17",
+      "budget": 30000,
+      "travelerId": 1,
+      "guideId": 1,
+      "packageId": 11,
+      "status": "Active",
+      "travelersCount": 2,
+      "guideStatus": "Accepted"
+    }
+  },
+  {
+    "id": "WD-7",
+    "desc": "guide completes trip",
+    "pass": true,
+    "detail": {
+      "tripId": 1,
+      "origin": "New Delhi, India",
+      "destination": "Hampi",
+      "startDate": "2026-12-13",
+      "endDate": "2026-12-17",
+      "budget": 30000,
+      "travelerId": 1,
+      "guideId": 1,
+      "packageId": 11,
+      "status": "Completed",
+      "travelersCount": 2,
+      "guideStatus": "Accepted"
+    }
+  },
+  {
+    "id": "WD-8",
+    "desc": "booking becomes COMPLETED with the trip",
+    "pass": true,
+    "detail": "COMPLETED"
+  },
+  {
+    "id": "WD-9",
+    "desc": "admin sees trip Completed",
+    "pass": true,
+    "detail": "Completed"
+  },
+  {
+    "id": "WE-1",
+    "desc": "review for a guide who was not on the trip is rejected",
+    "pass": true,
+    "detail": {
+      "statusCode": 400,
+      "error": "Bad Request",
+      "message": "You can only rate the guide who accompanied this trip.",
+      "timestamp": "2026-11-23T17:07:04.596Z",
+      "path": "/reviews",
+      "method": "POST",
+      "correlationId": "56ff8092-3dde-4f85-867f-2057db336d7c"
+    }
+  },
+  {
+    "id": "WE-2",
+    "desc": "review accepted after completion",
+    "pass": true,
+    "detail": {
+      "reviewId": 1,
+      "tripId": 1,
+      "bookingId": 1,
+      "travelerId": 1,
+      "guideId": 1,
+      "tripRating": 5,
+      "guideRating": 4,
+      "comment": "Lovely ruins tour",
+      "createdAt": "2026-11-23"
+    }
+  },
+  {
+    "id": "WE-3",
+    "desc": "duplicate review rejected",
+    "pass": true,
+    "detail": {
+      "statusCode": 409,
+      "error": "Conflict",
+      "message": "A review has already been submitted for this booking.",
+      "timestamp": "2026-11-23T17:07:04.600Z",
+      "path": "/reviews",
+      "method": "POST",
+      "correlationId": "ec4af820-f4d0-4707-bb75-f961f0b5883e"
+    }
+  },
+  {
+    "id": "WE-4",
+    "desc": "guide sees the review",
+    "pass": true,
+    "detail": 1
+  },
+  {
+    "id": "WE-5",
+    "desc": "admin sees the review for moderation",
+    "pass": true,
+    "detail": 1
+  },
+  {
+    "id": "WE-6",
+    "desc": "traveler cannot delete reviews (moderation is admin-only)",
+    "pass": true,
+    "detail": 403
+  },
+  {
+    "id": "WB-1",
+    "desc": "payment for trip 2",
+    "pass": true,
+    "detail": {
+      "paymentId": 2,
+      "amount": 9000,
+      "paymentDate": "2026-11-23",
+      "method": "Card",
+      "status": "Paid",
+      "bookingId": 2
+    }
+  },
+  {
+    "id": "WB-2",
+    "desc": "guide accepts trip 2",
+    "pass": true,
+    "detail": {
+      "tripId": 2,
+      "origin": "New Delhi, India",
+      "destination": "Coorg",
+      "startDate": "2027-01-22",
+      "endDate": "2027-01-25",
+      "budget": 20000,
+      "travelerId": 1,
+      "guideId": 1,
+      "status": "Confirmed",
+      "travelersCount": 1,
+      "guideStatus": "Accepted"
+    }
+  },
+  {
+    "id": "WB-3",
+    "desc": "overlapping trip blocked while trip 2 active",
+    "pass": true,
+    "detail": {
+      "statusCode": 409,
+      "error": "Conflict",
+      "message": "Guide #1 is already booked or held for overlapping dates (2027-01-23 to 2027-01-24).",
+      "timestamp": "2026-11-23T17:07:04.624Z",
+      "path": "/trips/3",
+      "method": "PUT",
+      "correlationId": "d0554392-7bd7-40f6-a964-5be32e8e57fa"
+    }
+  },
+  {
+    "id": "WB-4",
+    "desc": "preview shows 65% refund on amount actually paid",
+    "pass": true,
+    "detail": {
+      "bookingId": 2,
+      "departureAtUtc": "2027-01-21T18:30:00.000Z",
+      "departureTimezone": "UTC",
+      "hoursUntilDeparture": 1417.3820483333334,
+      "tier": "TIER_1_STANDARD",
+      "tierDescription": "Standard Cancellation (>= 72 hours before departure)",
+      "isAllowed": true,
+      "totalMinor": 900000,
+      "totalAmount": 9000,
+      "refundPercentage": 65,
+      "refundAmountMinor": 585000,
+      "refundAmount": 5850,
+      "penaltyPercentage": 35,
+      "penaltyAmountMinor": 315000,
+      "hasCancellationProtection": false,
+      "protectionBenefitNote": "Standard refund of 65% applied (35% platform penalty deduction).",
+      "requiresSupportAssistance": false
+    }
+  },
+  {
+    "id": "WB-5",
+    "desc": "traveler cancels trip",
+    "pass": true,
+    "detail": {
+      "tripId": 2,
+      "origin": "New Delhi, India",
+      "destination": "Coorg",
+      "startDate": "2027-01-22",
+      "endDate": "2027-01-25",
+      "budget": 20000,
+      "travelerId": 1,
+      "guideId": 1,
+      "status": "Cancelled",
+      "travelersCount": 1,
+      "guideStatus": "Accepted",
+      "cancellationReason": "Family emergency",
+      "cancelledAt": "2026-11-23T17:07:04.628Z",
+      "refundPercentage": 65,
+      "refundAmount": 13000
+    }
+  },
+  {
+    "id": "WB-6",
+    "desc": "booking on cancelled trip is cancelled too",
+    "pass": true,
+    "detail": "Cancelled"
+  },
+  {
+    "id": "WB-7",
+    "desc": "guide calendar freed after cancellation (overlapping trip can now be accepted)",
+    "pass": true,
+    "detail": {
+      "tripId": 3,
+      "origin": "New Delhi, India",
+      "destination": "Coorg overlap",
+      "startDate": "2027-01-23",
+      "endDate": "2027-01-24",
+      "budget": 1000,
+      "travelerId": 1,
+      "guideId": 1,
+      "status": "Pending",
+      "travelersCount": 1,
+      "guideStatus": "Accepted"
+    }
+  },
+  {
+    "id": "WB-8",
+    "desc": "guide sees trip 2 as Cancelled",
+    "pass": true,
+    "detail": {
+      "tripId": 2,
+      "origin": "New Delhi, India",
+      "destination": "Coorg",
+      "startDate": "2027-01-22",
+      "endDate": "2027-01-25",
+      "budget": 20000,
+      "travelerId": 1,
+      "guideId": 1,
+      "status": "Cancelled",
+      "travelersCount": 1,
+      "guideStatus": "Accepted",
+      "cancellationReason": "Family emergency",
+      "cancelledAt": "2026-11-23T17:07:04.628Z",
+      "refundPercentage": 65,
+      "refundAmount": 13000
+    }
+  },
+  {
+    "id": "WB-9",
+    "desc": "repeat cancel is idempotent (no second refund)",
+    "pass": true,
+    "detail": 200
+  },
+  {
+    "id": "WC-1",
+    "desc": "admin edits package price",
+    "pass": true,
+    "detail": {
+      "packageId": 11,
+      "name": "Audit Package 1795453624522",
+      "destinations": "Hampi",
+      "budget": 25000,
+      "duration": 4,
+      "description": "Audit test package",
+      "highlights": "Ruins",
+      "image": "/destinations/goa.png",
+      "isFeatured": false,
+      "status": "published"
+    }
+  },
+  {
+    "id": "WC-2",
+    "desc": "existing booking keeps its confirmed amount",
+    "pass": true,
+    "detail": 12000
+  },
+  {
+    "id": "WC-3",
+    "desc": "trip history survives package delete/deactivate",
+    "pass": true,
+    "detail": 200
+  },
+  {
+    "id": "DASH-1",
+    "desc": "total trips matches records",
+    "pass": true,
+    "detail": [
+      3,
+      3
+    ]
+  },
+  {
+    "id": "DASH-2",
+    "desc": "total bookings matches records",
+    "pass": true,
+    "detail": [
+      2,
+      2
+    ]
+  },
+  {
+    "id": "DASH-3",
+    "desc": "total packages matches records",
+    "pass": true,
+    "detail": [
+      11,
+      11
+    ]
+  },
+  {
+    "id": "DASH-4",
+    "desc": "total guides matches",
+    "pass": true,
+    "detail": [
+      1,
+      1
+    ]
+  },
+  {
+    "id": "DASH-5",
+    "desc": "total travelers matches",
+    "pass": true,
+    "detail": [
+      1,
+      1
+    ]
+  },
+  {
+    "id": "AUTH-1",
+    "desc": "refresh token rotates and returns a new access token (in-memory mode)",
+    "pass": true,
+    "detail": {
+      "accessToken": "<token removed>",
+      "expiresIn": 900,
+      "refreshToken": "91e0183d5ce5b3e9916fa58025a534759ef5baf034525744225997bf96613dcd6ae0eafd64d731d2",
+      "user": {
+        "id": "1",
+        "accountId": "3",
+        "travelerId": 1,
+        "email": "Arjun@gmail.com",
+        "role": "traveler",
+        "name": "Arjun Mehta"
+      }
+    }
+  },
+  {
+    "id": "AUTH-2",
+    "desc": "old refresh token cannot be reused",
+    "pass": true,
+    "detail": 401
+  },
+  {
+    "id": "AUTH-3",
+    "desc": "garbage token rejected 401",
+    "pass": true,
+    "detail": 401
+  }
+]

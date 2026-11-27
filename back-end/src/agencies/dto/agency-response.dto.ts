@@ -1,0 +1,53 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+/**
+ * Safe public representation of an Agency.
+ * The password field is intentionally absent.
+ * Auth login (auth.service.ts) uses the raw Agency record directly
+ * and strips the password separately — do not add password here.
+ */
+export class AgencyResponseDto {
+  @ApiProperty({ example: 1 })
+  agencyId: number;
+
+  @ApiProperty({ example: 'Horizon Travel Partners' })
+  businessName: string;
+
+  @ApiPropertyOptional({ example: 'Rajesh Mehra' })
+  contactPerson?: string;
+
+  @ApiProperty({ example: 'ops@horizontravel.com' })
+  contactEmail: string;
+
+  @ApiProperty({ example: '9876543210' })
+  contactPhone: string;
+
+  @ApiProperty({ example: 'approved', enum: ['pending', 'approved', 'rejected', 'suspended'] })
+  status: 'pending' | 'approved' | 'rejected' | 'suspended';
+
+  @ApiPropertyOptional({ example: 1.5 })
+  commissionRate?: number;
+
+  @ApiPropertyOptional({ example: '07AAAAA0000A1Z5' })
+  licenseGstin?: string;
+
+  @ApiPropertyOptional({ example: 'Suite 402, Connaught Place, New Delhi, 110001' })
+  officeAddress?: string;
+
+  @ApiPropertyOptional({ example: 'horizon@hdfcbank' })
+  payoutBankUpi?: string;
+
+  @ApiProperty({ example: '2024-01-15T08:00:00Z' })
+  createdAt: string;
+}
+
+export class AgencyLookupDto {
+  @ApiProperty({ example: 1 })
+  agencyId: number;
+
+  @ApiProperty({ example: 'Horizon Travel Partners' })
+  businessName: string;
+
+  @ApiProperty({ example: 'approved', enum: ['pending', 'approved', 'rejected', 'suspended'] })
+  status: 'pending' | 'approved' | 'rejected' | 'suspended';
+}
