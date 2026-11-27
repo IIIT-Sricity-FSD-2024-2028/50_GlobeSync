@@ -1,20 +1,17 @@
 import React from 'react';
+import { useSelector } from 'react-redux';
 
 /**
  * BookingStats: Displays top-level financial and volume metrics for traveler bookings.
- * 
- * Props:
- * - totalCount (number): Count of all bookings across itineraries
- * - totalAmount (number): Cumulative rupee volume of all bookings
- * - confirmedCount (number): Count of Confirmed bookings ready for travel
- * - pendingCount (number): Count of Pending bookings awaiting payment
+ * Reads bookings directly from Redux (state.travelerBookings.bookings) to avoid prop drilling.
  */
-export default function BookingStats({
-  totalCount = 0,
-  totalAmount = 0,
-  confirmedCount = 0,
-  pendingCount = 0,
-}) {
+export default function BookingStats() {
+  const bookings = useSelector((state) => state.travelerBookings.bookings);
+
+  const totalCount = bookings.length;
+  const totalAmount = bookings.reduce((sum, b) => sum + Number(b.amount || 0), 0);
+  const confirmedCount = bookings.filter((b) => b.status === 'Confirmed').length;
+  const pendingCount = bookings.filter((b) => b.status === 'Pending' || b.status === 'HELD').length;
   return (
     <div className="kpi-grid">
       <div className="kpi-card">

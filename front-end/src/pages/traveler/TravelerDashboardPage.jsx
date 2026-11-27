@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { useSession } from '../../context/SessionContext';
-import { useResource } from '../../store/hooks';
+import { fetchTravelerDashboard } from '../../store/travelerDashboard/travelerDashboard-actions';
 import SummaryCard from '../../components/common/SummaryCard';
 import StatusBadge from '../../components/common/StatusBadge';
 
@@ -23,14 +24,27 @@ import StatusBadge from '../../components/common/StatusBadge';
  *   and manual refresh without full page reload.
  */
 export default function TravelerDashboardPage() {
+  // 1. Router / Session / Dispatch
   const { user } = useSession();
-
+  const dispatch = useDispatch();
   const travelerId = Number(user?.travelerId || user?.traveler_id || user?.id);
-  const dashboardResource = useResource('travelerDashboard', { travelerId }, { load: Boolean(travelerId) });
-  const dashboardData = dashboardResource.items[0] || null;
-  const loading = dashboardResource.status === 'loading';
-  const error = dashboardResource.error;
-  const handleRefresh = () => dashboardResource.refresh();
+
+  // 2. Redux Selectors
+  const { data: dashboardData, loading, error } = useSelector((state) => state.travelerDashboard);
+
+  // 4. Data Fetching
+  useEffect(() => {
+    if (travelerId) {
+      dispatch(fetchTravelerDashboard(travelerId));
+    }
+  }, [dispatch, travelerId]);
+
+  // 5. Event Handlers
+  const handleRefresh = () => {
+    if (travelerId) {
+      dispatch(fetchTravelerDashboard(travelerId));
+    }
+  };
 
   return (
     <div className="traveler-dashboard-page" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>

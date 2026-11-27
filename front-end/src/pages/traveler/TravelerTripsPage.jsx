@@ -1,7 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { useSession } from '../../context/SessionContext';
-import { useResource } from '../../store/hooks';
+import { travelerTripsActions } from '../../store/travelerTrips/travelerTrips-slice';
+import {
+  fetchTravelerTrips,
+  updateTravelerTrip,
+  cancelTravelerTrip,
+  respondGuideReassignment,
+  fetchTripItineraries,
+  createItineraryItem,
+  updateItineraryItem,
+  deleteItineraryItem,
+} from '../../store/travelerTrips/travelerTrips-actions';
 import TripList from '../../components/trips/TripList';
 import TripFilterBar from '../../components/trips/TripFilterBar';
 import ActiveTripHeader from '../../components/trips/ActiveTripHeader';
@@ -23,35 +34,36 @@ import Toast from '../../components/common/Toast';
  * - statusFilter / searchQuery: Local filter states applied during render
  */
 export default function TravelerTripsPage() {
+  // 1. Router / Session / Dispatch
   const { user, role } = useSession();
   const [searchParams, setSearchParams] = useSearchParams();
+  const dispatch = useDispatch();
   const travelerId = Number(user?.travelerId || user?.traveler_id || user?.id);
 
-  // 1. Primary Trips State
-  const tripResource = useResource('trips', { scope: 'getByTraveler', id: travelerId }, { load: false });
-  const itineraryResource = useResource('itineraries', undefined, { load: false });
-  const trips = tripResource.items;
-  const loading = tripResource.status === 'loading';
-  const error = tripResource.error;
+  // 2. Redux Selectors
+  const {
+    trips,
+    pendingReassignments,
+    loading,
+    error,
+  } = useSelector((state) => state.travelerTrips);
 
-  // Pending Guide Reassignments Consent Requests
-  const [pendingReassignments, setPendingReassignments] = useState([]);
+  // 3. Local UI State
   const [consentBusy, setConsentBusy] = useState(false);
-
-  // 2. Filter State
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-
-  // 3. Trip Edit & Cancel Modal State
   const [editingTrip, setEditingTrip] = useState(null);
   const [cancellingTrip, setCancellingTrip] = useState(null);
   const [isCancellingTrip, setIsCancellingTrip] = useState(false);
   const [cancelTripError, setCancelTripError] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
-
-  // Toast Notification State
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success');
+  const [selectedTrip, setSelectedTrip] = useState(null);
+  const [showItineraryForm, setShowItineraryForm] = useState(false);
+  const [editingItinerary, setEditingItinerary] = useState(null);
+  const [itineraryActionMessage, setItineraryActionMessage] = useState(null);
+  const itinerarySectionRef = useRef(null);
 
   const showToast = (msg, type = 'success') => {
     setToastType(type);
@@ -59,70 +71,28 @@ export default function TravelerTripsPage() {
     setTimeout(() => setToastMessage(''), 4000);
   };
 
-  // Section reference for smooth scrolling without direct DOM access
-  const itinerarySectionRef = useRef(null);
-
-  // 4. Selected Trip for Itinerary Management (Synced with URL)
-  const [selectedTrip, setSelectedTrip] = useState(null);
-
-  // 5. Itinerary Data State for Selected Trip
-  const itineraries = itineraryResource.items;
-  const itinerariesLoading = itineraryResource.status === 'loading';
-  const itinerariesError = itineraryResource.error;
-
-  // 6. Itinerary Form State
-  const [showItineraryForm, setShowItineraryForm] = useState(false);
-  const [editingItinerary, setEditingItinerary] = useState(null);
-  const [itineraryActionMessage, setItineraryActionMessage] = useState(null);
-
-  // Load trips from backend with AbortController cleanup
+  // 4. Data Fetching & URL Sync
   const loadTrips = async () => {
-    if (!travelerId) {
-      return;
+    if (!travelerId) return;
+    const loadedTrips = await dispatch(fetchTravelerTrips(travelerId));
+    const urlTripId = searchParams.get('tripId');
+    if (urlTripId && Array.isArray(loadedTrips)) {
+      const matchingTrip = loadedTrips.find((t) => String(t.tripId || t.id) === String(urlTripId));
+      if (matchingTrip) setSelectedTrip(matchingTrip);
     }
-
-    try {
-      const [loadedTrips, reassignmentsData] = await Promise.all([
-        tripResource.refresh(),
-        tripResource.getMyReassignments().catch(() => []),
-      ]);
-
-      const pending = Array.isArray(reassignmentsData)
-        ? reassignmentsData.filter(
-            (r) => r.status === 'PENDING_CONSENT' && (r.travelerConsent === 'PENDING' || !r.travelerConsent),
-          )
-        : [];
-      setPendingReassignments(pending);
-
-      // Restore selected trip if URL query (?tripId=...) is present
-      const urlTripId = searchParams.get('tripId');
-      if (urlTripId) {
-        const matchingTrip = loadedTrips.find(
-          (t) => String(t.tripId || t.id) === String(urlTripId)
-        );
-        if (matchingTrip) {
-          setSelectedTrip(matchingTrip);
-        }
-      }
-    } catch (err) { console.error('[TravelerTripsPage] Failed to load trips:', err); }
   };
 
-  // Effect: Fetch trips on mount or when authenticated travelerId changes
   useEffect(() => {
     loadTrips();
-  }, [travelerId]);
+  }, [dispatch, travelerId]);
 
-  // Effect: Synchronize selectedTrip with URL query parameter (?tripId=...)
+  // Synchronize selectedTrip with URL query parameter (?tripId=...)
   useEffect(() => {
     const urlTripId = searchParams.get('tripId');
     if (!urlTripId) {
-      if (selectedTrip) {
-        setSelectedTrip(null);
-      }
+      if (selectedTrip) setSelectedTrip(null);
     } else if (trips.length > 0) {
-      const matchingTrip = trips.find(
-        (t) => String(t.tripId || t.id) === String(urlTripId)
-      );
+      const matchingTrip = trips.find((t) => String(t.tripId || t.id) === String(urlTripId));
       if (matchingTrip) {
         if (!selectedTrip || String(selectedTrip.tripId || selectedTrip.id) !== String(matchingTrip.tripId || matchingTrip.id)) {
           setSelectedTrip(matchingTrip);
@@ -133,10 +103,10 @@ export default function TravelerTripsPage() {
     }
   }, [searchParams, trips]);
 
-  // Effect: Load itinerary activities whenever selectedTrip changes
+  // Load itinerary activities whenever selectedTrip changes
   useEffect(() => {
     if (!selectedTrip) {
-      itineraryResource.replaceAll([]);
+      dispatch(travelerTripsActions.setItineraries([]));
       setShowItineraryForm(false);
       setEditingItinerary(null);
       return;
@@ -145,9 +115,8 @@ export default function TravelerTripsPage() {
     const tripId = Number(selectedTrip.tripId || selectedTrip.id);
     setShowItineraryForm(false);
     setEditingItinerary(null);
-
-    itineraryResource.refresh({ tripId }).catch((err) => console.error('[TravelerTripsPage] Failed to load itineraries:', err));
-  }, [selectedTrip?.tripId]);
+    dispatch(fetchTripItineraries(tripId));
+  }, [dispatch, selectedTrip?.tripId]);
 
   // Derived filter applied during render (no duplicate state)
   const filteredTrips = trips.filter((t) => {
@@ -196,8 +165,7 @@ export default function TravelerTripsPage() {
   };
 
   const handleTripUpdated = async (payload, tripId) => {
-    const updatedTrip = await tripResource.update(tripId, payload);
-    tripResource.upsert(updatedTrip);
+    const updatedTrip = await dispatch(updateTravelerTrip(tripId, payload));
 
     if (selectedTrip?.tripId === updatedTrip.tripId) {
       setSelectedTrip(updatedTrip);
@@ -212,12 +180,8 @@ export default function TravelerTripsPage() {
   const handleTravelerConsent = async (requestId, consent, reason) => {
     setConsentBusy(true);
     try {
-      await tripResource.respondTravelerConsent([requestId, {
-        decision: consent ? 'ACCEPT' : 'REJECT',
-        reason,
-      }]);
+      await dispatch(respondGuideReassignment(requestId, consent, reason));
       showToast(consent ? 'Guide reassignment accepted. Waiting for replacement guide confirmation.' : 'Guide reassignment declined. Original guide preserved.');
-      setPendingReassignments((prev) => prev.filter((r) => r.id !== requestId));
       loadTrips();
     } catch (err) {
       showToast(err.message || 'Failed to submit consent.', 'error');
@@ -236,12 +200,7 @@ export default function TravelerTripsPage() {
     setCancelTripError(null);
 
     try {
-      await tripResource.updateStatus([trip.tripId, {
-        status: 'Cancelled',
-        cancellationReason,
-      }]);
-
-      tripResource.upsert({ ...trip, status: 'Cancelled', cancellationReason });
+      await dispatch(cancelTravelerTrip(trip.tripId, cancellationReason));
 
       if (selectedTrip?.tripId === trip.tripId) {
         setSelectedTrip((prev) =>
@@ -263,16 +222,14 @@ export default function TravelerTripsPage() {
 
   const handleItinerarySaved = async (payload, isEdit, itineraryId) => {
     const savedItem = isEdit
-      ? await itineraryResource.update(itineraryId, payload)
-      : await itineraryResource.create(payload);
+      ? await dispatch(updateItineraryItem(itineraryId, payload))
+      : await dispatch(createItineraryItem(payload));
     if (isEdit) {
-      itineraryResource.upsert(savedItem);
       setEditingItinerary(null);
       setItineraryActionMessage(
         `Activity #${savedItem.itineraryId} ("${savedItem.activity}") updated successfully!`
       );
     } else {
-      itineraryResource.upsert(savedItem);
       setShowItineraryForm(false);
       setItineraryActionMessage(
         `New activity ("${savedItem.activity}") added to Day ${savedItem.dayNumber}!`
@@ -290,7 +247,7 @@ export default function TravelerTripsPage() {
     if (!confirmDelete) return;
 
     try {
-      await itineraryResource.remove(item.itineraryId);
+      await dispatch(deleteItineraryItem(item.itineraryId));
       setItineraryActionMessage(`Activity #${item.itineraryId} deleted successfully.`);
       setTimeout(() => setItineraryActionMessage(null), 4000);
     } catch (err) {
@@ -305,9 +262,7 @@ export default function TravelerTripsPage() {
   const reloadSelectedTripItineraries = () => {
     if (!selectedTrip) return;
     const tripId = Number(selectedTrip.tripId || selectedTrip.id);
-    itineraryResource.refresh({ tripId }).catch((err) => {
-      console.error('[TravelerTripsPage] Failed to reload itinerary:', err);
-    });
+    dispatch(fetchTripItineraries(tripId));
   };
 
   return (
@@ -545,7 +500,6 @@ export default function TravelerTripsPage() {
 
           {/* Itinerary Activities List */}
           <ItineraryList
-            itineraries={itineraries}
             selectedTrip={selectedTrip}
             onEditItem={(item) => {
               setEditingItinerary(item);
@@ -557,8 +511,6 @@ export default function TravelerTripsPage() {
               setShowItineraryForm(true);
               setEditingItinerary(null);
             }}
-            loading={itinerariesLoading}
-            error={itinerariesError}
             onRetry={reloadSelectedTripItineraries}
             userRole={role}
           />

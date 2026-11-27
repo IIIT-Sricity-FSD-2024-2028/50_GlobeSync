@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useDispatch } from 'react-redux';
+import { authActions } from '../store/auth/auth-slice';
 import {
   setAccessToken,
   clearAccessToken,
@@ -73,8 +75,32 @@ function restoreSession() {
   }
 }
 
+function extractTravelerId(user, role) {
+  if (!user) return null;
+  if (user.travelerId) return user.travelerId;
+  if (role === 'traveler') return user.id ?? user._id ?? null;
+  return null;
+}
+
 export function SessionProvider({ children }) {
+  const dispatch = useDispatch();
   const [{ user, role }, setSession] = useState(() => restoreSession());
+
+  // Sync restored session from localStorage into Redux auth slice on mount
+  useEffect(() => {
+    if (user && role) {
+      dispatch(
+        authActions.setAuthSession({
+          user,
+          role,
+          travelerId: extractTravelerId(user, role),
+        })
+      );
+    } else {
+      dispatch(authActions.clearAuthSession());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch]);
 
   /**
    * Save authenticated session with JWT access token and optional refresh token
@@ -95,6 +121,13 @@ export function SessionProvider({ children }) {
     setSession({ user: newUser, role: normalizedRole });
     localStorage.setItem('role', normalizedRole);
     localStorage.setItem('user', JSON.stringify(newUser));
+    dispatch(
+      authActions.setAuthSession({
+        user: newUser,
+        role: normalizedRole,
+        travelerId: extractTravelerId(newUser, normalizedRole),
+      })
+    );
   };
 
   /**
@@ -151,6 +184,7 @@ export function SessionProvider({ children }) {
       redirected = true;
       clearAccessToken();
       setSession({ user: null, role: null });
+      dispatch(authActions.clearAuthSession());
       const currentPath = window.location.pathname;
       if (
         !currentPath.startsWith('/login') &&
@@ -178,18 +212,29 @@ export function SessionProvider({ children }) {
     } finally {
       clearAccessToken();
       setSession({ user: null, role: null });
+      dispatch(authActions.clearAuthSession());
     }
-  }, []);
+  }, [dispatch]);
 
   /**
    * Update active user details in session and localStorage
    */
   const updateUser = (updatedUserFields) => {
+    const mergedUser = { ...user, ...updatedUserFields };
     setSession((prev) => {
-      const mergedUser = { ...prev.user, ...updatedUserFields };
-      localStorage.setItem('user', JSON.stringify(mergedUser));
-      return { ...prev, user: mergedUser };
+      const nextUser = { ...prev.user, ...updatedUserFields };
+      localStorage.setItem('user', JSON.stringify(nextUser));
+      return { ...prev, user: nextUser };
     });
+    if (role) {
+      dispatch(
+        authActions.setAuthSession({
+          user: mergedUser,
+          role,
+          travelerId: extractTravelerId(mergedUser, role),
+        })
+      );
+    }
   };
 
   const isAuthenticated = Boolean(role && user);

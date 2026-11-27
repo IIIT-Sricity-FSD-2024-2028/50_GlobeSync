@@ -1,41 +1,33 @@
 import React from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchTripItineraries } from '../../store/travelerTrips/travelerTrips-actions';
 import StatusBadge from '../common/StatusBadge';
 
 /**
  * ItineraryList: Displays the daily itinerary schedule and activities for a selected trip.
- *
- * Responsibilities:
- * - Groups activities cleanly by Day Number (Day 1, Day 2, etc.)
- * - Orders activities chronologically within each day by time
- * - Displays activity status badges (Pending, Confirmed, Completed)
- * - Exposes Edit and Delete actions with user confirmation
- * - Handles loading, network errors, and empty schedule states
- *
- * Props:
- * - itineraries: Array of itinerary item objects
- * - selectedTrip: The currently selected trip object
- * - onEditItem: Callback function when traveler clicks "Edit"
- * - onDeleteItem: Callback function when traveler clicks "Delete"
- * - onOpenAddForm: Callback to open the new activity form
- * - loading: Boolean indicating backend fetch in progress
- * - error: Error string if loading failed
- * - onRetry: Callback to retry loading from backend
- * - userRole: Role string of active session ('traveler', 'admin', 'superuser')
+ * Reads itineraries, loading, and error directly from Redux (state.travelerTrips).
  */
 export default function ItineraryList({
-  itineraries = [],
   selectedTrip,
   onEditItem,
   onDeleteItem,
   onOpenAddForm,
-  loading = false,
-  error = null,
   onRetry,
   userRole = 'traveler',
 }) {
+  const dispatch = useDispatch();
+  const {
+    itineraries,
+    itinerariesLoading: loading,
+    itinerariesError: error,
+  } = useSelector((state) => state.travelerTrips);
+
   if (!selectedTrip) {
     return null;
   }
+
+  const tripId = Number(selectedTrip.tripId || selectedTrip.id);
+  const handleRetry = onRetry || (() => dispatch(fetchTripItineraries(tripId)));
 
   const isReadOnly = selectedTrip.status === 'Cancelled' || selectedTrip.status === 'Completed';
 
@@ -80,10 +72,10 @@ export default function ItineraryList({
         <div style={{ fontSize: '32px', marginBottom: '8px' }}>⚠️</div>
         <h4 style={{ fontSize: '16px', fontWeight: 800 }}>Failed to load itinerary</h4>
         <p style={{ fontSize: '13px', margin: '6px 0 16px' }}>{error}</p>
-        {onRetry && (
+        {handleRetry && (
           <button
             type="button"
-            onClick={onRetry}
+            onClick={handleRetry}
             className="btn btn-primary"
             style={{ padding: '8px 18px', fontSize: '13px', fontWeight: 700 }}
           >

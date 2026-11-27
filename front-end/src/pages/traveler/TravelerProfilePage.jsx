@@ -1,6 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useSession } from '../../context/SessionContext';
-import { useResource } from '../../store/hooks';
+import {
+  fetchTravelerProfileData,
+  fetchTravelerPassengers,
+  updateTravelerProfile,
+  createTravelerPassenger,
+  updateTravelerPassenger,
+  deleteTravelerPassenger,
+} from '../../store/travelerProfile/travelerProfile-actions';
 import ProfileForm from '../../components/profile/ProfileForm';
 import PassengerList from '../../components/passengers/PassengerList';
 import PassengerFormModal from '../../components/passengers/PassengerFormModal';
@@ -18,49 +26,49 @@ import Toast from '../../components/common/Toast';
  * - Zero reliance on legacy browser mockData or localStorage as source of truth
  */
 export default function TravelerProfilePage() {
+  // 1. Session / Dispatch
   const { user, updateUser } = useSession();
+  const dispatch = useDispatch();
+  const travelerId = Number(user?.travelerId || user?.traveler_id || user?.id);
 
-  // Passenger Modal State
+  // 2. Redux Selectors
+  const { profile: traveler, passengers, loading, error, passengersWarning } = useSelector(
+    (state) => state.travelerProfile
+  );
+
+  // 3. Local UI State
   const [isPassengerModalOpen, setIsPassengerModalOpen] = useState(false);
   const [editingPassenger, setEditingPassenger] = useState(null);
-
-  // Action Notification State
   const [actionMessage, setActionMessage] = useState(null);
-
-  // Toast Notification State
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success');
 
+  // 4. Data Fetching
+  useEffect(() => {
+    if (!travelerId) return;
+    dispatch(fetchTravelerProfileData(travelerId));
+    dispatch(fetchTravelerPassengers(travelerId)).catch(() => {});
+  }, [dispatch, travelerId]);
+
+  // 5. Event Handlers
   const showToast = (msg, type = 'success') => {
     setToastType(type);
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 4000);
   };
 
-  // Secondary Warning State for optional passenger list
-  const [passengersWarning, setPassengersWarning] = useState(null);
-
-  const travelerId = Number(user?.travelerId || user?.traveler_id || user?.id);
-  const travelerResource = useResource('travelers', { scope: 'getById', id: travelerId }, { load: Boolean(travelerId) });
-  const passengerResource = useResource('passengers', { scope: 'getByTraveler', id: travelerId }, { load: Boolean(travelerId) });
-  const traveler = travelerResource.items[0] || null;
-  const passengers = passengerResource.items;
-  const loading = travelerResource.status === 'loading';
-  const error = travelerResource.error;
-
   // Dedicated retry for secondary passenger list
   const retryPassengers = async () => {
     try {
-      setPassengersWarning(null);
-      await passengerResource.refresh();
-    } catch (err) {
-      setPassengersWarning(err.message || 'Could not reach co-traveler service.');
+      await dispatch(fetchTravelerPassengers(travelerId));
+    } catch {
+      // Warning state is handled in travelerProfile slice
     }
   };
 
   // Handler: Profile saved successfully
   const handleProfileSaved = async (payload, id) => {
-    const updatedTraveler = await travelerResource.update(id, payload);
+    const updatedTraveler = await dispatch(updateTravelerProfile(id, payload));
 
     // Update session so header, sidebar, and hero banner update immediately
     if (updateUser) {
@@ -81,8 +89,8 @@ export default function TravelerProfilePage() {
   // Handler: Passenger saved successfully (create or update)
   const handlePassengerSaved = async (payload, isEdit, id) => {
     const savedPassenger = isEdit
-      ? await passengerResource.update(id, payload)
-      : await passengerResource.create(payload);
+      ? await dispatch(updateTravelerPassenger(id, payload))
+      : await dispatch(createTravelerPassenger(payload));
     if (isEdit) {
       setActionMessage(`Passenger "${savedPassenger.name}" updated successfully.`);
     } else {
@@ -101,7 +109,7 @@ export default function TravelerProfilePage() {
     if (!confirmDelete) return;
 
     try {
-      await passengerResource.remove(passenger.passId);
+      await dispatch(deleteTravelerPassenger(passenger.passId));
       setActionMessage(`Passenger "${passenger.name}" removed from Master List.`);
       setTimeout(() => setActionMessage(null), 4000);
     } catch (err) {
@@ -219,7 +227,7 @@ export default function TravelerProfilePage() {
           <div style={{ fontSize: '36px', marginBottom: '8px' }}>⚠️</div>
           <h4 style={{ fontSize: '17px', fontWeight: 800 }}>Failed to load profile</h4>
           <p style={{ fontSize: '14px', margin: '8px 0 16px' }}>{error}</p>
-          <button type="button" onClick={() => travelerResource.refresh()} className="btn btn-primary">
+          <button type="button" onClick={() => dispatch(fetchTravelerProfileData(travelerId))} className="btn btn-primary">
             Retry Connection ↺
           </button>
         </div>
@@ -281,7 +289,6 @@ export default function TravelerProfilePage() {
             )}
 
             <PassengerList
-              passengers={passengers}
               onEdit={(passenger) => {
                 setEditingPassenger(passenger);
                 setIsPassengerModalOpen(true);

@@ -1,15 +1,16 @@
 import React from 'react';
+import { useSelector } from 'react-redux';
 
 /**
  * PassengerList: Displays the traveler's master list of saved co-traveler passengers.
- * Renders cards with gender avatars, age badges, database IDs, and Edit/Delete controls.
+ * Reads passengers directly from Redux (state.travelerProfile.passengers).
  */
 export default function PassengerList({
-  passengers = [],
   onEdit,
   onDelete,
   onAddNew,
 }) {
+  const passengers = useSelector((state) => state.travelerProfile.passengers);
   const getAvatar = (gender) => {
     switch (gender?.toLowerCase()) {
       case 'male':

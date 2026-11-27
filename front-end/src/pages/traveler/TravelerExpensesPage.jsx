@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useSession } from '../../context/SessionContext';
-import { useResource } from '../../store/hooks';
+import {
+  fetchTravelerExpenses,
+  createTravelerExpense,
+  updateTravelerExpense,
+  deleteTravelerExpense,
+} from '../../store/travelerExpenses/travelerExpenses-actions';
 import ExpenseStats from '../../components/expenses/ExpenseStats';
 import ExpenseList from '../../components/expenses/ExpenseList';
 import ExpenseFormModal from '../../components/expenses/ExpenseFormModal';
@@ -16,78 +22,46 @@ import Toast from '../../components/common/Toast';
  * - Enforces and reports backend RBAC (DELETE /expenses/:id is restricted to Superuser)
  */
 export default function TravelerExpensesPage() {
+  // 1. Session / Dispatch
   const { user, role } = useSession();
+  const dispatch = useDispatch();
+  const travelerId = Number(user?.travelerId || user?.traveler_id || user?.id);
 
-  const [partialError, setPartialError] = useState(null);
+  // 2. Redux Selectors
+  const { expenses, budgetGauges, loading: expensesLoading, error: expensesError } = useSelector(
+    (state) => state.travelerExpenses
+  );
+  const { trips, loading: tripsLoading, error: tripsError } = useSelector(
+    (state) => state.travelerTrips
+  );
+  const loading = expensesLoading || tripsLoading;
+  const error = tripsError || expensesError;
 
-  // Search filter state
+  // 3. Local UI State
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Controlled Form Modal State
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
-
-  // Action Notification State
   const [actionMessage, setActionMessage] = useState(null);
-
-  // Toast Notification State
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success');
 
-  const showToast = (msg, type = 'success') => {
-    setToastType(type);
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(''), 4000);
-  };
-
-  const travelerId = Number(user?.travelerId || user?.traveler_id || user?.id);
-  const tripResource = useResource('trips', { scope: 'getByTraveler', id: travelerId }, { load: false });
-  const expenseResource = useResource('expenses', undefined, { load: false });
-  const trips = tripResource.items;
-  const expenses = expenseResource.items;
-  const budgetGauges = expenseResource.meta.budgetGauges || [];
-  const loading = Boolean(expenseResource.meta.loading) || tripResource.status === 'loading';
-  const error = tripResource.error || expenseResource.meta.error;
-
-  // Load all trips and expenses for this traveler with honest feedback and partial results handling
-  const loadData = async () => {
-    if (!travelerId) {
-      expenseResource.setMeta({ loading: false, error: 'No authenticated traveler ID found. Please log in.' });
-      return;
-    }
-
-    expenseResource.setMeta({ loading: true, error: null, budgetGauges: [] });
-    setPartialError(null);
-
-    try {
-      const loadedTrips = await tripResource.refresh();
-
-      if (loadedTrips.length === 0) {
-        expenseResource.replaceAll([]);
-        setPartialError(null);
-        return;
-      }
-
-      const tripIds = loadedTrips.map((trip) => trip.tripId || trip.id);
-      const [loadedExpenses, gauges] = await Promise.all([
-        expenseResource.loadByTrips([tripIds]),
-        expenseResource.loadBudgetGauges([tripIds]),
-      ]);
-      expenseResource.replaceAll(loadedExpenses);
-      expenseResource.setMeta({ budgetGauges: gauges });
-    } catch (err) {
-      if (!err.isCancelled) {
-        console.error('[TravelerExpensesPage] Failed to load expense data:', err);
-        expenseResource.setMeta({ error: err.message || 'Failed to load expense records from backend.' });
-      }
-    } finally {
-      expenseResource.setMeta({ loading: false });
+  // 4. Data Fetching
+  const loadData = () => {
+    if (travelerId) {
+      dispatch(fetchTravelerExpenses(travelerId));
     }
   };
 
   useEffect(() => {
     loadData();
-  }, [travelerId]);
+  }, [dispatch, travelerId]);
+
+  // 5. Event Handlers
+  const showToast = (msg, type = 'success') => {
+    setToastType(type);
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 4000);
+  };
 
   // Derived filter during render
   const filteredExpenses = expenses.filter((e) => {
@@ -117,8 +91,8 @@ export default function TravelerExpensesPage() {
   // Immutable update upon successful backend response
   const handleSaveExpense = async (payload, isEdit, expenseId) => {
     const savedExpense = isEdit
-      ? await expenseResource.update(expenseId, payload)
-      : await expenseResource.create(payload);
+      ? await dispatch(updateTravelerExpense(expenseId, payload))
+      : await dispatch(createTravelerExpense(payload));
     if (isEdit) {
       setActionMessage(`Expense #${savedExpense.expenseId} updated successfully!`);
     } else {
@@ -138,7 +112,7 @@ export default function TravelerExpensesPage() {
     if (!confirmDelete) return;
 
     try {
-      await expenseResource.remove(expense.expenseId);
+      await dispatch(deleteTravelerExpense(expense.expenseId));
       setActionMessage(`Expense #${expense.expenseId} deleted.`);
       setTimeout(() => setActionMessage(null), 4000);
     } catch (err) {
@@ -258,41 +232,6 @@ export default function TravelerExpensesPage() {
       {/* Main Content */}
       {!loading && !error && (
         <>
-          {/* Partial Results Warning Banner */}
-          {partialError && (
-            <div
-              style={{
-                padding: '16px 20px',
-                background: '#fffbeb',
-                border: '1.5px solid #fde68a',
-                borderRadius: '16px',
-                marginBottom: '20px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '12px',
-              }}
-            >
-              <div>
-                <strong style={{ color: '#92400e', fontSize: '14px', display: 'block', marginBottom: '2px' }}>
-                  ⚠️ Incomplete Expense Records
-                </strong>
-                <p style={{ color: '#b45309', fontSize: '13px', lineHeight: 1.4 }}>
-                  {partialError.message}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={loadData}
-                className="btn btn-secondary"
-                style={{ padding: '6px 14px', fontSize: '12px', borderColor: '#d97706', color: '#b45309' }}
-              >
-                Retry Missing Expenses ↺
-              </button>
-            </div>
-          )}
-
           {/* Real-time Budget Gauges */}
           {budgetGauges.length > 0 && (
             <div
@@ -397,12 +336,7 @@ export default function TravelerExpensesPage() {
           )}
 
           {/* Metrics & Breakdown */}
-          <ExpenseStats
-            expenses={expenses}
-            trips={trips}
-            isPartial={Boolean(partialError)}
-            partialFailedCount={partialError?.failedCount || 0}
-          />
+          <ExpenseStats />
 
           {/* Search Bar */}
           <div

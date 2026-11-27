@@ -1,27 +1,39 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { useSession } from '../../context/SessionContext';
-import { useResource } from '../../store/hooks';
+import { fetchTravelerTickets, createTravelerTicket } from '../../store/travelerSupport/travelerSupport-actions';
+import { fetchTravelerBookings } from '../../store/travelerBookings/travelerBookings-actions';
 import TicketForm from '../../components/support/TicketForm';
 import TicketList from '../../components/support/TicketList';
 
 export default function TravelerSupportPage() {
+  // 1. Router / Session / Dispatch
   const { user } = useSession();
   const [searchParams] = useSearchParams();
+  const dispatch = useDispatch();
   const travelerId = Number(user?.travelerId || user?.traveler_id || user?.id);
 
+  // 2. Redux Selectors
+  const { tickets, loading, error } = useSelector((state) => state.travelerSupport);
+  const { bookings } = useSelector((state) => state.travelerBookings);
+
+  // 3. Local UI State
   const [bookingsWarning, setBookingsWarning] = useState(null);
   const [successBanner, setSuccessBanner] = useState(null);
-  const ticketResource = useResource('supportTickets', { scope: 'getByTraveler', id: travelerId }, { load: Boolean(travelerId) });
-  const bookingResource = useResource('bookings', { scope: 'getByTraveler', id: travelerId }, { load: Boolean(travelerId) });
-  const tickets = ticketResource.items;
-  const bookings = bookingResource.items;
-  const loading = ticketResource.status === 'loading';
-  const error = ticketResource.error;
 
+  // 4. Data Fetching
+  useEffect(() => {
+    if (travelerId) {
+      dispatch(fetchTravelerTickets(travelerId));
+      dispatch(fetchTravelerBookings(travelerId));
+    }
+  }, [dispatch, travelerId]);
+
+  // 5. Event Handlers
   const retryBookings = async () => {
     try {
-      await bookingResource.refresh();
+      await dispatch(fetchTravelerBookings(travelerId));
       setBookingsWarning(null);
     } catch (err) {
       console.warn('[SupportPage] Retry bookings failed:', err);
@@ -35,7 +47,7 @@ export default function TravelerSupportPage() {
   };
 
   const handleCreateTicket = async (payload) => {
-    return ticketResource.create(payload);
+    return dispatch(createTravelerTicket(payload));
   };
 
   const openTicketsCount = tickets.filter((t) => t.status === 'Open' || t.status === 'In Progress').length;
@@ -187,7 +199,7 @@ export default function TravelerSupportPage() {
           <p style={{ fontSize: '13px', margin: '4px 0 14px' }}>{error}</p>
           <button
             type="button"
-            onClick={() => ticketResource.refresh()}
+            onClick={() => dispatch(fetchTravelerTickets(travelerId))}
             className="btn btn-primary"
             style={{ padding: '8px 18px', fontSize: '13px' }}
           >
@@ -257,7 +269,7 @@ export default function TravelerSupportPage() {
             tickets={tickets}
             travelerName={user?.name || 'Traveler'}
             isLoading={loading}
-            onRefresh={() => ticketResource.refresh()}
+            onRefresh={() => dispatch(fetchTravelerTickets(travelerId))}
           />
 
           {/* Frequently Asked Questions Card */}

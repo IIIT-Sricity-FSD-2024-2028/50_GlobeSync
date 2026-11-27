@@ -1,25 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useResource } from '../../store/hooks';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchTravelerPackages } from '../../store/travelerPackages/travelerPackages-actions';
 import PackageFilter from '../../components/packages/PackageFilter';
 import PackageList from '../../components/packages/PackageList';
 import Modal from '../../components/common/Modal';
 import { resolvePackageImage } from '../../components/packages/PackageCard';
 
 export default function TravelerPackagesPage() {
-  // 1. Core data loading state
-  const { items: packages, status, error, refresh } = useResource('packages');
-  const loading = status === 'loading' || status === 'idle';
+  // 1. Router / Dispatch
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  // 2. Controlled filter state
+  // 2. Redux Selectors
+  const { packages } = useSelector((state) => state.travelerPackages);
+
+  // 3. Local UI State
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDuration, setSelectedDuration] = useState('ALL');
   const [maxBudget, setMaxBudget] = useState(250000);
   const [sortBy, setSortBy] = useState('RECOMMENDED');
-
-  // 3. Selection state for detail modal & planning
   const [selectedPackage, setSelectedPackage] = useState(null);
-  const [plannedPackageNotice, setPlannedPackageNotice] = useState(null);
+
+  // 4. Data Fetching
+  useEffect(() => {
+    dispatch(fetchTravelerPackages());
+  }, [dispatch]);
 
   // 5. CALCULATE filtered list DURING RENDERING (No duplicate state or sync effects)
   const filteredPackages = packages
@@ -66,8 +72,6 @@ export default function TravelerPackagesPage() {
     setSelectedPackage(pkg);
   };
 
-  const navigate = useNavigate();
-
   const handlePlanTrip = (pkg) => {
     navigate(`/traveler/plan?packageId=${pkg.packageId}`);
   };
@@ -83,44 +87,6 @@ export default function TravelerPackagesPage() {
           Explore curated itineraries with certified guides, transparent budgets, and customizable activities.
         </p>
       </div>
-
-      {/* Booking Notice Alert when a package is selected for planning */}
-      {plannedPackageNotice && (
-        <div
-          style={{
-            padding: '16px 20px',
-            background: '#ecfdf5',
-            border: '1px solid #a7f3d0',
-            borderRadius: '12px',
-            marginBottom: '24px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            color: '#065f46',
-          }}
-        >
-          <div>
-            <strong>Selected for trip planning:</strong> {plannedPackageNotice.name} (
-            {plannedPackageNotice.duration} Days in {plannedPackageNotice.destinations})
-            <div style={{ fontSize: '12px', marginTop: '2px', color: '#047857' }}>
-              Est. budget ₹{plannedPackageNotice.budget?.toLocaleString('en-IN')}. Ready for customized itinerary creation in the Traveler stage.
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setPlannedPackageNotice(null)}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '18px',
-              cursor: 'pointer',
-              color: '#047857',
-            }}
-          >
-            ✕
-          </button>
-        </div>
-      )}
 
       {/* Controlled Filter Bar Component */}
       <PackageFilter
@@ -139,11 +105,9 @@ export default function TravelerPackagesPage() {
       {/* PackageList Presentation Component */}
       <PackageList
         packages={filteredPackages}
-        loading={loading}
-        error={error}
         onSelectPackage={handleSelectPackage}
         onPlanTrip={handlePlanTrip}
-        onRetry={() => refresh()}
+        onRetry={() => dispatch(fetchTravelerPackages())}
         onClearFilters={handleResetFilters}
       />
 

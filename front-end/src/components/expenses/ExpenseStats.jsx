@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSelector } from 'react-redux';
 
 const CATEGORY_ICONS = {
   Flight: '✈️',
@@ -28,11 +29,11 @@ const CATEGORY_COLORS = {
  * - Breakdown by expense categories with relative percentage bar fills
  */
 export default function ExpenseStats({
-  expenses = [],
-  trips = [],
   isPartial = false,
   partialFailedCount = 0,
 }) {
+  const expenses = useSelector((state) => state.travelerExpenses.expenses);
+  const trips = useSelector((state) => state.travelerTrips.trips);
   const totalSpent = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
   const avgTrip = trips.length > 0 ? totalSpent / trips.length : totalSpent;
 

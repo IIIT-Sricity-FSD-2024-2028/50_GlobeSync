@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useSession } from '../../context/SessionContext';
-import { useResource } from '../../store/hooks';
+import { travelerMessagesActions } from '../../store/travelerMessages/travelerMessages-slice';
+import {
+  fetchTravelerMessages,
+  retryFetchGuides,
+  sendTravelerMessage,
+} from '../../store/travelerMessages/travelerMessages-actions';
 import ConversationList from '../../components/messages/ConversationList';
 import MessageThread from '../../components/messages/MessageThread';
 import MessageInput from '../../components/messages/MessageInput';
@@ -16,28 +22,31 @@ import MessageInput from '../../components/messages/MessageInput';
  * - Provides manual refresh without requiring WebSockets or complex polling
  */
 export default function TravelerMessagesPage() {
+  // 1. Session / Dispatch
   const { user } = useSession();
+  const dispatch = useDispatch();
   const travelerId = Number(user?.travelerId || user?.traveler_id || user?.id);
 
-  const [activeConvId, setActiveConvId] = useState(null);
+  // 2. Redux Selectors
+  const { messages: rawMessages, guides, activeConvId, loading, isSending, error, guidesWarning } = useSelector(
+    (state) => state.travelerMessages
+  );
+
+  // 3. Local UI State
   const [drafts, setDrafts] = useState({});
   const [sendErrors, setSendErrors] = useState({});
-  const [isSending, setIsSending] = useState(false);
-  const [guidesWarning, setGuidesWarning] = useState(null);
-  const messageResource = useResource('messages', { userType: 'traveler', userId: travelerId }, { load: Boolean(travelerId) });
-  const guideResource = useResource('guides');
-  const rawMessages = messageResource.items;
-  const guides = guideResource.items;
-  const loading = messageResource.status === 'loading';
-  const error = messageResource.error;
 
-  const retryGuides = async () => {
-    try {
-      await guideResource.refresh();
-      setGuidesWarning(null);
-    } catch (err) {
-      console.warn('[MessagesPage] Retry guides failed:', err);
+  // 4. Data Fetching
+  useEffect(() => {
+    if (travelerId) {
+      dispatch(fetchTravelerMessages(travelerId));
     }
+    dispatch(retryFetchGuides());
+  }, [dispatch, travelerId]);
+
+  // 5. Event Handlers
+  const retryGuides = async () => {
+    await dispatch(retryFetchGuides());
   };
 
   // Build conversational roster
@@ -129,9 +138,9 @@ export default function TravelerMessagesPage() {
     if (!activeConvId && conversationList.length > 0) {
       // Prefer conversation with existing messages, else first
       const withMsgs = conversationList.find((c) => c.messages.length > 0);
-      setActiveConvId(withMsgs ? withMsgs.id : conversationList[0].id);
+      dispatch(travelerMessagesActions.setActiveConvId(withMsgs ? withMsgs.id : conversationList[0].id));
     }
-  }, [conversationList.length, activeConvId]);
+  }, [dispatch, conversationList.length, activeConvId]);
 
   const activeConv = conversationsMap[activeConvId] || null;
   const activeMessages = activeConv ? activeConv.messages : [];
@@ -142,7 +151,6 @@ export default function TravelerMessagesPage() {
     const targetConv = conversationsMap[targetConvId];
     if (!targetConv || !content || !content.trim() || isSending) return;
 
-    setIsSending(true);
     setSendErrors((prev) => ({ ...prev, [targetConvId]: null }));
 
     const payload = {
@@ -154,7 +162,7 @@ export default function TravelerMessagesPage() {
     };
 
     try {
-      await messageResource.create(payload);
+      await dispatch(sendTravelerMessage(payload));
 
       // Clear draft ONLY for target conversation upon confirmed successful send
       setDrafts((prev) => ({ ...prev, [targetConvId]: '' }));
@@ -165,8 +173,6 @@ export default function TravelerMessagesPage() {
         ...prev,
         [targetConvId]: err.message || 'Failed to send message. Please retry.',
       }));
-    } finally {
-      setIsSending(false);
     }
   };
 
@@ -194,7 +200,7 @@ export default function TravelerMessagesPage() {
 
         <button
           type="button"
-          onClick={() => messageResource.refresh()}
+          onClick={() => dispatch(fetchTravelerMessages(travelerId))}
           className="btn btn-secondary"
           style={{ padding: '8px 16px', fontSize: '13px', fontWeight: 600, borderRadius: '8px' }}
           disabled={loading}
@@ -221,7 +227,7 @@ export default function TravelerMessagesPage() {
           <span>⚠️ {error}</span>
           <button
             type="button"
-            onClick={() => messageResource.refresh()}
+            onClick={() => dispatch(fetchTravelerMessages(travelerId))}
             className="btn btn-secondary"
             style={{ padding: '4px 12px', fontSize: '12px' }}
           >
@@ -283,7 +289,7 @@ export default function TravelerMessagesPage() {
         <ConversationList
           conversations={conversationList}
           activeConvId={activeConvId}
-          onSelectConv={(id) => setActiveConvId(id)}
+          onSelectConv={(id) => dispatch(travelerMessagesActions.setActiveConvId(id))}
           isLoading={loading}
         />
 

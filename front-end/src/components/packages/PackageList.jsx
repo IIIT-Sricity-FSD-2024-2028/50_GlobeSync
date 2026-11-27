@@ -1,25 +1,22 @@
 import React from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchTravelerPackages } from '../../store/travelerPackages/travelerPackages-actions';
 import PackageCard from './PackageCard';
 
 /**
- * PackageList: Renders packages grid and manages loading, error, and empty states
- * @param {Array} packages - Array of packages to display
- * @param {boolean} loading - Loading indicator
- * @param {string|null} error - Error message string
- * @param {Function} onSelectPackage - Callback when package details is requested
- * @param {Function} onPlanTrip - Callback when package booking/planning is requested
- * @param {Function} onRetry - Callback when user retries a failed request
- * @param {Function} onClearFilters - Callback to clear search filters when list is empty
+ * PackageList: Renders packages grid and manages loading, error, and empty states.
+ * Reads loading and error from Redux (state.travelerPackages) to avoid prop drilling.
  */
 export default function PackageList({
   packages = [],
-  loading = false,
-  error = null,
   onSelectPackage,
   onPlanTrip,
   onRetry,
   onClearFilters,
 }) {
+  const dispatch = useDispatch();
+  const { loading, error } = useSelector((state) => state.travelerPackages);
+  const handleRetry = onRetry || (() => dispatch(fetchTravelerPackages()));
   // 1. Loading State
   if (loading) {
     return (
@@ -63,10 +60,10 @@ export default function PackageList({
         <p style={{ fontSize: '14px', maxWidth: '500px', margin: '0 auto 16px', lineHeight: '1.6' }}>
           {error}
         </p>
-        {onRetry && (
+        {handleRetry && (
           <button
             type="button"
-            onClick={onRetry}
+            onClick={handleRetry}
             className="btn btn-primary"
             style={{ padding: '8px 20px', fontSize: '13px' }}
           >

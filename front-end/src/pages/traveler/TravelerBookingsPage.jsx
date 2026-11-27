@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useSession } from '../../context/SessionContext';
 import { useRealtimeEvent } from '../../context/RealtimeContext';
-import { reviewsApi } from '../../services/api';
-import { useResource } from '../../store/hooks';
+import { fetchTravelerTrips } from '../../store/travelerTrips/travelerTrips-actions';
+import { travelerBookingsActions } from '../../store/travelerBookings/travelerBookings-slice';
+import {
+  fetchTravelerBookings,
+  cancelTravelerBooking,
+  confirmBookingTripStatus,
+  submitTravelerReview,
+} from '../../store/travelerBookings/travelerBookings-actions';
 import BookingList from '../../components/bookings/BookingList';
 import BookingStats from '../../components/bookings/BookingStats';
 import PaymentModal from '../../components/bookings/PaymentModal';
@@ -20,43 +27,46 @@ import Toast from '../../components/common/Toast';
  * - Modal state: payingBooking (PaymentModal), viewingBooking (BookingDetailModal)
  */
 export default function TravelerBookingsPage() {
+  // 1. Session / Dispatch
   const { user } = useSession();
+  const dispatch = useDispatch();
   const travelerId = Number(user?.travelerId || user?.traveler_id || user?.id);
 
-  // 1. Primary Data State
-  const bookingResource = useResource('bookings', { scope: 'getByTraveler', id: travelerId }, { load: Boolean(travelerId) });
-  const tripResource = useResource('trips', { scope: 'getByTraveler', id: travelerId }, { load: Boolean(travelerId) });
-  const bookings = bookingResource.items;
-  const trips = tripResource.items;
-  const loading = bookingResource.status === 'loading' || tripResource.status === 'loading';
-  const error = bookingResource.error || tripResource.error;
+  // 2. Redux Selectors
+  const { bookings, reviewedBookingIds, loading, error } = useSelector(
+    (state) => state.travelerBookings
+  );
+  const { trips } = useSelector((state) => state.travelerTrips);
 
-  // 2. Filter State
+  // 3. Local UI State
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
-
-  // 3. Modal Dialog State
   const [payingBooking, setPayingBooking] = useState(null);
   const [viewingBooking, setViewingBooking] = useState(null);
   const [cancellingBooking, setCancellingBooking] = useState(null);
   const [isCancellingBooking, setIsCancellingBooking] = useState(false);
   const [cancelBookingError, setCancelBookingError] = useState(null);
-
-  // 4. Feedback & Partial Success Recovery State
   const [actionMessage, setActionMessage] = useState(null);
   const [partialTripRecovery, setPartialTripRecovery] = useState(null);
-
-  // 5. Review Dialog State
-  const [reviewedBookingIds, setReviewedBookingIds] = useState([]);
   const [reviewingBooking, setReviewingBooking] = useState(null);
   const [reviewForm, setReviewForm] = useState({ tripRating: 5, guideRating: 5, comment: '' });
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewError, setReviewError] = useState(null);
-
-  // Toast Notification State
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success');
+
+  // 4. Data Fetching & Realtime Listeners
+  const loadData = () => {
+    if (travelerId) {
+      dispatch(fetchTravelerBookings(travelerId));
+      dispatch(fetchTravelerTrips(travelerId));
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [dispatch, travelerId]);
 
   const showToast = (msg, type = 'success') => {
     setToastType(type);
@@ -64,50 +74,11 @@ export default function TravelerBookingsPage() {
     setTimeout(() => setToastMessage(''), 4000);
   };
 
-  // Data Loading: Distinguishes required bookings from optional trip context
-  const loadData = async (signal) => {
-    if (!travelerId) {
-      return;
-    }
-
-    try {
-      const [bookingsRes, tripsRes, reviewsRes] = await Promise.allSettled([
-        bookingResource.refresh(),
-        tripResource.refresh(),
-        reviewsApi.getAll({ signal }),
-      ]);
-
-      if (signal?.aborted) return;
-
-      // 3. Existing Reviews: track reviewed bookings to prevent double-reviewing
-      if (reviewsRes.status === 'fulfilled' && Array.isArray(reviewsRes.value)) {
-        const myReviews = reviewsRes.value.filter((r) => Number(r.travelerId) === travelerId);
-        setReviewedBookingIds(myReviews.map((r) => r.bookingId).filter(Boolean));
-      }
-    } catch (err) {
-      if (!err.isCancelled && !signal?.aborted) {
-        console.error('[TravelerBookingsPage] Unexpected error loading bookings:', err);
-      }
-    }
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    loadData(controller.signal);
-
-    return () => {
-      controller.abort();
-    };
-  }, [travelerId]);
-
   // Realtime updates without full page reload
   useRealtimeEvent('booking.status_changed', (event) => {
     if (event?.bookingId) {
-      bookingResource.replaceAll(bookings.map((b) =>
-          (b.bookingId === event.bookingId || b.id === event.bookingId)
-            ? { ...b, status: event.status }
-            : b,
-        ))
+      dispatch(travelerBookingsActions.updateBooking({ bookingId: event.bookingId, status: event.status }));
+      if (travelerId) dispatch(fetchTravelerBookings(travelerId));
       showToast(`⚡ Live Update: Booking #${event.bookingId} is now ${event.status}`, 'success');
     }
   });
@@ -115,6 +86,7 @@ export default function TravelerBookingsPage() {
   useRealtimeEvent('refund.processed', (event) => {
     if (event?.bookingId) {
       const amount = event.refundAmountMinor ? `₹${(event.refundAmountMinor / 100).toFixed(2)}` : '';
+      if (travelerId) dispatch(fetchTravelerBookings(travelerId));
       showToast(`💰 Live: Refund ${amount} processed for Booking #${event.bookingId}`, 'success');
     }
   });
@@ -147,11 +119,7 @@ export default function TravelerBookingsPage() {
 
   const handlePaymentSuccess = (updatedBooking, paymentRecord, meta = {}) => {
     // Immutable update replacing confirmed booking
-    bookingResource.replaceAll(bookings.map((b) =>
-        (b.bookingId || b.id) === (updatedBooking.bookingId || updatedBooking.id)
-          ? updatedBooking
-          : b
-      ));
+    dispatch(travelerBookingsActions.updateBooking(updatedBooking));
 
     const isRec = Boolean(meta?.isRecovered);
     const amountStr = Number(paymentRecord?.amount || updatedBooking.amount).toLocaleString('en-IN');
@@ -186,7 +154,7 @@ export default function TravelerBookingsPage() {
     if (!partialTripRecovery) return;
     const { tripId } = partialTripRecovery;
     try {
-      await tripResource.updateStatus([tripId, 'Confirmed']);
+      await dispatch(confirmBookingTripStatus(tripId));
       setPartialTripRecovery(null);
       setActionMessage(`Trip #${tripId} status confirmed successfully!`);
       setTimeout(() => setActionMessage(null), 4000);
@@ -209,13 +177,7 @@ export default function TravelerBookingsPage() {
     try {
       // Cancellation always goes through the server policy (12-hour rule, refund tiers).
       // A failure is shown to the traveler instead of being bypassed with a status edit.
-      await bookingResource.cancel([bookingId, cancellationReason]);
-
-      bookingResource.replaceAll(bookings.map((b) =>
-          (b.bookingId || b.id) === bookingId
-            ? { ...b, status: 'Cancelled', cancellationReason }
-            : b
-        ));
+      await dispatch(cancelTravelerBooking(bookingId, cancellationReason));
 
       setCancellingBooking(null);
       showToast(`Booking BK00${bookingId} cancelled successfully.`);
@@ -250,17 +212,18 @@ export default function TravelerBookingsPage() {
     const guideId = Number(reviewingBooking.guideId || trip?.guideId) || undefined;
 
     try {
-      await reviewsApi.create({
-        bookingId,
-        tripId: reviewingBooking.tripId,
-        travelerId,
-        guideId,
-        tripRating: Number(reviewForm.tripRating),
-        guideRating: Number(reviewForm.guideRating),
-        comment: reviewForm.comment.trim(),
-      });
+      await dispatch(
+        submitTravelerReview({
+          bookingId,
+          tripId: reviewingBooking.tripId,
+          travelerId,
+          guideId,
+          tripRating: Number(reviewForm.tripRating),
+          guideRating: Number(reviewForm.guideRating),
+          comment: reviewForm.comment.trim(),
+        })
+      );
 
-      setReviewedBookingIds((prev) => [...prev, bookingId]);
       setReviewingBooking(null);
       showToast('Thank you! Your verified review has been submitted. ⭐', 'success');
     } catch (err) {
@@ -270,11 +233,6 @@ export default function TravelerBookingsPage() {
       setIsSubmittingReview(false);
     }
   };
-
-  // Derived financial metrics
-  const totalAmount = bookings.reduce((sum, b) => sum + Number(b.amount || 0), 0);
-  const confirmedCount = bookings.filter((b) => b.status === 'Confirmed').length;
-  const pendingCount = bookings.filter((b) => b.status === 'Pending' || b.status === 'HELD').length;
 
   return (
     <div className="traveler-bookings-page">
@@ -357,12 +315,7 @@ export default function TravelerBookingsPage() {
       )}
 
       {/* High-level KPI Cards Component */}
-      <BookingStats
-        totalCount={bookings.length}
-        totalAmount={totalAmount}
-        confirmedCount={confirmedCount}
-        pendingCount={pendingCount}
-      />
+      <BookingStats />
 
       {/* Filter and Search Bar */}
       <div className="card" style={{ padding: '16px 20px', borderRadius: '16px', marginBottom: '24px' }}>

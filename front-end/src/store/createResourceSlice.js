@@ -84,6 +84,10 @@ export function createResourceSlice({ name, api, idKey = 'id', list, operations 
         if (action.meta.aborted) return;
         state.status = 'failed'; state.error = action.payload || action.error.message;
       })
+      .addCase(remove.fulfilled, (state, action) => {
+        state.mutationStatus = 'succeeded';
+        state.items = state.items.filter((item) => String(idOf(item)) !== String(action.payload));
+      })
       .addMatcher((action) => action.type === create.pending.type || action.type === update.pending.type || action.type === remove.pending.type,
         (state) => { state.mutationStatus = 'loading'; state.mutationError = null; })
       .addMatcher((action) => action.type === create.fulfilled.type || action.type === update.fulfilled.type,
@@ -94,10 +98,6 @@ export function createResourceSlice({ name, api, idKey = 'id', list, operations 
           const index = state.items.findIndex((entry) => String(idOf(entry)) === String(idOf(item)));
           if (index === -1) state.items.unshift(item); else state.items[index] = { ...state.items[index], ...item };
         })
-      .addCase(remove.fulfilled, (state, action) => {
-        state.mutationStatus = 'succeeded';
-        state.items = state.items.filter((item) => String(idOf(item)) !== String(action.payload));
-      })
       .addMatcher((action) => action.type === create.rejected.type || action.type === update.rejected.type || action.type === remove.rejected.type || Object.values(domainActions).some((thunk) => action.type === thunk.rejected.type),
         (state, action) => {
           if (action.meta.aborted) return;
