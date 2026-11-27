@@ -79,7 +79,7 @@ async function runAllTests() {
     idempotencyService,
   );
 
-  const BASE_NOW = new Date('2026-11-22T12:00:00.000Z');
+  const BASE_NOW = new Date();
 
   // Helper to add future dates
   function getFutureIso(days: number): string {

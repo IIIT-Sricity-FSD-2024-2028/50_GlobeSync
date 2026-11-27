@@ -123,6 +123,7 @@ async function main() {
   // Devansh's guide profile id (trips reference guide profiles, not login account ids)
   let guideProfileId = 0;
   let bookingId = 0;
+  let bookingAmount = 25000;
   let tripId = 0;
 
   // --- Step 1: Register New Traveler ---
@@ -197,6 +198,11 @@ async function main() {
         travelerId,
         guideId: guideProfileId,
         status: 'Pending',
+        transportDetails: {
+          transportType: 'Flight',
+          carrier: 'IndiGo 6E-101',
+          lodgingTier: '3-Star Resort',
+        },
       });
     assert.strictEqual(tripRes.status, 201);
     tripId = tripRes.body.tripId;
@@ -229,6 +235,7 @@ async function main() {
     assert.ok(res.body.bookingId);
     assert.strictEqual(res.body.status, 'HELD');
     bookingId = res.body.bookingId;
+    bookingAmount = Number(res.body.amount || 25000);
   });
 
   // --- Step 4: Payment Processing ---
@@ -241,7 +248,7 @@ async function main() {
       .set('x-user-role', 'traveler')
       .send({
         bookingId,
-        amount: 25000,
+        amount: bookingAmount,
         paymentDate: new Date().toISOString(),
         method: 'Card',
         status: 'Paid',
