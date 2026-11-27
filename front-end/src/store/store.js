@@ -3,6 +3,7 @@ import {
   agencies, agencyCommissions, bookings, expenses, guideDashboard, guides, itineraries, messages, packages, passengers,
   payments, refunds, reviews, supportDashboard, supportTickets, travelerDashboard, travelers, trips,
 } from './resources';
+import { superuserAgencies, superuserDashboard, superuserReports, superuserRevenue, superuserRules, superuserIntegrations, superuserPaymentMethods, superuserProfile, superuserUsers } from './superuserResources';
 
 export const store = configureStore({
   reducer: {
@@ -15,5 +16,14 @@ export const store = configureStore({
     agencyCommissions: agencyCommissions.reducer,
     guideDashboard: guideDashboard.reducer,
     supportDashboard: supportDashboard.reducer,
+    superuserAgencies: superuserAgencies.reducer,
+    superuserDashboard: superuserDashboard.reducer,
+    superuserReports: superuserReports.reducer,
+    superuserRevenue: superuserRevenue.reducer,
+    superuserRules: superuserRules.reducer,
+    superuserIntegrations: superuserIntegrations.reducer,
+    superuserPaymentMethods: superuserPaymentMethods.reducer,
+    superuserProfile: superuserProfile.reducer,
+    superuserUsers: superuserUsers.reducer,
   },
 });

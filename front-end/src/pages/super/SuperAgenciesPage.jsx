@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { agenciesApi } from '../../services/api';
+import { useReduxAdminData } from '../../store/hooks';
 import StatusBadge from '../../components/common/StatusBadge';
 import SummaryCard from '../../components/common/SummaryCard';
 import {
@@ -14,7 +14,6 @@ import {
   Details,
   agencyStatuses,
   matches,
-  useAdminData,
 } from '../../components/admin/AdminUI';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -47,7 +46,7 @@ const blankAgency = {
  *    - Checks duplicate emails, phone format, and commission rate bounds with in-dialog error display.
  */
 export default function SuperAgenciesPage() {
-  const resource = useAdminData(agenciesApi.getAll);
+  const resource = useReduxAdminData('superuserAgencies');
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('');
 
@@ -221,7 +220,7 @@ export default function SuperAgenciesPage() {
       }
 
       resource.run(
-        () => agenciesApi.create(payload),
+        'create', payload,
         'Agency account created successfully.',
         () => setEditing(null)
       );
@@ -237,27 +236,9 @@ export default function SuperAgenciesPage() {
       const currentRateStr = editing.commissionRate != null ? String(editing.commissionRate) : '';
       const rateChanged = form.commissionRate.trim() !== currentRateStr;
 
+      const statusPayload = statusChanged || rateChanged ? { status: form.status, ...(form.commissionRate.trim() !== '' ? { commissionRate: Number(form.commissionRate) } : {}) } : undefined;
       resource.run(
-        async () => {
-          // Step 1: Update profile details
-          await agenciesApi.update(id, profilePayload);
-
-          // Step 2: Update status or commission rate if changed
-          if (statusChanged || rateChanged) {
-            const statusPayload = { status: form.status };
-            if (form.commissionRate.trim() !== '') {
-              statusPayload.commissionRate = Number(form.commissionRate);
-            }
-            try {
-              await agenciesApi.updateStatus(id, statusPayload);
-            } catch (statusErr) {
-              // Honest step-wise error reporting with recovery instruction
-              throw new Error(
-                `Agency profile contact details were saved, but updating status/commission rate failed: ${statusErr.message}. You can update the status or rate using the "Status / rate" button.`
-              );
-            }
-          }
-        },
+        'saveAgency', [id, profilePayload, statusPayload],
         'Agency profile updated successfully.',
         () => setEditing(null)
       );
@@ -278,7 +259,7 @@ export default function SuperAgenciesPage() {
     }
 
     resource.run(
-      () => agenciesApi.updateStatus(id, payload),
+      'updateStatus', [id, payload],
       `Agency status updated to '${statusForm.status}'${
         payload.commissionRate != null ? ` with ${payload.commissionRate}% commission` : ''
       }.`,
@@ -292,7 +273,7 @@ export default function SuperAgenciesPage() {
       payload.commissionRate = agency.commissionRate;
     }
     resource.run(
-      () => agenciesApi.updateStatus(agency.agencyId, payload),
+      'updateStatus', [agency.agencyId, payload],
       `Agency ${agency.businessName} approved!`,
       null
     );
@@ -300,10 +281,7 @@ export default function SuperAgenciesPage() {
 
   const quickReject = (agency) => {
     resource.run(
-      () =>
-        agenciesApi.updateStatus(agency.agencyId, {
-          status: 'rejected',
-        }),
+      'updateStatus', [agency.agencyId, { status: 'rejected' }],
       `Agency ${agency.businessName} rejected.`,
       null
     );
@@ -312,7 +290,7 @@ export default function SuperAgenciesPage() {
   const confirmDelete = () => {
     if (!deleting) return;
     resource.run(
-      () => agenciesApi.delete(deleting.agencyId),
+      'remove', deleting.agencyId,
       `Agency ${deleting.businessName} deleted successfully.`,
       () => setDeleting(null)
     );
@@ -411,7 +389,7 @@ export default function SuperAgenciesPage() {
                       className="btn btn-secondary btn-sm"
                       onClick={() =>
                         resource.run(
-                          () => agenciesApi.getById(a.agencyId),
+                          'getDetails', a.agencyId,
                           'Agency details loaded.',
                           setViewing
                         )

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { systemConfigApi } from '../../services/api';
+import { useReduxAdminData } from '../../store/hooks';
 import Toast from '../../components/common/Toast';
 
 export default function SuperRulesConfigPage() {
+  const resource = useReduxAdminData('superuserRules');
   const [rules, setRules] = useState({
     autoConfirm: true,
     allowCancel: true,
@@ -16,9 +17,6 @@ export default function SuperRulesConfigPage() {
     smsAlerts: false,
   });
   const [changes, setChanges] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [loadError, setLoadError] = useState(null);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success');
 
@@ -28,36 +26,10 @@ export default function SuperRulesConfigPage() {
     setTimeout(() => setToastMessage(''), 3500);
   };
 
-  // Load backend persisted rules & audit logs on mount
   useEffect(() => {
-    let isMounted = true;
-    setIsLoading(true);
-    setLoadError(null);
-
-    Promise.all([
-      systemConfigApi.getRules(),
-      systemConfigApi.getAuditLogs(),
-    ])
-      .then(([rulesData, auditData]) => {
-        if (!isMounted) return;
-        if (rulesData && typeof rulesData === 'object') {
-          setRules(rulesData);
-        }
-        if (Array.isArray(auditData)) {
-          setChanges(auditData);
-        }
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        if (!isMounted) return;
-        setLoadError(err.message || 'Failed to load platform rules from backend');
-        setIsLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    if (resource.data?.rules) setRules(resource.data.rules);
+    if (Array.isArray(resource.data?.logs)) setChanges(resource.data.logs);
+  }, [resource.data]);
 
   const handleToggle = (key) => {
     setRules((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -73,7 +45,6 @@ export default function SuperRulesConfigPage() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    setIsSaving(true);
 
     const payload = {
       autoConfirm: Boolean(rules.autoConfirm),
@@ -89,20 +60,15 @@ export default function SuperRulesConfigPage() {
     };
 
     try {
-      const updatedRules = await systemConfigApi.updateRules(payload);
-      setRules(updatedRules);
+      const updatedRules = await resource.saveRules(payload);
+      setRules(updatedRules.rules);
 
       // Refresh real backend audit trail
-      const freshLogs = await systemConfigApi.getAuditLogs();
-      if (Array.isArray(freshLogs)) {
-        setChanges(freshLogs);
-      }
+      setChanges(updatedRules.logs || []);
 
       showToast('Rules configuration saved and applied across platform! ✓', 'success');
     } catch (err) {
       showToast(err.message || 'Failed to save configuration to backend', 'error');
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -120,16 +86,16 @@ export default function SuperRulesConfigPage() {
             type="button"
             className="btn btn-primary"
             onClick={handleSave}
-            disabled={isLoading || isSaving}
+            disabled={resource.loading || resource.busy}
             style={{ minWidth: '140px' }}
           >
-            {isSaving ? 'Saving to Backend...' : 'Save All Changes'}
+            {resource.busy ? 'Saving to Backend...' : 'Save All Changes'}
           </button>
         </div>
       </header>
 
       {/* Critical Load Error Banner */}
-      {loadError && (
+      {resource.error && (
         <div
           role="alert"
           style={{
@@ -148,12 +114,12 @@ export default function SuperRulesConfigPage() {
           <span style={{ fontSize: '24px' }}>⚠️</span>
           <div>
             <div>Failed to load platform configuration from backend</div>
-            <div style={{ fontSize: '13px', fontWeight: 400, marginTop: '2px' }}>{loadError}</div>
+            <div style={{ fontSize: '13px', fontWeight: 400, marginTop: '2px' }}>{resource.error}</div>
           </div>
         </div>
       )}
 
-      {isLoading ? (
+      {resource.loading ? (
         <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--muted)' }}>
           <div className="admin-spinner" style={{ margin: '0 auto 12px' }} />
           Loading platform rules from backend...

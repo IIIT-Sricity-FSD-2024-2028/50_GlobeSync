@@ -1,16 +1,6 @@
 import React from 'react';
-import {
-  dashboardApi,
-  revenueApi,
-  tripsApi,
-  bookingsApi,
-  reviewsApi,
-} from '../../services/api';
-import {
-  AdminPage,
-  money,
-  useAdminData,
-} from '../../components/admin/AdminUI';
+import { AdminPage, money } from '../../components/admin/AdminUI';
+import { useReduxAdminData } from '../../store/hooks';
 import SuperMetricCard from '../../components/super/SuperMetricCard';
 
 /**
@@ -64,24 +54,6 @@ function calculateReviewMetrics(reviewsList) {
 /**
  * Loads reports telemetry without silent failure masks.
  */
-const loadReports = async (options) => {
-  const [dash, revenue, trips, bookings, reviews] = await Promise.all([
-    dashboardApi.getSuperuser(options),
-    revenueApi.getOverview(options),
-    tripsApi.getAll(options),
-    bookingsApi.getAll(options),
-    reviewsApi.getAll(options),
-  ]);
-
-  return {
-    dash,
-    revenue,
-    trips: Array.isArray(trips) ? trips : [],
-    bookings: Array.isArray(bookings) ? bookings : [],
-    reviews: Array.isArray(reviews) ? reviews : [],
-  };
-};
-
 function StatusDistribution({ title, rows, statusKey = 'status' }) {
   const counts = rows.reduce((all, row) => {
     const s = row[statusKey] || 'Unknown';
@@ -193,7 +165,7 @@ function StarBreakdownBar({ label, distribution, total }) {
 }
 
 export default function SuperReportsPage() {
-  const resource = useAdminData(loadReports);
+  const resource = useReduxAdminData('superuserReports');
   const d = resource.data;
   const dash = d?.dash || {};
   const revenue = d?.revenue || {};

@@ -1,11 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { adminsApi } from '../../services/api';
+import React, { useEffect, useState } from 'react';
 import { useSession } from '../../context/SessionContext';
+import { useReduxAdminData } from '../../store/hooks';
 import {
   AdminPage,
   Details,
   Field,
-  useAdminData,
 } from '../../components/admin/AdminUI';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -22,19 +21,7 @@ export default function SuperProfilePage() {
   const { user, updateUser } = useSession();
   const id = user?.adminId ?? user?.admin_id ?? user?.id;
 
-  const load = useCallback(
-    (options) => {
-      if (!id) {
-        return Promise.reject(
-          new Error('Active session does not contain a valid Superuser Admin ID.')
-        );
-      }
-      return adminsApi.getById(id, options);
-    },
-    [id]
-  );
-
-  const resource = useAdminData(load);
+  const resource = useReduxAdminData('superuserProfile', { id }, { load: Boolean(id) });
   const [form, setForm] = useState({ name: '', email: '' });
   const [fieldErrors, setFieldErrors] = useState({});
 
@@ -88,7 +75,7 @@ export default function SuperProfilePage() {
     };
 
     resource.run(
-      () => adminsApi.update(id, payload),
+      'saveProfile', [id, payload],
       'Superuser profile credentials updated successfully! ✅',
       (updated) => {
         updateUser(updated || payload);

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { travelersApi, guidesApi, superUsersApi, getStoredUserId } from '../../services/api';
+import { getStoredUserId } from '../../services/api';
+import { useReduxAdminData } from '../../store/hooks';
 import {
   AdminPage,
   AdminTable,
@@ -11,69 +12,10 @@ import {
   Details,
   matches,
   money,
-  useAdminData,
 } from '../../components/admin/AdminUI';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^[+0-9\s\-()]{7,20}$/;
-
-const loadUsers = async (options) => {
-  const [travelers, guides, supportUsers, adminsList] = await Promise.all([
-    travelersApi.getAll(options),
-    guidesApi.getAll(options),
-    superUsersApi.getSupportUsers(options),
-    superUsersApi.getAdmins(options),
-  ]);
-
-  const tList = (Array.isArray(travelers) ? travelers : []).map((t) => ({
-    id: `T${t.travelerId}`,
-    numericId: t.travelerId,
-    role: 'Traveler',
-    name: t.name,
-    email: t.email,
-    phone: t.phone || 'N/A',
-    gender: t.gender || 'N/A',
-    age: t.age != null ? t.age : 'N/A',
-    raw: t,
-  }));
-
-  const gList = (Array.isArray(guides) ? guides : []).map((g) => ({
-    id: `G${g.guideId}`,
-    numericId: g.guideId,
-    role: 'Guide',
-    name: g.name,
-    email: g.email || 'N/A',
-    phone: g.contact || 'N/A',
-    languages: Array.isArray(g.languages) ? g.languages.join(', ') : g.languages || '',
-    experience: g.experience ?? 0,
-    pricePerTrip: g.pricePerTrip ?? 0,
-    rating: g.rating ?? 5.0,
-    raw: g,
-  }));
-
-  const sList = (Array.isArray(supportUsers) ? supportUsers : []).map((s) => ({
-    id: `S${s.careId}`,
-    numericId: s.careId,
-    role: 'Support Staff',
-    name: s.name,
-    email: s.email,
-    phone: s.contact || 'N/A',
-    raw: s,
-  }));
-
-  const aList = (Array.isArray(adminsList) ? adminsList : []).map((a) => ({
-    id: `A${a.adminId}`,
-    numericId: a.adminId,
-    role: a.role === 'superuser' ? 'Superuser' : 'Administrator',
-    adminRole: a.role,
-    name: a.name,
-    email: a.email,
-    phone: 'Internal Staff',
-    raw: a,
-  }));
-
-  return [...tList, ...gList, ...sList, ...aList];
-};
 
 const blankUser = {
   role: 'Guide',
@@ -100,7 +42,7 @@ const blankUser = {
  * - Platform Administrators & Superusers
  */
 export default function SuperUsersPage() {
-  const resource = useAdminData(loadUsers);
+  const resource = useReduxAdminData('superuserUsers');
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
 
@@ -240,7 +182,7 @@ export default function SuperUsersPage() {
         };
 
         resource.run(
-          () => guidesApi.create(payload),
+          'createGuide', payload,
           'New Tour Guide registered successfully!',
           () => setEditing(null)
         );
@@ -253,7 +195,7 @@ export default function SuperUsersPage() {
         };
 
         resource.run(
-          () => superUsersApi.createSupportUser(payload),
+          'createSupport', payload,
           'Customer Support staff account created successfully!',
           () => setEditing(null)
         );
@@ -266,7 +208,7 @@ export default function SuperUsersPage() {
         };
 
         resource.run(
-          () => superUsersApi.createAdmin(payload),
+          'createAdmin', payload,
           `New ${payload.role === 'superuser' ? 'Superuser' : 'Administrator'} account created successfully!`,
           () => setEditing(null)
         );
@@ -281,7 +223,7 @@ export default function SuperUsersPage() {
         };
 
         resource.run(
-          () => travelersApi.create(payload),
+          'createTraveler', payload,
           'New Traveler registered successfully!',
           () => setEditing(null)
         );
@@ -303,7 +245,7 @@ export default function SuperUsersPage() {
         };
 
         resource.run(
-          () => guidesApi.update(editing.numericId, payload),
+          'updateGuide', [editing.numericId, payload],
           'Guide details updated.',
           () => setEditing(null)
         );
@@ -317,7 +259,7 @@ export default function SuperUsersPage() {
         };
 
         resource.run(
-          () => travelersApi.update(editing.numericId, payload),
+          'updateTraveler', [editing.numericId, payload],
           'Traveler details updated.',
           () => setEditing(null)
         );
@@ -345,25 +287,25 @@ export default function SuperUsersPage() {
 
     if (deleting.role === 'Guide') {
       resource.run(
-        () => guidesApi.delete(deleting.numericId),
+        'removeGuide', deleting.numericId,
         `Guide ${deleting.name} (#${deleting.id}) deleted.`,
         () => setDeleting(null)
       );
     } else if (deleting.role === 'Support Staff') {
       resource.run(
-        () => superUsersApi.deleteSupportUser(deleting.numericId),
+        'removeSupport', deleting.numericId,
         `Support staff ${deleting.name} (#${deleting.id}) deleted.`,
         () => setDeleting(null)
       );
     } else if (deleting.role === 'Administrator' || deleting.role === 'Superuser') {
       resource.run(
-        () => superUsersApi.deleteAdmin(deleting.numericId),
+        'removeAdmin', deleting.numericId,
         `${deleting.role} ${deleting.name} (#${deleting.id}) removed.`,
         () => setDeleting(null)
       );
     } else {
       resource.run(
-        () => travelersApi.delete(deleting.numericId),
+        'removeTraveler', deleting.numericId,
         `Traveler ${deleting.name} (#${deleting.id}) deleted.`,
         () => setDeleting(null)
       );

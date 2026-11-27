@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { systemConfigApi, healthApi } from '../../services/api';
+import { healthApi } from '../../services/api';
+import { useReduxAdminData } from '../../store/hooks';
 import Toast from '../../components/common/Toast';
 import SummaryCard from '../../components/common/SummaryCard';
 import StatusBadge from '../../components/common/StatusBadge';
@@ -15,7 +16,7 @@ const CATEGORIES = [
 ];
 
 export default function SuperApiManagementPage() {
-  const [apis, setApis] = useState([]);
+  const resource = useReduxAdminData('superuserIntegrations');
   const [auditLogs, setAuditLogs] = useState([]);
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,17 +49,9 @@ export default function SuperApiManagementPage() {
       });
 
     try {
-      const [integrationsData, logsData] = await Promise.all([
-        systemConfigApi.getIntegrations(),
-        systemConfigApi.getAuditLogs(),
-      ]);
-
-      if (Array.isArray(integrationsData)) {
-        setApis(integrationsData);
-      }
-      if (Array.isArray(logsData)) {
-        setAuditLogs(logsData);
-      }
+      await resource.refresh();
+      const logsData = await resource.loadAuditLogs();
+      if (Array.isArray(logsData)) setAuditLogs(logsData);
     } catch (err) {
       setLoadError(err.message || 'Failed to load third-party integrations from backend');
     } finally {
@@ -69,6 +62,8 @@ export default function SuperApiManagementPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const apis = resource.items;
 
   const totalConnected = apis.length;
   const activeCount = apis.filter((a) => a.status === 'Active').length;
@@ -81,11 +76,10 @@ export default function SuperApiManagementPage() {
     const nextStatus = target.status === 'Active' ? 'Inactive' : 'Active';
 
     try {
-      const updated = await systemConfigApi.updateIntegration(id, { status: nextStatus });
-      setApis((prev) => prev.map((a) => (a.id === id ? updated : a)));
+      const updated = await resource.run('updateIntegration', [id, { status: nextStatus }]);
 
       // Refresh audit logs
-      const freshLogs = await systemConfigApi.getAuditLogs();
+      const freshLogs = await resource.loadAuditLogs();
       if (Array.isArray(freshLogs)) {
         setAuditLogs(freshLogs);
       }

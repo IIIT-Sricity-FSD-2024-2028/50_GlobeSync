@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { paymentsApi, systemConfigApi } from '../../services/api';
+import { useReduxAdminData, useResource } from '../../store/hooks';
 import SummaryCard from '../../components/common/SummaryCard';
 import StatusBadge from '../../components/common/StatusBadge';
 import Toast from '../../components/common/Toast';
@@ -11,7 +11,8 @@ import {
 } from '../../components/admin/AdminUI';
 
 export default function SuperPaymentMethodsPage() {
-  const [methods, setMethods] = useState([]);
+  const resource = useReduxAdminData('superuserPaymentMethods');
+  const paymentResource = useResource('payments', undefined, { load: false });
   const [changes, setChanges] = useState([]);
   const [editingMethod, setEditingMethod] = useState(null);
   const [form, setForm] = useState({ displayName: '', status: 'Active', maskedKey: '' });
@@ -34,18 +35,11 @@ export default function SuperPaymentMethodsPage() {
     setLoadError(null);
 
     try {
-      const [pmData, auditData, paymentsData] = await Promise.all([
-        systemConfigApi.getPaymentMethods(),
-        systemConfigApi.getAuditLogs(),
-        paymentsApi.getAll().catch(() => null),
+      await resource.refresh();
+      const [auditData, paymentsData] = await Promise.all([
+        resource.loadAuditLogs(), paymentResource.refresh().catch(() => []),
       ]);
-
-      if (Array.isArray(pmData)) {
-        setMethods(pmData);
-      }
-      if (Array.isArray(auditData)) {
-        setChanges(auditData);
-      }
+      if (Array.isArray(auditData)) setChanges(auditData);
       if (Array.isArray(paymentsData)) {
         const counts = {};
         paymentsData.forEach((p) => {
@@ -66,6 +60,8 @@ export default function SuperPaymentMethodsPage() {
     loadData();
   }, []);
 
+  const methods = resource.items;
+
   const totalMethods = methods.length;
   const activeCount = methods.filter((m) => m.status === 'Active').length;
   const inactiveCount = totalMethods - activeCount;
@@ -77,11 +73,10 @@ export default function SuperPaymentMethodsPage() {
     const nextStatus = target.status === 'Active' ? 'Inactive' : 'Active';
 
     try {
-      const updated = await systemConfigApi.updatePaymentMethod(id, { status: nextStatus });
-      setMethods((prev) => prev.map((m) => (m.id === id ? updated : m)));
+      const updated = await resource.run('updateMethod', [id, { status: nextStatus }]);
 
       // Refresh audit logs
-      const freshLogs = await systemConfigApi.getAuditLogs();
+      const freshLogs = await resource.loadAuditLogs();
       if (Array.isArray(freshLogs)) {
         setChanges(freshLogs);
       }
@@ -108,16 +103,15 @@ export default function SuperPaymentMethodsPage() {
     setModalError(null);
 
     try {
-      const updated = await systemConfigApi.updatePaymentMethod(editingMethod.id, {
+      const updated = await resource.run('updateMethod', [editingMethod.id, {
         displayName: form.displayName.trim(),
         status: form.status,
         maskedKey: editingMethod.type === 'gateway' ? form.maskedKey.trim() : null,
-      });
+      }]);
 
-      setMethods((prev) => prev.map((m) => (m.id === editingMethod.id ? updated : m)));
 
       // Refresh audit logs
-      const freshLogs = await systemConfigApi.getAuditLogs();
+      const freshLogs = await resource.loadAuditLogs();
       if (Array.isArray(freshLogs)) {
         setChanges(freshLogs);
       }

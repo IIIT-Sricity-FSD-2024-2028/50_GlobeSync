@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { revenueApi } from '../../services/api';
+import { useReduxAdminData } from '../../store/hooks';
 import StatusBadge from '../../components/common/StatusBadge';
 import {
   AdminPage,
@@ -9,7 +9,6 @@ import {
   FormActions,
   money,
   matches,
-  useAdminData,
 } from '../../components/admin/AdminUI';
 import SuperMetricCard from '../../components/super/SuperMetricCard';
 
@@ -31,22 +30,6 @@ import SuperMetricCard from '../../components/super/SuperMetricCard';
  * 4. Provenance Metadata:
  *    - Documents population, filters, units, and timeframe for all metrics.
  */
-
-const loadRevenue = async (options) => {
-  const [overview, breakdown, transactions, config] = await Promise.all([
-    revenueApi.getOverview(options),
-    revenueApi.getBreakdown(options),
-    revenueApi.getTransactions(options),
-    revenueApi.getConfig(options),
-  ]);
-
-  return {
-    overview,
-    breakdown: breakdown || {},
-    transactions: Array.isArray(transactions) ? transactions : [],
-    config: Array.isArray(config) ? config : [],
-  };
-};
 
 const STREAM_TYPES = [
   'ALL',
@@ -154,7 +137,7 @@ function MonthlyTrendSection({ monthlyTrend = [] }) {
 }
 
 export default function SuperRevenuePage() {
-  const resource = useAdminData(loadRevenue);
+  const resource = useReduxAdminData('superuserRevenue');
   const [query, setQuery] = useState('');
   const [streamFilter, setStreamFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -191,7 +174,7 @@ export default function SuperRevenuePage() {
     e.preventDefault();
     const val = Number(configValue);
     resource.run(
-      () => revenueApi.updateConfig(editingConfig.key_name, { value: val }),
+      'updateConfig', [editingConfig.key_name, { value: val }],
       `Configuration '${editingConfig.key_name}' updated to ${val}.`,
       () => setEditingConfig(null)
     );

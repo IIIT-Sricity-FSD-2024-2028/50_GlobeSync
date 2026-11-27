@@ -1,20 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import {
-  dashboardApi,
-  revenueApi,
-  travelersApi,
-  guidesApi,
-  tripsApi,
-  bookingsApi,
-  approvalsApi,
-} from '../../services/api';
-import {
-  AdminPage,
-  money,
-  useAdminData,
-} from '../../components/admin/AdminUI';
+import { AdminPage, money } from '../../components/admin/AdminUI';
+import { useReduxAdminData } from '../../store/hooks';
 import SuperMetricCard from '../../components/super/SuperMetricCard';
 
 /**
@@ -35,37 +23,9 @@ import SuperMetricCard from '../../components/super/SuperMetricCard';
  *    - Documents population, filters, units, and timeframe for all telemetry.
  */
 
-const loadDashboard = async (options) => {
-  const startTime = performance.now();
-
-  // All endpoints are called without silent catch fallbacks so real errors surface
-  const [dash, revenue, travelers, guides, trips, bookings, approvals] = await Promise.all([
-    dashboardApi.getSuperuser(options),
-    revenueApi.getOverview(options),
-    travelersApi.getAll(options),
-    guidesApi.getAll(options),
-    tripsApi.getAll(options),
-    bookingsApi.getAll(options),
-    approvalsApi.getAll({ status: 'PENDING' }, options).catch(() => []),
-  ]);
-
-  const measuredLatencyMs = Math.round(performance.now() - startTime);
-
-  return {
-    dash,
-    revenue,
-    travelerCount: Array.isArray(travelers) ? travelers.length : 0,
-    guideCount: Array.isArray(guides) ? guides.length : 0,
-    tripCount: Array.isArray(trips) ? trips.length : 0,
-    bookingCount: Array.isArray(bookings) ? bookings.length : 0,
-    pendingApprovals: Array.isArray(approvals) ? approvals : [],
-    measuredLatencyMs,
-  };
-};
-
 export default function SuperDashboardPage() {
   const { user } = useSession();
-  const resource = useAdminData(loadDashboard);
+  const resource = useReduxAdminData('superuserDashboard');
   const data = resource.data;
   const dash = data?.dash;
   const revenue = data?.revenue;
@@ -76,12 +36,8 @@ export default function SuperDashboardPage() {
   const handleDecision = async (id, decision) => {
     setDecisionBusy(true);
     try {
-      if (decision === 'APPROVE') {
-        await approvalsApi.approve(id, 'Approved via Super Admin Governance Center');
-      } else {
-        await approvalsApi.reject(id, 'Rejected via Super Admin Governance Center');
-      }
-      resource.reload();
+      const action = decision === 'APPROVE' ? 'approve' : 'reject';
+      await resource.run(action, [id, ` ${decision === 'APPROVE' ? 'Approved' : 'Rejected'} via Super Admin Governance Center`]);
     } catch (err) {
       alert(`Decision failed: ${err.message}`);
     } finally {
