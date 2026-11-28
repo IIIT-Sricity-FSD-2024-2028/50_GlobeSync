@@ -23,6 +23,8 @@ import travelerSupportSlice from './travelerSupport/travelerSupport-slice';
 import {
   agencies,
   agencyCommissions,
+  agencyProfile,
+  agencySupport,
   bookings,
   expenses,
   guideDashboard,
@@ -50,6 +52,7 @@ import {
   superuserProfile,
   superuserUsers,
 } from './superuserResources';
+import { supportProfile, supportRefunds, supportMessages } from './supportResources';
 
 const store = configureStore({
   reducer: {
@@ -88,6 +91,8 @@ const store = configureStore({
     supportTickets: supportTickets.reducer,
     messages: messages.reducer,
     agencyCommissions: agencyCommissions.reducer,
+    agencyProfile: agencyProfile.reducer,
+    agencySupport: agencySupport.reducer,
     guideDashboard: guideDashboard.reducer,
     supportDashboard: supportDashboard.reducer,
     superuserAgencies: superuserAgencies.reducer,
@@ -99,6 +104,9 @@ const store = configureStore({
     superuserPaymentMethods: superuserPaymentMethods.reducer,
     superuserProfile: superuserProfile.reducer,
     superuserUsers: superuserUsers.reducer,
+    supportProfile: supportProfile.reducer,
+    supportRefunds: supportRefunds.reducer,
+    supportMessages: supportMessages.reducer,
   },
 });
 

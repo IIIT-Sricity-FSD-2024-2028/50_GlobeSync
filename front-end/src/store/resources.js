@@ -18,11 +18,19 @@ export const packages = createResourceSlice({ name: 'packages', api: packagesApi
   archive: (id, payload, options) => packagesApi.archive(id, payload, options),
 } });
 export const trips = createResourceSlice({ name: 'trips', api: tripsApi, idKey: 'tripId', list: scoped(tripsApi), operations: {
+  getById: (id, options) => tripsApi.getById(id, options),
   updateStatus: (id, status, options) => tripsApi.updateStatus(id, status, options),
   requestReassignment: (id, payload, options) => tripsApi.requestReassignment(id, payload, options),
   respondTravelerConsent: (id, payload, options) => tripsApi.respondTravelerConsent(id, payload, options),
   respondGuideAssignment: (id, payload, options) => tripsApi.respondGuideAssignment(id, payload, options),
   getMyReassignments: (_payload, options) => tripsApi.getMyReassignments(options),
+} });
+export const agencyProfile = createResourceSlice({ name: 'agencyProfile', api: agencyApi, idKey: 'agencyId', list: (_args, options) => agencyApi.getProfile(options), operations: {
+  saveProfile: (payload, options) => agencyApi.updateProfile(payload, options),
+} });
+export const agencySupport = createResourceSlice({ name: 'agencySupport', api: supportTicketsApi, idKey: 'ticketId', list: (args, options) => supportTicketsApi.getByAgency(args.agencyId, options), operations: {
+  getThread: (id, options) => agencyApi.getTicketThread(id, options),
+  reply: (id, payload, options) => agencyApi.replyTicket(id, payload, options),
 } });
 export const itineraries = createResourceSlice({ name: 'itineraries', api: itinerariesApi, idKey: 'itineraryId', list: (args, options) => itinerariesApi.getByTrip(args.tripId, options) });
 export const bookings = createResourceSlice({ name: 'bookings', api: bookingsApi, idKey: 'bookingId', list: scoped(bookingsApi), operations: {

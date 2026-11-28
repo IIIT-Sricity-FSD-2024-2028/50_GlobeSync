@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { refundsApi, travelersApi, bookingsApi, paymentsApi } from '../../services/api';
+import { useReduxAdminData } from '../../store/hooks';
 import SummaryCard from '../../components/common/SummaryCard';
 import StatusBadge from '../../components/common/StatusBadge';
 import SupportRefundDetailModal from '../../components/support/SupportRefundDetailModal';
@@ -17,12 +17,10 @@ export default function SupportRefundsPage() {
   const prefillTravelerId = searchParams.get('travelerId');
   const prefillBookingId = searchParams.get('bookingId');
 
-  const [refunds, setRefunds] = useState([]);
-  const [travelers, setTravelers] = useState([]);
-  const [bookings, setBookings] = useState([]);
-  const [payments, setPayments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const resource = useReduxAdminData('supportRefunds');
+  const { refunds = [], travelers = [], bookings = [], payments = [] } = resource.data || {};
+  const loading = resource.loading;
+  const error = resource.error;
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('All');
@@ -38,51 +36,6 @@ export default function SupportRefundsPage() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const loadData = async (signal) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [refundsRes, travelersRes, bookingsRes, paymentsRes] = await Promise.allSettled([
-        refundsApi.getAll({ signal }),
-        travelersApi.getAll({ signal }),
-        bookingsApi.getAll({ signal }),
-        paymentsApi.getAll({ signal }),
-      ]);
-
-      if (signal?.aborted) return;
-
-      if (refundsRes.status === 'fulfilled' && Array.isArray(refundsRes.value)) {
-        setRefunds(refundsRes.value);
-      } else if (!refundsRes.reason?.isCancelled) {
-        setError(refundsRes.reason?.message || 'Failed to load refund records from backend');
-      }
-
-      if (travelersRes.status === 'fulfilled' && Array.isArray(travelersRes.value)) {
-        setTravelers(travelersRes.value);
-      }
-      if (bookingsRes.status === 'fulfilled' && Array.isArray(bookingsRes.value)) {
-        setBookings(bookingsRes.value);
-      }
-      if (paymentsRes.status === 'fulfilled' && Array.isArray(paymentsRes.value)) {
-        setPayments(paymentsRes.value);
-      }
-    } catch (err) {
-      if (!signal?.aborted) {
-        setError(err.message || 'An unexpected error occurred while loading refund data.');
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    loadData(controller.signal);
-    return () => controller.abort();
-  }, []);
-
   useEffect(() => {
     if (prefillTravelerId) {
       setIsCreateModalOpen(true);
@@ -91,27 +44,17 @@ export default function SupportRefundsPage() {
 
   // Status updates
   const handleStatusUpdate = async (refundId, newStatus) => {
-    await refundsApi.updateStatus(refundId, newStatus);
+    await resource.updateStatus(refundId, newStatus);
     showToast(`Refund REF00${refundId} updated to ${newStatus}! ✓`);
-    const [refreshed, paymentsRefreshed] = await Promise.all([
-      refundsApi.getAll().catch(() => null),
-      paymentsApi.getAll().catch(() => null),
-    ]);
-    if (refreshed) setRefunds(refreshed);
-    if (paymentsRefreshed) setPayments(paymentsRefreshed);
+    await resource.refresh();
     setSelectedRefund((prev) => (prev && prev.refundId === refundId ? { ...prev, refundStatus: newStatus } : prev));
   };
 
   // Create refund
   const handleCreateRefund = async (refundData) => {
-    await refundsApi.create(refundData);
+    await resource.create(refundData);
     showToast('Refund claim successfully recorded! ✓');
-    const [refreshed, paymentsRefreshed] = await Promise.all([
-      refundsApi.getAll().catch(() => null),
-      paymentsApi.getAll().catch(() => null),
-    ]);
-    if (refreshed) setRefunds(refreshed);
-    if (paymentsRefreshed) setPayments(paymentsRefreshed);
+    await resource.refresh();
   };
 
   // Filtered refunds

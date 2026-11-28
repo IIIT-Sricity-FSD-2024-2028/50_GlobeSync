@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import { agencyApi } from '../../services/api';
 import { useResource } from '../../store/hooks';
 import SummaryCard from '../../components/common/SummaryCard';
 import StatusBadge from '../../components/common/StatusBadge';
@@ -47,7 +46,7 @@ export default function AgencySupportPage() {
   const [searchParams] = useSearchParams();
   const agencyId = Number(user?.agencyId || user?.agency_id || user?.id || 1);
 
-  const ticketResource = useResource('supportTickets', { scope: 'getByAgency', id: agencyId }, { load: Boolean(agencyId) });
+  const ticketResource = useResource('agencySupport', { agencyId }, { load: Boolean(agencyId) });
   const tripResource = useResource('trips', { scope: 'getByAgency', id: agencyId }, { load: Boolean(agencyId) });
   const tickets = ticketResource.items;
   const agencyTrips = tripResource.items;
@@ -115,7 +114,7 @@ export default function AgencySupportPage() {
     setActiveTicket(ticket);
     setThreadLoading(true);
     try {
-      const fullTicket = await agencyApi.getTicketThread(ticketId);
+      const fullTicket = await ticketResource.getThread(ticketId);
       if (fullTicket) {
         setActiveTicket(fullTicket);
       }
@@ -180,7 +179,7 @@ export default function AgencySupportPage() {
     const senderName = user?.businessName || user?.name || 'Horizon Travel Agency';
 
     try {
-      const updatedTicket = await agencyApi.replyTicket(ticketId, {
+      const updatedTicket = await ticketResource.reply(ticketId, {
         message: replyMessage.trim(),
         senderName,
       });
@@ -188,9 +187,7 @@ export default function AgencySupportPage() {
       if (updatedTicket && Array.isArray(updatedTicket.replies)) {
         setActiveTicket(updatedTicket);
         // Also update in tickets list
-        setTickets((prev) =>
-          prev.map((t) => ((t.ticketId || t.id) === ticketId ? updatedTicket : t))
-        );
+        ticketResource.upsert(updatedTicket);
       } else if (updatedTicket && updatedTicket.message) {
         setActiveTicket((prev) => ({
           ...prev,

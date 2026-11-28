@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import { messagesApi, travelersApi, agenciesApi, guidesApi } from '../../services/api';
+import { useReduxAdminData } from '../../store/hooks';
 import { useRealtimeEvent } from '../../context/RealtimeContext';
 import SupportChatWindow from '../../components/support/SupportChatWindow';
 
@@ -20,9 +20,8 @@ export default function SupportMessagesPage() {
 
   const careId = user?.careId || user?.care_id || user?.id || 1;
 
-  const [travelers, setTravelers] = useState([]);
-  const [agencies, setAgencies] = useState([]);
-  const [guides, setGuides] = useState([]);
+  const resource = useReduxAdminData('supportMessages');
+  const { travelers = [], agencies = [], guides = [], messages = [] } = resource.data || {};
   const [allMessages, setAllMessages] = useState([]);
 
   const [filterTab, setFilterTab] = useState('All');
@@ -30,9 +29,11 @@ export default function SupportMessagesPage() {
     queryTravelerId ? `traveler-${queryTravelerId}` : null
   );
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
+  const loading = resource.loading;
   const [isSending, setIsSending] = useState(false);
-  const [error, setError] = useState(null);
+  const error = resource.error;
+
+  useEffect(() => { setAllMessages(messages); }, [messages]);
 
   // Subscribe to live incoming messages
   useRealtimeEvent('message.created', (event) => {
@@ -45,54 +46,6 @@ export default function SupportMessagesPage() {
       });
     }
   });
-
-  const loadData = async (signal) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [travelersRes, agenciesRes, guidesRes, messagesRes] = await Promise.allSettled([
-        travelersApi.getAll({ signal }),
-        agenciesApi.getAll({ signal }),
-        guidesApi.getAll({ signal }),
-        messagesApi.getAll({ signal }),
-      ]);
-
-      if (signal?.aborted) return;
-
-      if (travelersRes.status === 'fulfilled') {
-        const val = travelersRes.value;
-        const list = Array.isArray(val) ? val : val?.data || val?.value || [];
-        setTravelers(list);
-      }
-      if (agenciesRes.status === 'fulfilled') {
-        const val = agenciesRes.value;
-        const list = Array.isArray(val) ? val : val?.data || val?.value || [];
-        setAgencies(list);
-      }
-      if (guidesRes.status === 'fulfilled') {
-        const val = guidesRes.value;
-        const list = Array.isArray(val) ? val : val?.data || val?.value || [];
-        setGuides(list);
-      }
-      if (messagesRes.status === 'fulfilled' && Array.isArray(messagesRes.value)) {
-        setAllMessages(messagesRes.value);
-      }
-    } catch (err) {
-      if (!signal?.aborted) {
-        setError(err.message || 'Failed to load conversations.');
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    loadData(controller.signal);
-    return () => controller.abort();
-  }, []);
 
   // Sync query param if provided
   useEffect(() => {
@@ -234,14 +187,13 @@ export default function SupportMessagesPage() {
         content: text,
       };
 
-      const newMsg = await messagesApi.create(payload);
+      const newMsg = await resource.sendMessage(payload);
 
       // Optimistically append or refresh
       if (newMsg) {
         setAllMessages((prev) => [...prev, newMsg]);
       } else {
-        const refreshed = await messagesApi.getAll();
-        if (refreshed) setAllMessages(refreshed);
+        await resource.refresh();
       }
     } catch (err) {
       console.error('Failed to send message:', err);

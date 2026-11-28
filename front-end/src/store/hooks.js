@@ -27,7 +27,7 @@ export function useResource(resource, loadArgs, { load = true } = {}) {
   };
 }
 
-const aggregateResources = ['superuserDashboard', 'superuserReports', 'superuserRevenue', 'superuserRules', 'superuserProfile'];
+const aggregateResources = ['superuserDashboard', 'superuserReports', 'superuserRevenue', 'superuserRules', 'superuserProfile', 'supportProfile', 'supportRefunds', 'supportMessages'];
 export function useReduxAdminData(resourceName, loadArgs, options) {
   const resource = useResource(resourceName, loadArgs, options);
   const [notice, setNotice] = useState('');
@@ -49,9 +49,10 @@ export function useReduxAdminData(resourceName, loadArgs, options) {
 }
 
 // Imported lazily to keep page imports compact while retaining one source of action definitions.
-import { agencies, agencyCommissions, bookings, expenses, guideDashboard, guides, itineraries, messages, packages, passengers, payments, refunds, reviews, supportDashboard, supportTickets, travelerDashboard, travelers, trips } from './resources';
+import { agencies, agencyCommissions, agencyProfile, agencySupport, bookings, expenses, guideDashboard, guides, itineraries, messages, packages, passengers, payments, refunds, reviews, supportDashboard, supportTickets, travelerDashboard, travelers, trips } from './resources';
 import { superuserAgencies, superuserDashboard, superuserReports, superuserRevenue, superuserRules, superuserIntegrations, superuserPaymentMethods, superuserProfile, superuserUsers } from './superuserResources';
-const registry = { travelers, agencies, agencyCommissions, passengers, packages, trips, itineraries, bookings, expenses, payments, refunds, guides, guideDashboard, supportDashboard, reviews, supportTickets, messages, travelerDashboard, superuserAgencies, superuserDashboard, superuserReports, superuserRevenue, superuserRules, superuserIntegrations, superuserPaymentMethods, superuserProfile, superuserUsers };
+import { supportProfile, supportRefunds, supportMessages } from './supportResources';
+const registry = { travelers, agencies, agencyCommissions, agencyProfile, agencySupport, passengers, packages, trips, itineraries, bookings, expenses, payments, refunds, guides, guideDashboard, supportDashboard, reviews, supportTickets, messages, travelerDashboard, superuserAgencies, superuserDashboard, superuserReports, superuserRevenue, superuserRules, superuserIntegrations, superuserPaymentMethods, superuserProfile, superuserUsers, supportProfile, supportRefunds, supportMessages };
 function stateActions(name) {
   const entry = registry[name];
   if (!entry) throw new Error(`Unknown Redux resource: ${name}`);

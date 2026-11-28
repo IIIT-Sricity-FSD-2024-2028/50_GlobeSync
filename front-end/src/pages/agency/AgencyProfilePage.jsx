@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { agencyApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import StatusBadge from '../../components/common/StatusBadge';
 import Toast from '../../components/common/Toast';
 
@@ -14,10 +14,11 @@ import Toast from '../../components/common/Toast';
 export default function AgencyProfilePage() {
   const { user, updateUser } = useSession();
   const agencyId = Number(user?.agencyId || user?.agency_id || user?.id || 1);
+  const profileResource = useResource('agencyProfile', { id: agencyId }, { load: Boolean(agencyId) });
 
   const [agencyData, setAgencyData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const loading = profileResource.status === 'loading';
+  const error = profileResource.error;
   const [toast, setToast] = useState(null);
 
   // Controlled form state
@@ -32,40 +33,21 @@ export default function AgencyProfilePage() {
 
   // UI state
   const [fieldErrors, setFieldErrors] = useState({});
-  const [saving, setSaving] = useState(false);
-
-  const loadProfile = async (signal) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await agencyApi.getProfile({ signal });
-      if (!signal?.aborted && data) {
-        setAgencyData(data);
-        setBusinessName(data.businessName || data.name || '');
-        setContactPerson(data.contactPerson || '');
-        setContactEmail(data.contactEmail || data.email || '');
-        setContactPhone(data.contactPhone || data.phone || '');
-        setLicenseGstin(data.licenseGstin || '');
-        setOfficeAddress(data.officeAddress || '');
-        setPayoutBankUpi(data.payoutBankUpi || '');
-      }
-    } catch (err) {
-      if (!signal?.aborted) {
-        console.error('Failed to load agency profile:', err);
-        setError(err.message || 'Failed to load profile details.');
-      }
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  };
+  const saving = profileResource.mutationStatus === 'loading';
 
   useEffect(() => {
-    const controller = new AbortController();
-    if (agencyId) {
-      loadProfile(controller.signal);
+    const data = profileResource.items[0] || user;
+    if (data) {
+      setAgencyData(data);
+      setBusinessName(data.businessName || data.name || '');
+      setContactPerson(data.contactPerson || '');
+      setContactEmail(data.contactEmail || data.email || '');
+      setContactPhone(data.contactPhone || data.phone || '');
+      setLicenseGstin(data.licenseGstin || '');
+      setOfficeAddress(data.officeAddress || '');
+      setPayoutBankUpi(data.payoutBankUpi || '');
     }
-    return () => controller.abort();
-  }, [agencyId]);
+  }, [profileResource.items, user]);
 
   const validate = () => {
     const errs = {};
@@ -107,7 +89,7 @@ export default function AgencyProfilePage() {
         payload.password = newPassword.trim();
       }
 
-      const updated = await agencyApi.updateProfile(payload);
+      const updated = await profileResource.saveProfile(payload);
       setAgencyData(updated);
       setNewPassword('');
 

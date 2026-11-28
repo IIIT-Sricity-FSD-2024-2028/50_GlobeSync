@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { supportUsersApi } from '../../services/api';
+import { useReduxAdminData } from '../../store/hooks';
 
 /**
  * SupportProfilePage
@@ -11,6 +11,7 @@ import { supportUsersApi } from '../../services/api';
 export default function SupportProfilePage() {
   const { user, updateUser } = useSession();
   const careId = Number(user?.careId || user?.care_id || user?.id || 1);
+  const resource = useReduxAdminData('supportProfile', { id: careId });
 
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -19,45 +20,15 @@ export default function SupportProfilePage() {
   });
 
   const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const loading = resource.loading;
+  const saving = resource.busy;
   const [successMessage, setSuccessMessage] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
 
   useEffect(() => {
-    let isMounted = true;
-    const fetchProfile = async () => {
-      setLoading(true);
-      setErrorMessage(null);
-      try {
-        const data = await supportUsersApi.getById(careId);
-        if (isMounted && data) {
-          setFormData({
-            name: data.name || '',
-            email: data.email || '',
-            contact: data.contact || '',
-          });
-        }
-      } catch (err) {
-        if (isMounted) {
-          // If profile fetch fails, fallback gracefully to session user
-          console.warn('Could not load remote support profile, using session data:', err);
-          setFormData({
-            name: user?.name || '',
-            email: user?.email || '',
-            contact: user?.contact || '',
-          });
-        }
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    fetchProfile();
-    return () => {
-      isMounted = false;
-    };
-  }, [careId, user]);
+    const data = resource.data || user;
+    if (data) setFormData({ name: data.name || '', email: data.email || '', contact: data.contact || '' });
+  }, [resource.data, user]);
 
   const validate = () => {
     const errs = {};
@@ -78,7 +49,6 @@ export default function SupportProfilePage() {
     e.preventDefault();
     if (!validate() || saving) return;
 
-    setSaving(true);
     setSuccessMessage(null);
     setErrorMessage(null);
 
@@ -89,7 +59,8 @@ export default function SupportProfilePage() {
         contact: formData.contact.trim(),
       };
 
-      const updated = await supportUsersApi.update(careId, payload);
+      const updated = await resource.run('saveProfile', [careId, payload]);
+      if (!updated) throw new Error(resource.error || 'Failed to update profile.');
 
       // Synchronize session state so header and sidebar update immediately
       updateUser({
@@ -103,8 +74,6 @@ export default function SupportProfilePage() {
     } catch (err) {
       console.error('Failed to update support user profile:', err);
       setErrorMessage(err.message || 'Failed to update profile. Please verify your entries.');
-    } finally {
-      setSaving(false);
     }
   };
 

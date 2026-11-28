@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
 import { useRealtimeEvent } from '../../context/RealtimeContext';
-import { supportTicketsApi, travelersApi } from '../../services/api';
+import { useResource } from '../../store/hooks';
 import SummaryCard from '../../components/common/SummaryCard';
 import StatusBadge from '../../components/common/StatusBadge';
 import SupportTicketDetailModal from '../../components/support/SupportTicketDetailModal';
@@ -21,10 +21,12 @@ export default function SupportTicketsPage() {
   const navigate = useNavigate();
   const careId = user?.careId || user?.care_id || user?.id || 1;
 
-  const [tickets, setTickets] = useState([]);
-  const [travelers, setTravelers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const ticketResource = useResource('supportTickets');
+  const travelerResource = useResource('travelers');
+  const tickets = ticketResource.items;
+  const travelers = travelerResource.items;
+  const loading = ticketResource.status === 'loading';
+  const error = ticketResource.error;
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,55 +47,12 @@ export default function SupportTicketsPage() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const loadTicketsData = async (signal) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [ticketsRes, travelersRes] = await Promise.allSettled([
-        supportTicketsApi.getAll({ signal }),
-        travelersApi.getAll({ signal }),
-      ]);
-
-      if (signal?.aborted) return;
-
-      if (ticketsRes.status === 'fulfilled' && Array.isArray(ticketsRes.value)) {
-        setTickets(ticketsRes.value);
-      } else if (!ticketsRes.reason?.isCancelled) {
-        setError(ticketsRes.reason?.message || 'Failed to load tickets queue from backend');
-      }
-
-      if (travelersRes.status === 'fulfilled' && Array.isArray(travelersRes.value)) {
-        setTravelers(travelersRes.value);
-      }
-    } catch (err) {
-      if (!signal?.aborted) {
-        setError(err.message || 'An unexpected error occurred while loading tickets.');
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    loadTicketsData(controller.signal);
-    return () => controller.abort();
-  }, []);
+  const loadTicketsData = () => ticketResource.refresh();
 
   // Realtime updates for tickets queue and active ticket threads
   useRealtimeEvent('ticket.updated', (event) => {
     if (event?.ticket) {
-      setTickets((prev) => {
-        const idx = prev.findIndex((t) => t.ticketId === event.ticket.ticketId);
-        if (idx !== -1) {
-          const next = [...prev];
-          next[idx] = { ...next[idx], ...event.ticket };
-          return next;
-        }
-        return [event.ticket, ...prev];
-      });
+      ticketResource.upsert(event.ticket);
 
       // If user currently has this ticket modal open, update modal thread in real-time
       setSelectedTicket((prev) => {
@@ -156,7 +115,7 @@ export default function SupportTicketsPage() {
     setBulkProcessing(true);
     const ids = Array.from(selectedTicketIds);
     try {
-      await Promise.all(ids.map((id) => supportTicketsApi.updateStatus(id, 'Resolved')));
+      await Promise.all(ids.map((id) => ticketResource.updateStatus(id, 'Resolved')));
       showToast(`Bulk updated ${ids.length} tickets to Resolved! ✓`);
       setSelectedTicketIds(new Set());
       await loadTicketsData();
@@ -168,18 +127,16 @@ export default function SupportTicketsPage() {
   };
 
   const handleStatusUpdate = async (ticketId, newStatus) => {
-    await supportTicketsApi.updateStatus(ticketId, newStatus);
+    await ticketResource.updateStatus(ticketId, newStatus);
     showToast(`Ticket #${ticketId} status changed to ${newStatus}! ✓`);
-    const refreshed = await supportTicketsApi.getAll();
-    if (refreshed) setTickets(refreshed);
+    await ticketResource.refresh();
     setSelectedTicket((prev) => (prev && prev.ticketId === ticketId ? { ...prev, status: newStatus } : prev));
   };
 
   const handleCreateTicket = async (ticketData) => {
-    await supportTicketsApi.create(ticketData);
+    await ticketResource.create(ticketData);
     showToast('New ticket logged in queue! ✓');
-    const refreshed = await supportTicketsApi.getAll();
-    if (refreshed) setTickets(refreshed);
+    await ticketResource.refresh();
   };
 
   const getPriorityStyle = (priority) => {

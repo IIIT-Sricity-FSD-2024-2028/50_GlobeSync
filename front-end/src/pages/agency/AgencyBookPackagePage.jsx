@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import { paymentsApi } from '../../services/api';
 import { useResource } from '../../store/hooks';
 import {
   getBookingDateBounds,
@@ -30,6 +29,7 @@ export default function AgencyBookPackagePage() {
   const passengerResource = useResource('passengers', { scope: 'getByAgency', id: agencyId }, { load: Boolean(agencyId) });
   const tripResource = useResource('trips', undefined, { load: false });
   const bookingResource = useResource('bookings', undefined, { load: false });
+  const paymentResource = useResource('payments', undefined, { load: false });
   const packages = packageResource.items;
   const passengers = passengerResource.items;
   const loading = packageResource.status === 'loading' || passengerResource.status === 'loading';
@@ -174,7 +174,7 @@ export default function AgencyBookPackagePage() {
 
       // 3. Record corporate payment ledger transaction
       const bId = Number(booking.bookingId || booking.id);
-      await paymentsApi.create({
+      await paymentResource.create({
         agencyId,
         ...(bId ? { bookingId: bId } : { tripId }),
         amount: pricing.netRemittance,

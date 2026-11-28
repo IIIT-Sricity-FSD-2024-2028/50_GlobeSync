@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSession } from '../../context/SessionContext';
-import { tripsApi } from '../../services/api';
 import { useResource } from '../../store/hooks';
 import SummaryCard from '../../components/common/SummaryCard';
 import StatusBadge from '../../components/common/StatusBadge';
@@ -45,7 +44,7 @@ export default function AgencyBookingsPage() {
     if (!b.tripId) return;
     setLoadingTripId(b.bookingId);
     try {
-      const tripData = await tripsApi.getById(b.tripId);
+      const tripData = await tripResource.getById(b.tripId);
       setActivitiesTrip(tripData);
     } catch (err) {
       console.warn('Could not load full trip, using booking reference:', err);
