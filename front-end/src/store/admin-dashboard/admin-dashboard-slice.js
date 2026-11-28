@@ -4,6 +4,9 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   metrics: null,
+  loaded: false,
+  stale: false,
+  lastFetchedAt: null,
   loading: false,
   error: null,
 };
@@ -23,6 +26,12 @@ const adminDashboardSlice = createSlice({
     },
     setMetrics(state, action) {
       state.metrics = action.payload ?? null;
+      state.loaded = true;
+      state.stale = false;
+      state.lastFetchedAt = Date.now();
+    },
+    markStale(state) {
+      state.stale = true;
     },
     resetAdminDashboard() {
       return initialState;

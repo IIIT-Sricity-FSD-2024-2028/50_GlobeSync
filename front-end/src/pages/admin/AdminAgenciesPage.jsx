@@ -28,7 +28,11 @@ export default function AdminAgenciesPage() {
 
   const agencies = useSelector((state) => state.adminAgencies.agencies);
   const selectedAgencyId = useSelector((state) => state.adminAgencies.selectedAgencyId);
-  const detailedAgency = useSelector((state) => state.adminAgencies.detailedAgency);
+  const detailedAgency = useSelector((state) =>
+    selectedAgencyId
+      ? state.adminAgencies.detailsByAgencyId?.[selectedAgencyId]?.data || null
+      : state.adminAgencies.detailedAgency
+  );
   const search = useSelector((state) => state.adminAgencies.search);
   const statusFilter = useSelector((state) => state.adminAgencies.statusFilter);
   const deactivationReason = useSelector((state) => state.adminAgencies.deactivationReason);
@@ -104,6 +108,7 @@ export default function AdminAgenciesPage() {
   };
 
   const handleViewDetails = (agency) => {
+    dispatch(adminAgenciesActions.openDetailsModal(agency.agencyId));
     dispatch(fetchAdminAgencyById(agency.agencyId));
   };
 
@@ -131,7 +136,7 @@ export default function AdminAgenciesPage() {
   const resource = {
     loading,
     busy: loading,
-    load: () => dispatch(fetchAdminAgencies()),
+    load: () => dispatch(fetchAdminAgencies({ force: true })),
     error,
     data: agencies,
   };
@@ -285,8 +290,8 @@ export default function AdminAgenciesPage() {
       )}
 
       <AgencyDetailsModal
-        isOpen={modal.detailsOpen && Boolean(detailedAgency)}
-        agency={detailedAgency}
+        isOpen={modal.detailsOpen && Boolean(detailedAgency || selectedAgency)}
+        agency={detailedAgency || selectedAgency}
         onClose={handleCloseDetails}
         onReviewStatus={handleOpenStatus}
       />

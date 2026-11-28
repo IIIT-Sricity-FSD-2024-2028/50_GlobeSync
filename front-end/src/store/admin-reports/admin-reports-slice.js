@@ -15,6 +15,9 @@ const initialState = {
   transactionSearch: '',
   transactionStatus: 'all',
   exportStatus: 'idle',
+  loaded: false,
+  stale: false,
+  lastFetchedAt: null,
   loading: false,
   error: null,
 };
@@ -42,6 +45,12 @@ const adminReportsSlice = createSlice({
       state.transactions = Array.isArray(action.payload?.transactions) ? action.payload.transactions : [];
       state.config = Array.isArray(action.payload?.config) ? action.payload.config : [];
       state.partialFailures = Array.isArray(action.payload?.partialFailures) ? action.payload.partialFailures : [];
+      state.loaded = true;
+      state.stale = false;
+      state.lastFetchedAt = Date.now();
+    },
+    markStale(state) {
+      state.stale = true;
     },
     setTransactionSearch(state, action) {
       state.transactionSearch = action.payload ?? '';

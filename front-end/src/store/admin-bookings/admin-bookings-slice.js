@@ -11,6 +11,9 @@ const initialState = {
   selectedBookingId: null,
   search: '',
   statusFilter: '',
+  loaded: false,
+  stale: false,
+  lastFetchedAt: null,
   loading: false,
   error: null,
 };
@@ -34,6 +37,12 @@ const adminBookingsSlice = createSlice({
       state.relatedTravelers = Array.isArray(action.payload?.travelers) ? action.payload.travelers : [];
       state.relatedAgencies = Array.isArray(action.payload?.agencies) ? action.payload.agencies : [];
       state.relatedPayments = Array.isArray(action.payload?.payments) ? action.payload.payments : [];
+      state.loaded = true;
+      state.stale = false;
+      state.lastFetchedAt = Date.now();
+    },
+    markStale(state) {
+      state.stale = true;
     },
     setSelectedBookingId(state, action) {
       state.selectedBookingId = action.payload ?? null;

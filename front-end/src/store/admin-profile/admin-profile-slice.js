@@ -4,6 +4,10 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   profile: null,
+  loaded: false,
+  loadedAdminId: null,
+  stale: false,
+  lastFetchedAt: null,
   form: {
     name: '',
     email: '',
@@ -28,11 +32,18 @@ const adminProfileSlice = createSlice({
     },
     setProfile(state, action) {
       state.profile = action.payload ?? null;
+      state.loaded = Boolean(action.payload);
+      state.loadedAdminId = action.payload?.adminId ?? action.payload?.id ?? null;
+      state.stale = false;
+      state.lastFetchedAt = Date.now();
       state.form = {
         name: action.payload?.name ?? '',
         email: action.payload?.email ?? '',
       };
       state.isDirty = false;
+    },
+    markStale(state) {
+      state.stale = true;
     },
     setForm(state, action) {
       state.form = { ...state.form, ...action.payload };

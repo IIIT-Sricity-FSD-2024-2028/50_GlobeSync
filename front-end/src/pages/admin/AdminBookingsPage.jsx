@@ -97,7 +97,7 @@ export default function AdminBookingsPage() {
   const resource = {
     loading,
     busy: loading,
-    load: () => dispatch(fetchAdminBookings()),
+    load: () => dispatch(fetchAdminBookings({ force: true })),
     error,
     data: bookings,
   };

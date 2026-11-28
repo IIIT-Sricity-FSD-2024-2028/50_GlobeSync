@@ -65,7 +65,7 @@ export default function AdminReviewsPage() {
   const resource = {
     loading,
     busy: loading,
-    load: () => dispatch(fetchAdminReviews()),
+    load: () => dispatch(fetchAdminReviews({ force: true })),
     error,
     data: reviews,
   };

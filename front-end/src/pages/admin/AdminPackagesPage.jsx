@@ -106,7 +106,7 @@ export default function AdminPackagesPage() {
   const resource = {
     loading,
     busy: loading,
-    load: () => dispatch(fetchAdminPackages()),
+    load: () => dispatch(fetchAdminPackages({ force: true })),
     error,
     data: packages,
   };

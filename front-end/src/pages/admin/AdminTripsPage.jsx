@@ -93,7 +93,7 @@ export default function AdminTripsPage() {
   const resource = {
     loading,
     busy: loading,
-    load: () => dispatch(fetchAdminTrips()),
+    load: () => dispatch(fetchAdminTrips({ force: true })),
     error,
     data: trips,
   };

@@ -45,7 +45,7 @@ export default function AdminProfilePage() {
   const resource = {
     loading,
     busy: loading,
-    load: () => id && dispatch(fetchAdminProfile(id)),
+    load: () => id && dispatch(fetchAdminProfile(id, { force: true })),
     error,
     notice: localNotice,
     data: profile,

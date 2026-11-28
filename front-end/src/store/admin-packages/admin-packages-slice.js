@@ -13,6 +13,9 @@ const initialState = {
     archiveOpen: false,
   },
   archiveReason: '',
+  loaded: false,
+  stale: false,
+  lastFetchedAt: null,
   loading: false,
   error: null,
 };
@@ -32,6 +35,12 @@ const adminPackagesSlice = createSlice({
     },
     setPackages(state, action) {
       state.packages = Array.isArray(action.payload) ? action.payload : [];
+      state.loaded = true;
+      state.stale = false;
+      state.lastFetchedAt = Date.now();
+    },
+    markStale(state) {
+      state.stale = true;
     },
     addPackage(state, action) {
       if (action.payload) {

@@ -9,6 +9,9 @@ const initialState = {
   deletingReviewId: null,
   search: '',
   ratingFilter: 'all',
+  loaded: false,
+  stale: false,
+  lastFetchedAt: null,
   loading: false,
   error: null,
 };
@@ -30,6 +33,12 @@ const adminReviewsSlice = createSlice({
       state.reviews = Array.isArray(action.payload?.reviews) ? action.payload.reviews : [];
       state.relatedTrips = Array.isArray(action.payload?.trips) ? action.payload.trips : [];
       state.relatedGuides = Array.isArray(action.payload?.guides) ? action.payload.guides : [];
+      state.loaded = true;
+      state.stale = false;
+      state.lastFetchedAt = Date.now();
+    },
+    markStale(state) {
+      state.stale = true;
     },
     removeReview(state, action) {
       const targetId = action.payload;

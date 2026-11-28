@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { authActions } from '../store/auth/auth-slice';
+import { resetAllAdminCaches } from '../store/admin-ui/admin-cache-utils';
 import {
   setAccessToken,
   clearAccessToken,
@@ -185,6 +186,7 @@ export function SessionProvider({ children }) {
       clearAccessToken();
       setSession({ user: null, role: null });
       dispatch(authActions.clearAuthSession());
+      dispatch(resetAllAdminCaches());
       const currentPath = window.location.pathname;
       if (
         !currentPath.startsWith('/login') &&
@@ -213,6 +215,7 @@ export function SessionProvider({ children }) {
       clearAccessToken();
       setSession({ user: null, role: null });
       dispatch(authActions.clearAuthSession());
+      dispatch(resetAllAdminCaches());
     }
   }, [dispatch]);
 

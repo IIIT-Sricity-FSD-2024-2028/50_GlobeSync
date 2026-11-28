@@ -22,27 +22,65 @@ export const selectAdminDashboardError = (state) => state.adminDashboard?.error;
 
 // Packages
 export const selectAdminPackages = (state) => state.adminPackages?.packages || [];
+export const selectAdminPackageById = (state, packageId) =>
+  (state.adminPackages?.packages || []).find((p) => (p.packageId || p.id) === packageId) || null;
+export const selectAdminFilteredPackages = (state) => {
+  const list = state.adminPackages?.packages || [];
+  const q = (state.adminPackages?.search || '').trim().toLowerCase();
+  if (!q) return list;
+  return list.filter(
+    (pkg) =>
+      (pkg.name ?? '').toLowerCase().includes(q) ||
+      (pkg.destinations ?? '').toLowerCase().includes(q) ||
+      String(pkg.packageId ?? '').includes(q)
+  );
+};
 export const selectAdminPackagesLoading = (state) => Boolean(state.adminPackages?.loading);
 export const selectAdminPackagesError = (state) => state.adminPackages?.error;
 export const selectAdminPackageModal = (state) => state.adminPackages?.modal;
 
 // Bookings
 export const selectAdminBookings = (state) => state.adminBookings?.bookings || [];
+export const selectAdminBookingsByTripId = (state, tripId) =>
+  (state.adminBookings?.bookings || []).filter((b) => b.tripId === tripId);
+export const selectAdminFilteredBookings = (state) => {
+  const list = state.adminBookings?.bookings || [];
+  const statusFilter = state.adminBookings?.statusFilter || '';
+  const q = (state.adminBookings?.search || '').trim().toLowerCase();
+  return list.filter((b) => {
+    if (statusFilter && b.status !== statusFilter) return false;
+    if (!q) return true;
+    return (
+      String(b.bookingId ?? '').toLowerCase().includes(q) ||
+      (b.service ?? '').toLowerCase().includes(q)
+    );
+  });
+};
 export const selectAdminBookingsLoading = (state) => Boolean(state.adminBookings?.loading);
 export const selectAdminBookingsError = (state) => state.adminBookings?.error;
 
 // Trips
 export const selectAdminTrips = (state) => state.adminTrips?.trips || [];
+export const selectAdminTripById = (state, tripId) =>
+  (state.adminTrips?.trips || []).find((t) => (t.tripId || t.id) === tripId) || null;
+export const selectAdminTripDetailsById = (state, tripId) =>
+  tripId != null ? state.adminTrips?.detailsByTripId?.[tripId] || null : null;
 export const selectAdminTripsLoading = (state) => Boolean(state.adminTrips?.loading);
 export const selectAdminTripsError = (state) => state.adminTrips?.error;
 
 // Agencies
 export const selectAdminAgencies = (state) => state.adminAgencies?.agencies || [];
+export const selectAdminAgencyById = (state, agencyId) =>
+  (state.adminAgencies?.agencies || []).find((a) => (a.agencyId || a.id) === agencyId) || null;
+export const selectAdminAgencyDetailsById = (state, agencyId) =>
+  agencyId != null ? state.adminAgencies?.detailsByAgencyId?.[agencyId]?.data || null : null;
 export const selectAdminAgenciesLoading = (state) => Boolean(state.adminAgencies?.loading);
 export const selectAdminAgenciesError = (state) => state.adminAgencies?.error;
 
 // Guides
 export const selectAdminGuides = (state) => state.adminGuides?.guides || [];
+export const selectAdminGuideById = (state, guideId) =>
+  (state.adminGuides?.guides || []).find((g) => (g.guideId || g.id) === guideId) || null;
 export const selectAdminGuidesLoading = (state) => Boolean(state.adminGuides?.loading);
 export const selectAdminGuidesError = (state) => state.adminGuides?.error;
 

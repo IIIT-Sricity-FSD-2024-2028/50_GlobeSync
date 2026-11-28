@@ -4,8 +4,12 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   agencies: [],
+  loaded: false,
+  stale: false,
+  lastFetchedAt: null,
   selectedAgencyId: null,
   detailedAgency: null,
+  detailsByAgencyId: {},
   search: '',
   statusFilter: '',
   deactivationReason: '',
@@ -34,10 +38,27 @@ const adminAgenciesSlice = createSlice({
     },
     setAgencies(state, action) {
       state.agencies = Array.isArray(action.payload) ? action.payload : [];
+      state.loaded = true;
+      state.stale = false;
+      state.lastFetchedAt = Date.now();
+    },
+    markStale(state) {
+      state.stale = true;
     },
     addAgency(state, action) {
       if (action.payload) {
         state.agencies.unshift(action.payload);
+        const id = action.payload.agencyId || action.payload.id;
+        if (id != null) {
+          state.detailsByAgencyId[id] = {
+            data: action.payload,
+            loaded: true,
+            loading: false,
+            error: null,
+            stale: false,
+            lastFetchedAt: Date.now(),
+          };
+        }
       }
     },
     updateAgency(state, action) {
@@ -47,10 +68,51 @@ const adminAgenciesSlice = createSlice({
       if (idx >= 0) {
         state.agencies[idx] = { ...state.agencies[idx], ...updated };
       }
+      if (targetId != null && state.detailsByAgencyId[targetId]?.data) {
+        state.detailsByAgencyId[targetId].data = {
+          ...state.detailsByAgencyId[targetId].data,
+          ...updated,
+        };
+        state.detailsByAgencyId[targetId].lastFetchedAt = Date.now();
+      }
+      if (state.detailedAgency && (state.detailedAgency.agencyId || state.detailedAgency.id) === targetId) {
+        state.detailedAgency = { ...state.detailedAgency, ...updated };
+      }
+    },
+    setAgencyDetailsLoading(state, action) {
+      const { agencyId, loading } = action.payload || {};
+      if (agencyId == null) return;
+      const prev = state.detailsByAgencyId[agencyId] || {};
+      state.detailsByAgencyId[agencyId] = {
+        ...prev,
+        loading: Boolean(loading),
+        error: loading ? null : prev.error ?? null,
+      };
+    },
+    setAgencyDetailsError(state, action) {
+      const { agencyId, error } = action.payload || {};
+      if (agencyId == null) return;
+      const prev = state.detailsByAgencyId[agencyId] || {};
+      state.detailsByAgencyId[agencyId] = {
+        ...prev,
+        loading: false,
+        error: error ?? null,
+      };
     },
     setDetailedAgency(state, action) {
-      state.detailedAgency = action.payload ?? null;
-      state.modal.detailsOpen = Boolean(action.payload);
+      const data = action.payload ?? null;
+      state.detailedAgency = data;
+      const id = data?.agencyId || data?.id;
+      if (id != null) {
+        state.detailsByAgencyId[id] = {
+          data,
+          loaded: true,
+          loading: false,
+          error: null,
+          stale: false,
+          lastFetchedAt: Date.now(),
+        };
+      }
     },
     setSelectedAgencyId(state, action) {
       state.selectedAgencyId = action.payload ?? null;
@@ -90,7 +152,6 @@ const adminAgenciesSlice = createSlice({
     },
     closeDetailsModal(state) {
       state.modal.detailsOpen = false;
-      state.detailedAgency = null;
       state.selectedAgencyId = null;
     },
     openDeactivateModal(state, action) {

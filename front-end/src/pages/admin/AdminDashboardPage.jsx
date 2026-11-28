@@ -17,7 +17,7 @@ export default function AdminDashboardPage() {
   const resource = {
     loading,
     busy: loading,
-    load: () => dispatch(fetchAdminDashboard()),
+    load: () => dispatch(fetchAdminDashboard({ force: true })),
     error,
     data: d,
   };

@@ -377,7 +377,7 @@ export default function AdminGuidesPage() {
   const resource = {
     loading,
     busy: loading,
-    load: () => dispatch(fetchAdminGuides()),
+    load: () => dispatch(fetchAdminGuides({ force: true })),
     error,
     data: guides,
   };

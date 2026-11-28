@@ -12,9 +12,13 @@ const initialState = {
   selectedTripBookings: [],
   reassignmentHistory: [],
   detailsLoading: false,
+  detailsByTripId: {},
   reassigningTripId: null,
   search: '',
   statusFilter: '',
+  loaded: false,
+  stale: false,
+  lastFetchedAt: null,
   loading: false,
   error: null,
 };
@@ -38,6 +42,12 @@ const adminTripsSlice = createSlice({
       state.relatedAgencies = Array.isArray(action.payload?.agencies) ? action.payload.agencies : [];
       state.relatedGuides = Array.isArray(action.payload?.guides) ? action.payload.guides : [];
       state.relatedPackages = Array.isArray(action.payload?.packages) ? action.payload.packages : [];
+      state.loaded = true;
+      state.stale = false;
+      state.lastFetchedAt = Date.now();
+    },
+    markStale(state) {
+      state.stale = true;
     },
     updateTripGuide(state, action) {
       const { tripId, guideId, guideStatus } = action.payload || {};
@@ -55,24 +65,63 @@ const adminTripsSlice = createSlice({
     },
     clearSelectedTrip(state) {
       state.selectedTripId = null;
-      state.selectedTripBookings = [];
-      state.reassignmentHistory = [];
       state.detailsLoading = false;
     },
     setDetailsLoading(state, action) {
-      state.detailsLoading = Boolean(action.payload);
+      const payload = action.payload;
+      if (payload && typeof payload === 'object') {
+        const { tripId, loading } = payload;
+        state.detailsLoading = Boolean(loading);
+        if (tripId != null) {
+          const prev = state.detailsByTripId[tripId] || { reassignmentHistory: [] };
+          state.detailsByTripId[tripId] = {
+            ...prev,
+            loading: Boolean(loading),
+            error: loading ? null : prev.error ?? null,
+          };
+        }
+      } else {
+        state.detailsLoading = Boolean(payload);
+      }
+    },
+    setTripDetailsError(state, action) {
+      const { tripId, error } = action.payload || {};
+      state.detailsLoading = false;
+      if (tripId != null) {
+        const prev = state.detailsByTripId[tripId] || { reassignmentHistory: [] };
+        state.detailsByTripId[tripId] = {
+          ...prev,
+          loading: false,
+          error: error ?? null,
+        };
+      }
     },
     setTripDetails(state, action) {
-      state.selectedTripBookings = Array.isArray(action.payload?.associatedBookings)
-        ? action.payload.associatedBookings
-        : [];
-      state.reassignmentHistory = Array.isArray(action.payload?.reassignmentHistory)
-        ? action.payload.reassignmentHistory
-        : [];
+      const { tripId, associatedBookings, reassignmentHistory } = action.payload || {};
+      const history = Array.isArray(reassignmentHistory) ? reassignmentHistory : [];
+      if (tripId != null) {
+        state.detailsByTripId[tripId] = {
+          reassignmentHistory: history,
+          loaded: true,
+          loading: false,
+          error: null,
+          stale: false,
+          lastFetchedAt: Date.now(),
+        };
+      }
+      if (tripId == null || state.selectedTripId === tripId) {
+        state.selectedTripBookings = Array.isArray(associatedBookings) ? associatedBookings : [];
+        state.reassignmentHistory = history;
+      }
+    },
+    invalidateTripDetails(state, action) {
+      const tripId = action.payload;
+      if (tripId != null && state.detailsByTripId[tripId]) {
+        state.detailsByTripId[tripId].stale = true;
+      }
     },
     clearTripDetails(state) {
-      state.selectedTripBookings = [];
-      state.reassignmentHistory = [];
+      // Only clear transient UI loading state; preserve cached detailsByTripId.
       state.detailsLoading = false;
     },
     setReassigningTripId(state, action) {

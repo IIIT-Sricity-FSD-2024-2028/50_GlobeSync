@@ -1,46 +1,64 @@
 // Thunks: fetchAdminGuides, createAdminGuide, updateAdminGuide, verifyAdminGuide, requestAdminGuideDeactivation
-// Isolated asynchronous operations following Prof. Mallikarjun Reddy Sir's pattern.
-import { guidesApi, packagesApi, approvalsApi } from '../../services/api';
+// Cache-aware manual thunks reusing canonical adminPackages cache.
+import { guidesApi, approvalsApi } from '../../services/api';
 import { adminGuidesActions } from './admin-guides-slice';
+import { fetchAdminPackages } from '../admin-packages/admin-packages-actions';
+import { adminDashboardActions } from '../admin-dashboard/admin-dashboard-slice';
+import { runDeduplicated } from '../admin-ui/admin-cache-utils';
 
-export const fetchAdminGuides = () => {
-  return async (dispatch) => {
-    dispatch(adminGuidesActions.setLoading(true));
-    dispatch(adminGuidesActions.setError(null));
-    try {
-      const [guidesRes, packagesRes] = await Promise.allSettled([
-        guidesApi.getAll(),
-        packagesApi.getAll(),
-      ]);
-
-      const guides =
-        guidesRes.status === 'fulfilled'
-          ? Array.isArray(guidesRes.value?.data)
-            ? guidesRes.value.data
-            : Array.isArray(guidesRes.value)
-            ? guidesRes.value
-            : []
-          : [];
-
-      const packages =
-        packagesRes.status === 'fulfilled'
-          ? Array.isArray(packagesRes.value?.data)
-            ? packagesRes.value.data
-            : Array.isArray(packagesRes.value)
-            ? packagesRes.value
-            : []
-          : [];
-
-      const result = { guides, packages };
-      dispatch(adminGuidesActions.setGuidesData(result));
-      return result;
-    } catch (err) {
-      const msg = err?.response?.data?.message || err.message || 'Failed to load guides.';
-      dispatch(adminGuidesActions.setError(msg));
-      throw err;
-    } finally {
-      dispatch(adminGuidesActions.setLoading(false));
+export const fetchAdminGuides = ({ force = false } = {}) => {
+  return async (dispatch, getState) => {
+    const state = getState().adminGuides;
+    if (state?.loaded && !state.stale && !force) {
+      return {
+        guides: state.guides,
+        packages: getState().adminPackages?.packages || state.relatedPackages,
+      };
     }
+
+    return runDeduplicated('adminGuides:fetch', async () => {
+      const latest = getState().adminGuides;
+      if (latest?.loaded && !latest.stale && !force) {
+        return {
+          guides: latest.guides,
+          packages: getState().adminPackages?.packages || latest.relatedPackages,
+        };
+      }
+
+      dispatch(adminGuidesActions.setLoading(true));
+      dispatch(adminGuidesActions.setError(null));
+      try {
+        const [guidesRes, packagesResult] = await Promise.allSettled([
+          guidesApi.getAll(),
+          dispatch(fetchAdminPackages({ force })),
+        ]);
+
+        if (guidesRes.status === 'rejected') {
+          throw guidesRes.reason || new Error('Failed to load guides.');
+        }
+
+        const guides = Array.isArray(guidesRes.value?.data)
+          ? guidesRes.value.data
+          : Array.isArray(guidesRes.value)
+          ? guidesRes.value
+          : [];
+
+        const packages =
+          packagesResult.status === 'fulfilled' && Array.isArray(packagesResult.value)
+            ? packagesResult.value
+            : getState().adminPackages?.packages || [];
+
+        const result = { guides, packages };
+        dispatch(adminGuidesActions.setGuidesData(result));
+        return result;
+      } catch (err) {
+        const msg = err?.response?.data?.message || err.message || 'Failed to load guides.';
+        dispatch(adminGuidesActions.setError(msg));
+        throw err;
+      } finally {
+        dispatch(adminGuidesActions.setLoading(false));
+      }
+    });
   };
 };
 

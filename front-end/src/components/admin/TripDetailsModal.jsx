@@ -15,18 +15,31 @@ export default function TripDetailsModal({
   onRequestReassign,
 }) {
   const dispatch = useDispatch();
-  const associatedBookings = useSelector((state) => state.adminTrips.selectedTripBookings);
-  const reassignmentHistory = useSelector((state) => state.adminTrips.reassignmentHistory);
-  const loadingExtras = useSelector((state) => state.adminTrips.detailsLoading);
+  const tripId = trip?.tripId;
+  const cachedBookings = useSelector((state) => state.adminBookings.bookings);
+  const bookingsLoaded = useSelector((state) => state.adminBookings.loaded);
+  const tripDetailEntry = useSelector((state) =>
+    tripId != null ? state.adminTrips.detailsByTripId?.[tripId] : null
+  );
+  const fallbackBookings = useSelector((state) => state.adminTrips.selectedTripBookings);
+  const fallbackHistory = useSelector((state) => state.adminTrips.reassignmentHistory);
+  const globalDetailsLoading = useSelector((state) => state.adminTrips.detailsLoading);
+
+  const associatedBookings =
+    bookingsLoaded && Array.isArray(cachedBookings) && tripId != null
+      ? cachedBookings.filter((b) => b.tripId === tripId)
+      : fallbackBookings;
+  const reassignmentHistory = tripDetailEntry?.reassignmentHistory ?? fallbackHistory;
+  const loadingExtras = tripDetailEntry?.loading ?? globalDetailsLoading;
 
   useEffect(() => {
-    if (isOpen && trip?.tripId) {
-      dispatch(fetchAdminTripDetails(trip.tripId));
+    if (isOpen && tripId) {
+      dispatch(fetchAdminTripDetails(tripId));
     }
     return () => {
       dispatch(adminTripsActions.clearTripDetails());
     };
-  }, [dispatch, isOpen, trip?.tripId]);
+  }, [dispatch, isOpen, tripId]);
 
   if (!isOpen || !trip) return null;
 

@@ -164,7 +164,7 @@ export default function AdminReportsPage() {
   const resource = {
     loading,
     busy: loading || exportStatus === 'exporting',
-    load: () => dispatch(fetchAdminReports()),
+    load: () => dispatch(fetchAdminReports({ force: true })),
     error,
     data: hasData ? true : null,
   };

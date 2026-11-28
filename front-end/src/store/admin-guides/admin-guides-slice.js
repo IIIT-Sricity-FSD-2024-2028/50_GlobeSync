@@ -20,6 +20,9 @@ const initialState = {
     deactivateOpen: false,
     viewOpen: false,
   },
+  loaded: false,
+  stale: false,
+  lastFetchedAt: null,
   loading: false,
   error: null,
 };
@@ -40,6 +43,12 @@ const adminGuidesSlice = createSlice({
     setGuidesData(state, action) {
       state.guides = Array.isArray(action.payload?.guides) ? action.payload.guides : [];
       state.relatedPackages = Array.isArray(action.payload?.packages) ? action.payload.packages : [];
+      state.loaded = true;
+      state.stale = false;
+      state.lastFetchedAt = Date.now();
+    },
+    markStale(state) {
+      state.stale = true;
     },
     addGuide(state, action) {
       if (action.payload) {
